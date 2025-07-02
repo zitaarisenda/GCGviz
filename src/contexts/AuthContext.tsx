@@ -9,6 +9,7 @@ interface UserProfile {
   username: string;
   role: 'Admin Divisi' | 'User';
   divisi?: string;
+  created_at?: string;
 }
 
 interface AuthContextType {
@@ -44,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      return data;
+      return data as UserProfile;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
