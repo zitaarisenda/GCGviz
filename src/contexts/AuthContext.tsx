@@ -172,8 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             divisi: adminAccount.divisi
           };
           
-          setProfile(mockProfile);
-          setUser({
+          const mockUser = {
             id: mockProfile.id,
             email: adminAccount.email,
             email_confirmed_at: new Date().toISOString(),
@@ -182,7 +181,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             aud: 'authenticated',
             app_metadata: {},
             user_metadata: {}
-          } as User);
+          } as User;
+          
+          // Set mock session for admin
+          const mockSession = {
+            access_token: 'mock_admin_token',
+            refresh_token: 'mock_admin_refresh',
+            expires_in: 3600,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+            token_type: 'bearer',
+            user: mockUser
+          } as Session;
+          
+          setProfile(mockProfile);
+          setUser(mockUser);
+          setSession(mockSession);
           
           toast({
             title: "Login berhasil",
@@ -207,6 +220,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) {
+        console.error('Supabase login error:', error);
         toast({
           title: "Login gagal",
           description: error.message,
@@ -245,16 +259,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
+      console.log('Starting registration process...');
+      
       // Register user with Supabase Auth (only for regular Users)
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            full_name: username
+          }
         }
       });
 
       if (error) {
+        console.error('Supabase registration error:', error);
         toast({
           title: "Registrasi gagal",
           description: error.message,
@@ -264,6 +284,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data.user) {
+        console.log('User created, now creating profile...');
+        
+        // Wait a bit to ensure user is properly created
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // Create profile record for User only
         const { error: profileError } = await supabase
           .from('profiles')
@@ -276,12 +301,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.error('Profile creation error:', profileError);
           toast({
             title: "Error",
-            description: "Gagal membuat profil pengguna",
+            description: "Gagal membuat profil pengguna. Silakan coba lagi.",
             variant: "destructive"
           });
           return false;
         }
 
+        console.log('Profile created successfully');
         toast({
           title: "Registrasi berhasil",
           description: "Akun berhasil dibuat. Silakan cek email untuk konfirmasi.",
