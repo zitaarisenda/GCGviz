@@ -5,11 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requireRole?: 'admin' | 'user';
+  requireRole?: 'Admin Divisi' | 'User';
 }
 
 const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -19,12 +19,12 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     );
   }
 
-  if (!user) {
+  if (!user || !profile) {
     return <Navigate to="/login" replace />;
   }
 
-  if (requireRole && user.role !== requireRole) {
-    return <Navigate to={user.role === 'admin' ? '/admin' : '/user'} replace />;
+  if (requireRole && profile.role !== requireRole) {
+    return <Navigate to={profile.role === 'Admin Divisi' ? '/admin' : '/user'} replace />;
   }
 
   return <>{children}</>;

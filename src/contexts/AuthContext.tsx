@@ -1,104 +1,125 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
 
-interface User {
+interface UserProfile {
   id: string;
   username: string;
-  role: 'admin' | 'user';
-  division?: string;
+  role: 'Admin Divisi' | 'User';
+  divisi?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
-  register: (username: string, password: string, division: string) => Promise<boolean>;
-  logout: () => void;
+  profile: UserProfile | null;
+  session: Session | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, username: string, role: 'Admin Divisi' | 'User', divisi?: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Simple hash function for demo purposes (in production, use proper backend hashing)
-const simpleHash = (password: string): string => {
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return hash.toString();
-};
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Initialize default admin account
-  useEffect(() => {
-    const initializeAdmin = () => {
-      const users = JSON.parse(localStorage.getItem('gcg_users') || '[]');
-      const adminExists = users.find((u: any) => u.username === 'admin123');
-      
-      if (!adminExists) {
-        const adminUser = {
-          id: 'admin-1',
-          username: 'admin123',
-          password: simpleHash('admin123'),
-          role: 'admin',
-          division: 'IT'
-        };
-        users.push(adminUser);
-        localStorage.setItem('gcg_users', JSON.stringify(users));
+  // Fetch user profile from database
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
       }
-    };
 
-    initializeAdmin();
-
-    // Check if user is already logged in
-    const savedUser = localStorage.getItem('gcg_current_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      return data;
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      return null;
     }
-    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session);
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          // Fetch user profile after authentication
+          setTimeout(async () => {
+            const profileData = await fetchUserProfile(session.user.id);
+            setProfile(profileData);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserProfile(session.user.id).then(setProfile);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      const users = JSON.parse(localStorage.getItem('gcg_users') || '[]');
-      const foundUser = users.find((u: any) => 
-        u.username === username && u.password === simpleHash(password)
-      );
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (foundUser) {
-        const userData = {
-          id: foundUser.id,
-          username: foundUser.username,
-          role: foundUser.role,
-          division: foundUser.division
-        };
-        
-        setUser(userData);
-        localStorage.setItem('gcg_current_user', JSON.stringify(userData));
-        
-        toast({
-          title: "Login berhasil",
-          description: `Selamat datang, ${foundUser.username}!`,
-        });
-        
-        return true;
-      } else {
+      if (error) {
         toast({
           title: "Login gagal",
-          description: "Username atau password salah",
+          description: error.message,
           variant: "destructive"
         });
         return false;
       }
+
+      if (data.user) {
+        const profileData = await fetchUserProfile(data.user.id);
+        setProfile(profileData);
+        
+        toast({
+          title: "Login berhasil",
+          description: `Selamat datang, ${profileData?.username || 'User'}!`,
+        });
+        
+        return true;
+      }
+
+      return false;
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
         description: "Terjadi kesalahan saat login",
@@ -110,40 +131,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (username: string, password: string, division: string): Promise<boolean> => {
+  const register = async (
+    email: string, 
+    password: string, 
+    username: string, 
+    role: 'Admin Divisi' | 'User', 
+    divisi?: string
+  ): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      const users = JSON.parse(localStorage.getItem('gcg_users') || '[]');
-      const userExists = users.find((u: any) => u.username === username);
+      // Register user with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
 
-      if (userExists) {
+      if (error) {
         toast({
           title: "Registrasi gagal",
-          description: "Username sudah terdaftar",
+          description: error.message,
           variant: "destructive"
         });
         return false;
       }
 
-      const newUser = {
-        id: `user-${Date.now()}`,
-        username,
-        password: simpleHash(password),
-        role: 'user',
-        division
-      };
+      if (data.user) {
+        // Create profile record
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            username,
+            role,
+            divisi: role === 'Admin Divisi' ? divisi : null
+          });
 
-      users.push(newUser);
-      localStorage.setItem('gcg_users', JSON.stringify(users));
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          toast({
+            title: "Error",
+            description: "Gagal membuat profil pengguna",
+            variant: "destructive"
+          });
+          return false;
+        }
 
-      toast({
-        title: "Registrasi berhasil",
-        description: "Akun berhasil dibuat, silakan login",
-      });
+        toast({
+          title: "Registrasi berhasil",
+          description: "Akun berhasil dibuat. Silakan cek email untuk konfirmasi.",
+        });
 
-      return true;
+        return true;
+      }
+
+      return false;
     } catch (error) {
+      console.error('Register error:', error);
       toast({
         title: "Error",
         description: "Terjadi kesalahan saat registrasi",
@@ -155,17 +202,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('gcg_current_user');
-    toast({
-      title: "Logout berhasil",
-      description: "Anda telah keluar dari sistem",
-    });
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      
+      toast({
+        title: "Logout berhasil",
+        description: "Anda telah keluar dari sistem",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      profile, 
+      session, 
+      login, 
+      register, 
+      logout, 
+      isLoading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

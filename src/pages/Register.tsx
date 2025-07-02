@@ -10,26 +10,49 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Shield, Eye, EyeOff } from 'lucide-react';
 
 const Register = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [division, setDivision] = useState('');
+  const [username, setUsername] = useState('');
+  const [role, setRole] = useState<'Admin Divisi' | 'User' | ''>('');
+  const [divisi, setDivisi] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const divisions = ["Audit Internal", "Manajemen Risiko", "Sekretaris Perusahaan", "Keuangan", "SDM", "Hukum", "IT"];
+  const divisions = [
+    "Audit Internal", 
+    "Manajemen Risiko", 
+    "Sekretaris Perusahaan", 
+    "Keuangan", 
+    "SDM", 
+    "Hukum", 
+    "IT"
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      // Toast will be handled by AuthContext
       return;
     }
 
-    const success = await register(username, password, division);
+    if (!role) {
+      return;
+    }
+
+    if (role === 'Admin Divisi' && !divisi) {
+      return;
+    }
+
+    const success = await register(
+      email, 
+      password, 
+      username, 
+      role as 'Admin Divisi' | 'User', 
+      role === 'Admin Divisi' ? divisi : undefined
+    );
     
     if (success) {
       navigate('/login');
@@ -51,6 +74,18 @@ const Register = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Masukkan email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
@@ -63,18 +98,33 @@ const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="division">Divisi</Label>
-              <Select value={division} onValueChange={setDivision} required>
+              <Label htmlFor="role">Role</Label>
+              <Select value={role} onValueChange={(value) => setRole(value as 'Admin Divisi' | 'User')} required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih divisi" />
+                  <SelectValue placeholder="Pilih role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {divisions.map(div => (
-                    <SelectItem key={div} value={div}>{div}</SelectItem>
-                  ))}
+                  <SelectItem value="Admin Divisi">Admin Divisi</SelectItem>
+                  <SelectItem value="User">User</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {role === 'Admin Divisi' && (
+              <div className="space-y-2">
+                <Label htmlFor="divisi">Divisi</Label>
+                <Select value={divisi} onValueChange={setDivisi} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih divisi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {divisions.map(div => (
+                      <SelectItem key={div} value={div}>{div}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -125,7 +175,7 @@ const Register = () => {
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-              disabled={isLoading || password !== confirmPassword}
+              disabled={isLoading || password !== confirmPassword || !role || (role === 'Admin Divisi' && !divisi)}
             >
               {isLoading ? 'Memproses...' : 'Daftar'}
             </Button>

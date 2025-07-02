@@ -15,17 +15,17 @@ import ProtectedRoute from "./components/ProtectedRoute";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/user'} replace /> : <Login />} />
-      <Route path="/register" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/user'} replace /> : <Register />} />
+      <Route path="/login" element={user ? <Navigate to={profile?.role === 'Admin Divisi' ? '/admin' : '/user'} replace /> : <Login />} />
+      <Route path="/register" element={user ? <Navigate to={profile?.role === 'Admin Divisi' ? '/admin' : '/user'} replace /> : <Register />} />
       
       <Route 
         path="/admin" 
         element={
-          <ProtectedRoute requireRole="admin">
+          <ProtectedRoute requireRole="Admin Divisi">
             <Index />
           </ProtectedRoute>
         } 
@@ -34,7 +34,7 @@ const AppRoutes = () => {
       <Route 
         path="/user" 
         element={
-          <ProtectedRoute requireRole="user">
+          <ProtectedRoute requireRole="User">
             <UserDashboard />
           </ProtectedRoute>
         } 
@@ -43,8 +43,8 @@ const AppRoutes = () => {
       <Route 
         path="/" 
         element={
-          user ? (
-            <Navigate to={user.role === 'admin' ? '/admin' : '/user'} replace />
+          user && profile ? (
+            <Navigate to={profile.role === 'Admin Divisi' ? '/admin' : '/user'} replace />
           ) : (
             <Navigate to="/login" replace />
           )

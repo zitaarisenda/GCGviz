@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Shield, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuth();
@@ -17,10 +17,9 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(username, password);
+    const success = await login(email, password);
     
     if (success) {
-      // Navigate based on role will be handled by App.tsx routing
       navigate('/');
     }
   };
@@ -34,19 +33,19 @@ const Login = () => {
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">Login</CardTitle>
           <CardDescription>
-            Masuk ke sistem GCG Docs Pos
+            Masuk ke sistem GCG Docs Pos Indonesia
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Masukkan username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Masukkan email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -90,12 +89,6 @@ const Login = () => {
                 Daftar di sini
               </Link>
             </p>
-          </div>
-
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-xs text-blue-800 font-medium">Demo Account:</p>
-            <p className="text-xs text-blue-700">Username: admin123</p>
-            <p className="text-xs text-blue-700">Password: admin123</p>
           </div>
         </CardContent>
       </Card>
