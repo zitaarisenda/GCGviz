@@ -31,14 +31,11 @@ import {
 interface Document {
   id: string;
   created_at: string;
-  judul_dokumen: string;
-  jenis_dokumen: string;
-  prinsip_gcg: string;
-  divisi_terkait: string;
-  tahun_dokumen: number;
-  deskripsi: string;
+  title: string;
+  description: string;
   file_url: string;
-  uploader_id: string;
+  user_id: string;
+  category_id: number;
 }
 
 const AdminDashboard = () => {
@@ -47,24 +44,14 @@ const AdminDashboard = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedYear, setSelectedYear] = useState('all');
-  const [selectedDocType, setSelectedDocType] = useState('all');
-  const [selectedPrinciple, setSelectedPrinciple] = useState('all');
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   
   // Form states untuk upload dokumen
   const [formData, setFormData] = useState({
-    judul_dokumen: '',
-    jenis_dokumen: '',
-    prinsip_gcg: '',
-    tahun_dokumen: new Date().getFullYear(),
-    deskripsi: '',
+    title: '',
+    description: '',
     file: null as File | null
   });
-
-  const docTypes = ["Laporan Audit", "Kebijakan", "Risalah Rapat", "Laporan Keuangan", "SOP", "Peraturan"];
-  const gcgPrinciples = ["Akuntabilitas", "Transparansi", "Responsibilitas", "Independensi", "Kewajaran"];
-  const years = Array.from({length: 10}, (_, i) => new Date().getFullYear() - i);
 
   const fetchDocuments = async () => {
     if (!profile) return;
@@ -72,9 +59,8 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('dokumen')
+        .from('documents')
         .select('*')
-        .eq('divisi_terkait', profile.divisi)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -114,33 +100,17 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
 
-      // Upload file ke storage
-      const fileName = `${Date.now()}_${formData.file.name}`;
-      const { data: fileData, error: fileError } = await supabase.storage
-        .from('dokumen-gcg')
-        .upload(fileName, formData.file);
-
-      if (fileError) {
-        throw fileError;
-      }
-
-      // Dapatkan URL publik
-      const { data: { publicUrl } } = supabase.storage
-        .from('dokumen-gcg')
-        .getPublicUrl(fileName);
+      // For demo purposes, we'll just use a placeholder URL
+      const fileUrl = `https://example.com/files/${Date.now()}_${formData.file.name}`;
 
       // Simpan metadata ke database
       const { error: dbError } = await supabase
-        .from('dokumen')
+        .from('documents')
         .insert({
-          judul_dokumen: formData.judul_dokumen,
-          jenis_dokumen: formData.jenis_dokumen,
-          prinsip_gcg: formData.prinsip_gcg,
-          divisi_terkait: profile.divisi,
-          tahun_dokumen: formData.tahun_dokumen,
-          deskripsi: formData.deskripsi,
-          file_url: publicUrl,
-          uploader_id: user.id
+          title: formData.title,
+          description: formData.description,
+          file_url: fileUrl,
+          user_id: user.id
         });
 
       if (dbError) {
@@ -154,11 +124,8 @@ const AdminDashboard = () => {
 
       // Reset form dan tutup dialog
       setFormData({
-        judul_dokumen: '',
-        jenis_dokumen: '',
-        prinsip_gcg: '',
-        tahun_dokumen: new Date().getFullYear(),
-        deskripsi: '',
+        title: '',
+        description: '',
         file: null
       });
       setIsUploadDialogOpen(false);
@@ -180,18 +147,15 @@ const AdminDashboard = () => {
 
   const filteredDocuments = documents.filter(doc => {
     return (
-      (searchTerm === '' || 
-       doc.judul_dokumen.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       doc.deskripsi?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (selectedYear === 'all' || doc.tahun_dokumen.toString() === selectedYear) &&
-      (selectedDocType === 'all' || doc.jenis_dokumen === selectedDocType) &&
-      (selectedPrinciple === 'all' || doc.prinsip_gcg === selectedPrinciple)
+      searchTerm === '' || 
+      doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
   const stats = {
     totalDocuments: documents.length,
-    thisYear: documents.filter(doc => doc.tahun_dokumen === new Date().getFullYear()).length,
+    thisYear: documents.filter(doc => new Date(doc.created_at).getFullYear() === new Date().getFullYear()).length,
     myDivision: profile?.divisi || '',
     latestUploads: documents.slice(0, 5).length
   };
@@ -224,7 +188,7 @@ const AdminDashboard = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Users className="w-4 h-4" />
-                <span>Selamat datang, {profile?.username}</span>
+                <span>Selamat datang, {profile?.full_name}</span>
                 <Badge variant="secondary">{profile?.divisi}</Badge>
               </div>
               <Button 
@@ -321,88 +285,22 @@ const AdminDashboard = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleFileUpload} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="judul">Judul Dokumen</Label>
-                        <Input
-                          id="judul"
-                          value={formData.judul_dokumen}
-                          onChange={(e) => setFormData({...formData, judul_dokumen: e.target.value})}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="jenis">Jenis Dokumen</Label>
-                        <Select 
-                          value={formData.jenis_dokumen} 
-                          onValueChange={(value) => setFormData({...formData, jenis_dokumen: value})}
-                          required
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih jenis dokumen" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {docTypes.map(type => (
-                              <SelectItem key={type} value={type}>{type}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="prinsip">Prinsip GCG</Label>
-                        <Select 
-                          value={formData.prinsip_gcg} 
-                          onValueChange={(value) => setFormData({...formData, prinsip_gcg: value})}
-                          required
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih prinsip GCG" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {gcgPrinciples.map(principle => (
-                              <SelectItem key={principle} value={principle}>{principle}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="tahun">Tahun Dokumen</Label>
-                        <Select 
-                          value={formData.tahun_dokumen.toString()} 
-                          onValueChange={(value) => setFormData({...formData, tahun_dokumen: parseInt(value)})}
-                          required
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {years.map(year => (
-                              <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
                     <div className="space-y-2">
-                      <Label htmlFor="divisi">Divisi Terkait</Label>
+                      <Label htmlFor="title">Judul Dokumen</Label>
                       <Input
-                        id="divisi"
-                        value={profile?.divisi || ''}
-                        readOnly
-                        className="bg-gray-100"
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                        required
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="deskripsi">Deskripsi</Label>
+                      <Label htmlFor="description">Deskripsi</Label>
                       <Textarea
-                        id="deskripsi"
-                        value={formData.deskripsi}
-                        onChange={(e) => setFormData({...formData, deskripsi: e.target.value})}
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
                         rows={3}
                       />
                     </div>
@@ -433,15 +331,15 @@ const AdminDashboard = () => {
           </CardHeader>
         </Card>
 
-        {/* Search and Filter Section */}
+        {/* Search Section */}
         <Card className="mb-8 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Search className="w-5 h-5 text-blue-600" />
-              <span>Pencarian & Filter Dokumen</span>
+              <span>Pencarian Dokumen</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <Input
@@ -450,53 +348,6 @@ const AdminDashboard = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="h-12 text-base"
                 />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Tahun</Label>
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Tahun" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Tahun</SelectItem>
-                    {years.map(year => (
-                      <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Jenis Dokumen</Label>
-                <Select value={selectedDocType} onValueChange={setSelectedDocType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Jenis" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Jenis</SelectItem>
-                    {docTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Prinsip GCG</Label>
-                <Select value={selectedPrinciple} onValueChange={setSelectedPrinciple}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Prinsip" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Prinsip</SelectItem>
-                    {gcgPrinciples.map(principle => (
-                      <SelectItem key={principle} value={principle}>{principle}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </CardContent>
@@ -529,20 +380,8 @@ const AdminDashboard = () => {
                             <FileText className="w-6 h-6 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">{doc.judul_dokumen}</h3>
-                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">{doc.deskripsi}</p>
-                            
-                            <div className="flex flex-wrap gap-2 mb-3">
-                              <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-                                {doc.jenis_dokumen}
-                              </Badge>
-                              <Badge variant="outline" className="border-green-200 text-green-700">
-                                {doc.prinsip_gcg}
-                              </Badge>
-                              <Badge variant="outline" className="border-orange-200 text-orange-700">
-                                {doc.tahun_dokumen}
-                              </Badge>
-                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">{doc.title}</h3>
+                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">{doc.description}</p>
                             
                             <div className="flex items-center text-sm text-gray-500 space-x-4">
                               <span className="flex items-center space-x-1">
@@ -569,7 +408,7 @@ const AdminDashboard = () => {
                           onClick={() => {
                             const link = document.createElement('a');
                             link.href = doc.file_url;
-                            link.download = doc.judul_dokumen;
+                            link.download = doc.title;
                             link.click();
                           }}
                         >

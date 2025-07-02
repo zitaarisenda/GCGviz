@@ -6,7 +6,7 @@ import { User, Session } from '@supabase/supabase-js';
 
 interface UserProfile {
   id: string;
-  username: string;
+  full_name: string;
   role: 'Admin Divisi' | 'User';
   divisi?: string;
   created_at?: string;
@@ -28,7 +28,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ADMIN_ACCOUNTS = [
   { 
     email: 'admin.audit@posindonesia.co.id',
-    username: 'Admin Audit Internal',
+    full_name: 'Admin Audit Internal',
     role: 'Admin Divisi' as const,
     divisi: 'Audit Internal',
     // Password: admin123 (hashed)
@@ -36,42 +36,42 @@ const ADMIN_ACCOUNTS = [
   },
   {
     email: 'admin.risiko@posindonesia.co.id',
-    username: 'Admin Manajemen Risiko',
+    full_name: 'Admin Manajemen Risiko',
     role: 'Admin Divisi' as const,
     divisi: 'Manajemen Risiko',
     passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
   },
   {
     email: 'admin.sekper@posindonesia.co.id',
-    username: 'Admin Sekretaris Perusahaan',
+    full_name: 'Admin Sekretaris Perusahaan',
     role: 'Admin Divisi' as const,
     divisi: 'Sekretaris Perusahaan',
     passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
   },
   {
     email: 'admin.keuangan@posindonesia.co.id',
-    username: 'Admin Keuangan',
+    full_name: 'Admin Keuangan',
     role: 'Admin Divisi' as const,
     divisi: 'Keuangan',
     passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
   },
   {
     email: 'admin.sdm@posindonesia.co.id',
-    username: 'Admin SDM',
+    full_name: 'Admin SDM',
     role: 'Admin Divisi' as const,
     divisi: 'SDM',
     passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
   },
   {
     email: 'admin.hukum@posindonesia.co.id',
-    username: 'Admin Hukum',
+    full_name: 'Admin Hukum',
     role: 'Admin Divisi' as const,
     divisi: 'Hukum',
     passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
   },
   {
     email: 'admin.it@posindonesia.co.id',
-    username: 'Admin IT',
+    full_name: 'Admin IT',
     role: 'Admin Divisi' as const,
     divisi: 'IT',
     passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
@@ -105,7 +105,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      return data as UserProfile;
+      // Convert database profile to UserProfile format
+      return {
+        id: data.id,
+        full_name: data.full_name || 'User',
+        role: 'User' as const,
+        created_at: data.created_at
+      } as UserProfile;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
@@ -161,7 +167,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Create a mock session for admin
           const mockProfile: UserProfile = {
             id: `admin_${adminAccount.divisi?.toLowerCase().replace(/\s+/g, '_')}`,
-            username: adminAccount.username,
+            full_name: adminAccount.full_name,
             role: adminAccount.role,
             divisi: adminAccount.divisi
           };
@@ -180,7 +186,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           toast({
             title: "Login berhasil",
-            description: `Selamat datang, ${adminAccount.username}!`,
+            description: `Selamat datang, ${adminAccount.full_name}!`,
           });
           
           return true;
@@ -215,7 +221,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         toast({
           title: "Login berhasil",
-          description: `Selamat datang, ${profileData?.username || 'User'}!`,
+          description: `Selamat datang, ${profileData?.full_name || 'User'}!`,
         });
         
         return true;
@@ -263,8 +269,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .from('profiles')
           .insert({
             id: data.user.id,
-            username,
-            role: 'User' // Only User role for registration
+            full_name: username
           });
 
         if (profileError) {
