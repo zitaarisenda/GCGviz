@@ -18,7 +18,6 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const success = await login(email, password);
-    
     if (success) {
       navigate('/');
     }
@@ -33,7 +32,7 @@ const Login = () => {
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">Login</CardTitle>
           <CardDescription>
-            Masuk ke sistem GCG Docs Pos Indonesia
+            Masuk ke sistem Manajemen Dokumen GCG
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -49,7 +48,6 @@ const Login = () => {
                 required
               />
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -73,6 +71,22 @@ const Login = () => {
               </div>
             </div>
 
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <p className="text-sm text-green-800 mb-2">
+                <strong>Akun Admin Divisi:</strong>
+              </p>
+              <ul className="text-xs text-green-700 space-y-1">
+                <li>• admin.audit@posindonesia.co.id</li>
+                <li>• admin.risiko@posindonesia.co.id</li>
+                <li>• admin.sekper@posindonesia.co.id</li>
+                <li>• admin.keuangan@posindonesia.co.id</li>
+                <li>• admin.sdm@posindonesia.co.id</li>
+                <li>• admin.hukum@posindonesia.co.id</li>
+                <li>• admin.it@posindonesia.co.id</li>
+              </ul>
+              <p className="text-xs text-green-700 mt-2">Password: <strong>admin123</strong></p>
+            </div>
+
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
@@ -84,7 +98,7 @@ const Login = () => {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Belum punya akun?{' '}
+              Belum punya akun User?{' '}
               <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
                 Daftar di sini
               </Link>

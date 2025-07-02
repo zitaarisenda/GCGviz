@@ -17,12 +17,72 @@ interface AuthContextType {
   profile: UserProfile | null;
   session: Session | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, username: string, role: 'Admin Divisi' | 'User', divisi?: string) => Promise<boolean>;
+  register: (email: string, password: string, username: string) => Promise<boolean>;
   logout: () => Promise<void>;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Pre-defined Admin Divisi accounts (hardcoded with hashed passwords)
+const ADMIN_ACCOUNTS = [
+  { 
+    email: 'admin.audit@posindonesia.co.id',
+    username: 'Admin Audit Internal',
+    role: 'Admin Divisi' as const,
+    divisi: 'Audit Internal',
+    // Password: admin123 (hashed)
+    passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+  },
+  {
+    email: 'admin.risiko@posindonesia.co.id',
+    username: 'Admin Manajemen Risiko',
+    role: 'Admin Divisi' as const,
+    divisi: 'Manajemen Risiko',
+    passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+  },
+  {
+    email: 'admin.sekper@posindonesia.co.id',
+    username: 'Admin Sekretaris Perusahaan',
+    role: 'Admin Divisi' as const,
+    divisi: 'Sekretaris Perusahaan',
+    passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+  },
+  {
+    email: 'admin.keuangan@posindonesia.co.id',
+    username: 'Admin Keuangan',
+    role: 'Admin Divisi' as const,
+    divisi: 'Keuangan',
+    passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+  },
+  {
+    email: 'admin.sdm@posindonesia.co.id',
+    username: 'Admin SDM',
+    role: 'Admin Divisi' as const,
+    divisi: 'SDM',
+    passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+  },
+  {
+    email: 'admin.hukum@posindonesia.co.id',
+    username: 'Admin Hukum',
+    role: 'Admin Divisi' as const,
+    divisi: 'Hukum',
+    passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+  },
+  {
+    email: 'admin.it@posindonesia.co.id',
+    username: 'Admin IT',
+    role: 'Admin Divisi' as const,
+    divisi: 'IT',
+    passwordHash: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+  }
+];
+
+// Simple hash verification function (for demo - in production use proper bcrypt)
+const verifyPassword = (password: string, hash: string): boolean => {
+  // For demo purposes, all admin passwords are "admin123"
+  return password === 'admin123';
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -92,6 +152,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
+      // Check if this is an Admin Divisi account (hardcoded)
+      const adminAccount = ADMIN_ACCOUNTS.find(admin => admin.email === email);
+      
+      if (adminAccount) {
+        // Verify admin password
+        if (verifyPassword(password, adminAccount.passwordHash)) {
+          // Create a mock session for admin
+          const mockProfile: UserProfile = {
+            id: `admin_${adminAccount.divisi?.toLowerCase().replace(/\s+/g, '_')}`,
+            username: adminAccount.username,
+            role: adminAccount.role,
+            divisi: adminAccount.divisi
+          };
+          
+          setProfile(mockProfile);
+          setUser({
+            id: mockProfile.id,
+            email: adminAccount.email,
+            email_confirmed_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            aud: 'authenticated',
+            app_metadata: {},
+            user_metadata: {}
+          } as User);
+          
+          toast({
+            title: "Login berhasil",
+            description: `Selamat datang, ${adminAccount.username}!`,
+          });
+          
+          return true;
+        } else {
+          toast({
+            title: "Login gagal",
+            description: "Password Admin Divisi salah",
+            variant: "destructive"
+          });
+          return false;
+        }
+      }
+
+      // If not admin, try regular Supabase auth for User
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -132,17 +235,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (
-    email: string, 
-    password: string, 
-    username: string, 
-    role: 'Admin Divisi' | 'User', 
-    divisi?: string
-  ): Promise<boolean> => {
+  const register = async (email: string, password: string, username: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      // Register user with Supabase Auth
+      // Register user with Supabase Auth (only for regular Users)
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -161,14 +258,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data.user) {
-        // Create profile record
+        // Create profile record for User only
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             id: data.user.id,
             username,
-            role,
-            divisi: role === 'Admin Divisi' ? divisi : null
+            role: 'User' // Only User role for registration
           });
 
         if (profileError) {
@@ -205,10 +301,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setProfile(null);
-      setSession(null);
+      // For admin accounts, just clear local state
+      if (profile?.role === 'Admin Divisi' && user?.id.startsWith('admin_')) {
+        setUser(null);
+        setProfile(null);
+        setSession(null);
+      } else {
+        // For regular users, use Supabase signOut
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+        setSession(null);
+      }
       
       toast({
         title: "Logout berhasil",
