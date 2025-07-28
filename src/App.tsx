@@ -1,73 +1,175 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import Index from "./pages/Index";
-import UserDashboard from "./pages/UserDashboard";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import NotFound from "./pages/NotFound";
-import ProtectedRoute from "./components/ProtectedRoute";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { UserProvider } from '@/contexts/UserContext';
+import { DireksiProvider } from '@/contexts/DireksiContext';
+import { ChecklistProvider } from '@/contexts/ChecklistContext';
+import { FileUploadProvider } from '@/contexts/FileUploadContext';
+import { DocumentMetadataProvider } from '@/contexts/DocumentMetadataContext';
+import Login from '@/pages/auth/Login';
+import Dashboard from '@/pages/dashboard/Dashboard';
+import ListGCG from '@/pages/ListGCG';
+import DocumentManagement from '@/pages/DocumentManagement';
+import KelolaAkun from '@/pages/admin/KelolaAkun';
+import ChecklistGCG from '@/pages/admin/ChecklistGCG';
+import { useUser } from '@/contexts/UserContext';
 
-const queryClient = new QueryClient();
+// Protected Route Component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useUser();
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Super Admin Route Component
+const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useUser();
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (user.role !== 'superadmin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/user'} replace /> : <Login />} />
-      <Route path="/register" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/user'} replace /> : <Register />} />
+      {/* Public Routes */}
+      <Route 
+        path="/login" 
+        element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
+      />
       
+      {/* Protected Routes */}
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/list-gcg" 
+        element={
+          <ProtectedRoute>
+            <ListGCG />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/documents" 
+        element={
+          <ProtectedRoute>
+            <DocumentManagement />
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/penilaian-gcg" 
+        element={
+          <ProtectedRoute>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">Penilaian GCG</h1>
+                <p className="text-gray-600">Halaman penilaian GCG akan dikembangkan selanjutnya</p>
+              </div>
+            </div>
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Super Admin Routes */}
       <Route 
         path="/admin" 
         element={
-          <ProtectedRoute requireRole="admin">
-            <Index />
-          </ProtectedRoute>
+          <SuperAdminRoute>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">Admin Panel</h1>
+                <p className="text-gray-600">Pilih menu di sidebar untuk mengakses fitur admin</p>
+              </div>
+            </div>
+          </SuperAdminRoute>
         } 
       />
       
       <Route 
-        path="/user" 
+        path="/admin/kelola-akun" 
         element={
-          <ProtectedRoute requireRole="user">
-            <UserDashboard />
-          </ProtectedRoute>
+          <SuperAdminRoute>
+            <KelolaAkun />
+          </SuperAdminRoute>
         } 
       />
       
+      <Route 
+        path="/admin/checklist-gcg" 
+        element={
+          <SuperAdminRoute>
+            <ChecklistGCG />
+          </SuperAdminRoute>
+        } 
+      />
+      
+      {/* Default Route */}
       <Route 
         path="/" 
         element={
           user ? (
-            <Navigate to={user.role === 'admin' ? '/admin' : '/user'} replace />
+            <Navigate to="/dashboard" replace />
           ) : (
             <Navigate to="/login" replace />
           )
         } 
       />
       
-      <Route path="*" element={<NotFound />} />
+      {/* Catch all route */}
+      <Route 
+        path="*" 
+        element={
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">404 - Page Not Found</h1>
+              <p className="text-gray-600">Halaman yang Anda cari tidak ditemukan</p>
+            </div>
+          </div>
+        } 
+      />
     </Routes>
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <UserProvider>
+      <DireksiProvider>
+        <ChecklistProvider>
+          <FileUploadProvider>
+            <DocumentMetadataProvider>
+              <Router>
+                <AppRoutes />
+              </Router>
+            </DocumentMetadataProvider>
+          </FileUploadProvider>
+        </ChecklistProvider>
+      </DireksiProvider>
+    </UserProvider>
+  );
+};
 
 export default App;

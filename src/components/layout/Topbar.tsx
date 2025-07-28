@@ -1,0 +1,73 @@
+import React from 'react';
+import { useUser } from '@/contexts/UserContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  Search, 
+  Bell, 
+  Mail, 
+  HelpCircle,
+  User
+} from 'lucide-react';
+
+const Topbar = () => {
+  const { user } = useUser();
+
+  return (
+    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 fixed top-0 left-64 right-0 z-40">
+      {/* Left side */}
+      <div className="flex items-center space-x-4">
+        <Button variant="outline" className="bg-blue-600 text-white hover:bg-blue-700">
+          View as Client
+        </Button>
+      </div>
+
+      {/* Center - Search */}
+      <div className="flex-1 max-w-md mx-8">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder="Search Mail"
+            className="pl-10 bg-gray-50 border-gray-200 focus:bg-white"
+          />
+        </div>
+      </div>
+
+      {/* Right side */}
+      <div className="flex items-center space-x-4">
+        {/* Notifications */}
+        <Button variant="ghost" size="sm" className="relative">
+          <Bell className="w-5 h-5 text-gray-600" />
+          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+        </Button>
+
+        {/* Messages */}
+        <Button variant="ghost" size="sm">
+          <Mail className="w-5 h-5 text-gray-600" />
+        </Button>
+
+        {/* Help */}
+        <Button variant="ghost" size="sm">
+          <HelpCircle className="w-5 h-5 text-gray-600" />
+        </Button>
+
+        {/* User Avatar */}
+        <div className="flex items-center space-x-3">
+          <Avatar className="w-8 h-8">
+            <AvatarImage src="" alt={user?.name || 'User'} />
+            <AvatarFallback className="bg-blue-600 text-white text-sm">
+              {user?.name?.charAt(0) || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="hidden md:block">
+            <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
+            <p className="text-xs text-gray-500 capitalize">{user?.role || 'user'}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Topbar; 
