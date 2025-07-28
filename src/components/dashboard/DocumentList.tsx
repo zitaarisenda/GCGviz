@@ -54,6 +54,9 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [selectedDireksi, setSelectedDireksi] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [aspectFilter, setAspectFilter] = useState<string | null>(null);
+  // Checklist GCG filter state
+  const [filterChecklistStatus, setFilterChecklistStatus] = useState<'all' | 'with' | 'without'>('all');
+  const [filterChecklistAspect, setFilterChecklistAspect] = useState<string>('all');
   
   // View document state
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
@@ -99,8 +102,24 @@ const DocumentList: React.FC<DocumentListProps> = ({
       filtered = filtered.filter(doc => doc.status === selectedStatus);
     }
 
+    // Checklist GCG status filter
+    if (filterChecklistStatus === 'with') {
+      filtered = filtered.filter(doc => !!doc.checklistId);
+    } else if (filterChecklistStatus === 'without') {
+      filtered = filtered.filter(doc => !doc.checklistId);
+    }
+
+    // Checklist GCG aspect filter
+    if (filterChecklistAspect !== 'all') {
+      filtered = filtered.filter(doc => {
+        if (!doc.checklistId) return false;
+        const item = checklist.find(c => c.id === doc.checklistId);
+        return item && item.aspek === filterChecklistAspect;
+      });
+    }
+
     return maxItems ? filtered.slice(0, maxItems) : filtered;
-  }, [yearDocuments, searchTerm, selectedPrinciple, selectedType, selectedDireksi, selectedStatus, maxItems]);
+  }, [yearDocuments, searchTerm, selectedPrinciple, selectedType, selectedDireksi, selectedStatus, filterChecklistStatus, filterChecklistAspect, checklist, maxItems]);
 
   // Get unique values for filters
   const principles = useMemo(() => [...new Set(yearDocuments.map(doc => doc.gcgPrinciple))], [yearDocuments]);
@@ -243,70 +262,114 @@ const DocumentList: React.FC<DocumentListProps> = ({
           <div className="mb-4">
             <Input
               placeholder="Cari berdasarkan judul, deskripsi, nomor dokumen..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
 
           {/* Filter Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Filter Prinsip GCG */}
             <div>
               <Select value={selectedPrinciple} onValueChange={setSelectedPrinciple}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Prinsip GCG" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Prinsip</SelectItem>
-                  {principles.map(principle => (
+                  {Array.from(new Set(documents.map(doc => doc.gcgPrinciple))).filter(Boolean).map(principle => (
                     <SelectItem key={principle} value={principle}>{principle}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
+            {/* Filter Jenis Dokumen */}
             <div>
               <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Jenis Dokumen" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Jenis</SelectItem>
-                  {types.map(type => (
+                  {Array.from(new Set(documents.map(doc => doc.documentType))).filter(Boolean).map(type => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
+            {/* Filter Direksi */}
             <div>
               <Select value={selectedDireksi} onValueChange={setSelectedDireksi}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Direksi" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Direksi</SelectItem>
-                  {direksis.map(direksi => (
+                  {Array.from(new Set(documents.map(doc => doc.direksi))).filter(Boolean).map(direksi => (
                     <SelectItem key={direksi} value={direksi}>{direksi}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
+            {/* Filter Status */}
             <div>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Status</SelectItem>
-                  {statuses.map(status => (
-                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                  <SelectItem value="approved">Disetujui</SelectItem>
+                  <SelectItem value="rejected">Ditolak</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Filter Checklist GCG */}
+            <div>
+              <Select value={filterChecklistStatus} onValueChange={val => setFilterChecklistStatus(val as 'all' | 'with' | 'without')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Checklist GCG" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua</SelectItem>
+                  <SelectItem value="with">Sudah Dipilih</SelectItem>
+                  <SelectItem value="without">Belum Dipilih</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Filter Aspek Checklist */}
+            <div>
+              <Select value={filterChecklistAspect} onValueChange={val => setFilterChecklistAspect(val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Aspek Checklist" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua</SelectItem>
+                  {Array.from(new Set(checklist.map(item => item.aspek))).map(aspek => (
+                    <SelectItem key={aspek} value={aspek}>{aspek.replace(/^Aspek\s+/i, '')}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
+          {/* Reset Filter Button */}
+          {(filterChecklistStatus !== 'all' || filterChecklistAspect !== 'all') && (
+            <div className="mt-4">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  setFilterChecklistStatus('all');
+                  setFilterChecklistAspect('all');
+                }}
+              >
+                Reset Filter
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -562,6 +625,32 @@ const DocumentList: React.FC<DocumentListProps> = ({
                       <Label className="text-sm font-medium text-gray-700">Kategori</Label>
                       <p className="text-sm text-gray-900">{selectedDocument.documentCategory || '-'}</p>
                     </div>
+                  </div>
+                  {/* Checklist GCG Info */}
+                  <div className="mt-4">
+                    <Label className="text-sm font-medium text-gray-700 mb-1 block">Checklist GCG</Label>
+                    {selectedDocument.checklistId ? (() => {
+                      const checklistItem = checklist.find(item => item.id === selectedDocument.checklistId);
+                      return checklistItem ? (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-800">Checklist Terpilih</span>
+                          </div>
+                          <div className="text-sm text-green-700">
+                            <div className="font-medium">{checklistItem.aspek}</div>
+                            <div>{checklistItem.deskripsi}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-gray-500 border-gray-300">ID: {selectedDocument.checklistId}</Badge>
+                      );
+                    })() : (
+                      <Badge variant="outline" className="text-xs text-gray-500 border-gray-300">
+                        <Circle className="w-3 h-3 mr-1" />
+                        Tanpa Checklist
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
@@ -935,15 +1024,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                                     if (checked) {
                                       setEditFormData(prev => ({
                                         ...prev,
-                                        checklistId: item.id,
-                                        title: item.deskripsi,
-                                        description: item.deskripsi,
-                                        gcgPrinciple: item.aspek.includes('TRANSPARANSI') ? 'Transparansi' :
-                                                      item.aspek.includes('AKUNTABILITAS') ? 'Akuntabilitas' :
-                                                      item.aspek.includes('RESPONSIBILITAS') ? 'Responsibilitas' :
-                                                      item.aspek.includes('INDEPENDENSI') ? 'Independensi' :
-                                                      item.aspek.includes('KESETARAAN') ? 'Kesetaraan' : prev.gcgPrinciple,
-                                        documentCategory: item.deskripsi
+                                        checklistId: item.id
                                       }));
                                     } else {
                                       setEditFormData(prev => ({

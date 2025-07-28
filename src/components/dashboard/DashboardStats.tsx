@@ -17,6 +17,39 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import 'keen-slider/keen-slider.min.css';
+import { useKeenSlider } from 'keen-slider/react';
+import { KeenSliderPlugin } from 'keen-slider';
+
+// Keen-slider autoplay plugin
+const autoplay = (run = true, interval = 2500): KeenSliderPlugin => (slider) => {
+  let timeout: ReturnType<typeof setTimeout>;
+  let mouseOver = false;
+  function clearNextTimeout() {
+    clearTimeout(timeout);
+  }
+  function nextTimeout() {
+    clearTimeout(timeout);
+    if (mouseOver) return;
+    timeout = setTimeout(() => {
+      if (run && slider) slider.next();
+    }, interval);
+  }
+  slider.on('created', () => {
+    slider.container.addEventListener('mouseover', () => {
+      mouseOver = true;
+      clearNextTimeout();
+    });
+    slider.container.addEventListener('mouseout', () => {
+      mouseOver = false;
+      nextTimeout();
+    });
+    nextTimeout();
+  });
+  slider.on('dragStarted', clearNextTimeout);
+  slider.on('animationEnded', nextTimeout);
+  slider.on('updated', nextTimeout);
+};
 
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 Bytes';
@@ -30,6 +63,19 @@ const DashboardStats = () => {
   const { selectedYear, getYearStats, getFilesByYear } = useFileUpload();
   const { checklist } = useChecklist();
   const [showAllAspects, setShowAllAspects] = useState(false);
+  const [sliderRef] = useKeenSlider({
+    loop: true,
+    slides: { perView: 1, spacing: 16 },
+    breakpoints: {
+      '(min-width: 640px)': { slides: { perView: 2, spacing: 24 } },
+      '(min-width: 1024px)': { slides: { perView: 3, spacing: 24 } },
+      '(min-width: 1280px)': { slides: { perView: 4, spacing: 24 } },
+    },
+    drag: true,
+    created(slider) {
+      slider.moveToIdx(0, true);
+    }
+  }, [autoplay()]);
 
   // Calculate statistics based on selected year
   const getStats = () => {
@@ -176,15 +222,23 @@ const DashboardStats = () => {
         </p>
       </div>
 
-      {/* Analysis Cards Grid */}
+      {/* Analysis Cards Grid / Swiper */}
       <div className="relative">
-        {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {(showAllAspects ? allAnalysisData : analysisData).map((data, index) => (
-            <AnalysisCard key={index} {...data} />
-          ))}
-        </div>
-
+        {showAllAspects ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {allAnalysisData.map((data, index) => (
+              <AnalysisCard key={index} {...data} />
+            ))}
+          </div>
+        ) : (
+          <div ref={sliderRef} className="keen-slider">
+            {allAnalysisData.map((data, index) => (
+              <div key={index} className="keen-slider__slide px-2">
+                <AnalysisCard {...data} />
+              </div>
+            ))}
+          </div>
+        )}
         {/* View All Button */}
         {aspectStats.length > 4 && (
           <div className="flex justify-center mt-6">
@@ -201,7 +255,7 @@ const DashboardStats = () => {
               ) : (
                 <>
                   <ChevronDown className="w-4 h-4" />
-                  <span>Lihat Semua Aspek ({aspectStats.length})</span>
+                  <span>Lihat Semua Aspek</span>
                 </>
               )}
             </Button>

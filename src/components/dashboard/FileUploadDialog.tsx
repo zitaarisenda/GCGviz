@@ -814,8 +814,8 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                             setFormData(prev => ({
                               ...prev,
                               selectedChecklistId: item.id,
-                              title: item.deskripsi,
-                              description: item.deskripsi,
+                              title: prev.title || item.deskripsi,
+                              description: prev.description || item.deskripsi,
                               gcgPrinciple: getPrincipleFromAspect(item.aspek),
                               documentCategory: getCategoryFromAspect(item.aspek)
                             }));
