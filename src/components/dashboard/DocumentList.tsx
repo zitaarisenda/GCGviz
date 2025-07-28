@@ -3,11 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { useFileUpload } from '@/contexts/FileUploadContext';
+import { useChecklist } from '@/contexts/ChecklistContext';
+import { useDireksi } from '@/contexts/DireksiContext';
 import { 
   FileText, 
   Search, 
@@ -22,7 +26,8 @@ import {
   Trash2,
   Edit,
   CheckCircle,
-  Circle
+  Circle,
+  Lock
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
@@ -37,8 +42,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
   showFilters = true, 
   maxItems 
 }) => {
-  const { documents, getDocumentsByYear, deleteDocument } = useDocumentMetadata();
+  const { documents, getDocumentsByYear, deleteDocument, updateDocument } = useDocumentMetadata();
   const { selectedYear } = useFileUpload();
+  const { checklist } = useChecklist();
+  const { direksi } = useDireksi();
   
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,10 +53,16 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [selectedType, setSelectedType] = useState('all');
   const [selectedDireksi, setSelectedDireksi] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [aspectFilter, setAspectFilter] = useState<string | null>(null);
   
   // View document state
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  
+  // Edit document state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState<any>({});
 
   // Get documents for the specified year or selected year
   const targetYear = year || selectedYear || new Date().getFullYear();
@@ -111,6 +124,12 @@ const DocumentList: React.FC<DocumentListProps> = ({
     });
   };
 
+  // Get checklist information
+  const getChecklistInfo = (checklistId: number) => {
+    const checklistItem = checklist.find(item => item.id === checklistId);
+    return checklistItem;
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       'draft': { variant: 'outline', className: 'text-yellow-600 border-yellow-300' },
@@ -147,6 +166,39 @@ const DocumentList: React.FC<DocumentListProps> = ({
     if (window.confirm('Apakah Anda yakin ingin menghapus dokumen ini?')) {
       deleteDocument(id);
     }
+  };
+
+  const handleEditDocument = (doc: any) => {
+    setEditingDocument(doc);
+    setEditFormData({
+      title: doc.title,
+      documentNumber: doc.documentNumber || '',
+      description: doc.description || '',
+      gcgPrinciple: doc.gcgPrinciple,
+      documentType: doc.documentType,
+      documentCategory: doc.documentCategory || '',
+      direksi: doc.direksi,
+      division: doc.division || '',
+      status: doc.status,
+      confidentiality: doc.confidentiality,
+      checklistId: doc.checklistId || null
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingDocument && updateDocument) {
+      updateDocument(editingDocument.id, editFormData);
+      setIsEditDialogOpen(false);
+      setEditingDocument(null);
+      setEditFormData({});
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditDialogOpen(false);
+    setEditingDocument(null);
+    setEditFormData({});
   };
 
   if (!targetYear) {
@@ -312,6 +364,16 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   <Button 
                     variant="outline" 
                     size="sm"
+                    onClick={() => handleEditDocument(doc)}
+                    className="hover:bg-yellow-50 hover:border-yellow-200"
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
                     onClick={() => handleDeleteDocument(doc.id)}
                     className="hover:bg-red-50 hover:border-red-200"
                   >
@@ -323,7 +385,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
             </div>
             
             {/* Metadata Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
               {/* GCG Classification */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
@@ -331,12 +393,16 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   <span className="text-xs font-medium text-gray-700">Klasifikasi GCG</span>
                 </div>
                 <div className="space-y-1">
-                  <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-700">
+                  <Badge variant="outline" className="text-xs bg-purple-50 border-purple-200 text-purple-700">
                     {doc.gcgPrinciple}
                   </Badge>
-                  <div className="text-sm text-gray-600">{doc.documentType}</div>
+                  <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-700">
+                    {doc.documentType}
+                  </Badge>
                   {doc.documentCategory && (
-                    <div className="text-xs text-gray-500">{doc.documentCategory}</div>
+                    <Badge variant="outline" className="text-xs bg-green-50 border-green-200 text-green-700">
+                      {doc.documentCategory}
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -348,8 +414,14 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   <span className="text-xs font-medium text-gray-700">Organisasi</span>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-sm font-medium text-gray-900">{doc.direksi}</div>
-                  <div className="text-xs text-gray-600">{doc.division}</div>
+                  <div className="text-sm font-medium text-gray-900">
+                    <Building2 className="w-3 h-3 inline mr-1" />
+                    {doc.direksi}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    <User className="w-3 h-3 inline mr-1" />
+                    {doc.division}
+                  </div>
                 </div>
               </div>
               
@@ -365,22 +437,53 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 </div>
               </div>
               
-              {/* Upload Info & Checklist */}
+              {/* Upload Info & Checklist GCG */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                   <span className="text-xs font-medium text-gray-700">Info Upload</span>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-sm text-gray-900">{doc.uploadedBy}</div>
-                  <div className="text-xs text-gray-600">{formatDate(doc.uploadDate)}</div>
-                  
-                  {/* Checklist GCG Badge */}
+                  <div className="text-sm text-gray-900">
+                    <User className="w-3 h-3 inline mr-1" />
+                    {doc.uploadedBy}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    <Calendar className="w-3 h-3 inline mr-1" />
+                    {formatDate(doc.uploadDate)}
+                  </div>
+                  <div className="text-xs text-gray-500 truncate">
+                    <FileText className="w-3 h-3 inline mr-1" />
+                    {doc.fileName}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Checklist GCG */}
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                  <span className="text-xs font-medium text-gray-700">Checklist GCG</span>
+                </div>
+                <div className="space-y-1">
                   {doc.checklistId ? (
-                    <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Checklist GCG
-                    </Badge>
+                    <div className="space-y-1">
+                      <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Terpilih
+                      </Badge>
+                      {(() => {
+                        const checklistInfo = getChecklistInfo(doc.checklistId);
+                        return checklistInfo ? (
+                          <div className="text-xs text-gray-600 space-y-0.5">
+                            <div className="font-medium">{checklistInfo.aspek}</div>
+                            <div className="text-gray-500 truncate">{checklistInfo.deskripsi}</div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-500">ID: {doc.checklistId}</div>
+                        );
+                      })()}
+                    </div>
                   ) : (
                     <Badge variant="outline" className="text-xs text-gray-500 border-gray-300">
                       <Circle className="w-3 h-3 mr-1" />
@@ -547,6 +650,365 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Document Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Edit className="w-5 h-5 text-blue-600" />
+                <span>Edit Dokumen</span>
+              </DialogTitle>
+              <DialogDescription>
+                Edit informasi metadata dokumen. File tidak dapat diubah.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {editingDocument && (
+              <div className="flex-1 overflow-y-auto pr-2">
+                <div className="space-y-6">
+                  {/* Tahun Buku (Read Only) */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                      Tahun Buku
+                      <span className="group relative">
+                        <Lock className="w-4 h-4 text-gray-400" />
+                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-700 text-white rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap">
+                          Field ini tidak dapat diubah
+                        </span>
+                      </span>
+                    </Label>
+                    <Input
+                      value={editingDocument.year}
+                      disabled
+                      className="bg-gray-100 text-gray-500 border-dashed border-2 border-gray-300 cursor-not-allowed"
+                    />
+                  </div>
+
+                  {/* Basic Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      Informasi Dasar
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="editTitle">
+                          Judul Dokumen <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="editTitle"
+                          value={editFormData.title || ''}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="Masukkan judul dokumen"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="editDocumentNumber">
+                          Nomor Dokumen
+                        </Label>
+                        <Input
+                          id="editDocumentNumber"
+                          value={editFormData.documentNumber || ''}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, documentNumber: e.target.value }))}
+                          placeholder="Masukkan nomor dokumen"
+                        />
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                        <Label htmlFor="editDescription">
+                          Deskripsi
+                        </Label>
+                        <Textarea
+                          id="editDescription"
+                          value={editFormData.description || ''}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Masukkan deskripsi dokumen"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* GCG Classification */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      Klasifikasi GCG
+                    </h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="editGcgPrinciple">
+                          Prinsip GCG <span className="text-red-500">*</span>
+                        </Label>
+                        <Select value={editFormData.gcgPrinciple || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, gcgPrinciple: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih prinsip GCG" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Transparansi">Transparansi</SelectItem>
+                            <SelectItem value="Akuntabilitas">Akuntabilitas</SelectItem>
+                            <SelectItem value="Responsibilitas">Responsibilitas</SelectItem>
+                            <SelectItem value="Independensi">Independensi</SelectItem>
+                            <SelectItem value="Kesetaraan">Kesetaraan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="editDocumentType">
+                          Jenis Dokumen <span className="text-red-500">*</span>
+                        </Label>
+                        <Select value={editFormData.documentType || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, documentType: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih jenis dokumen" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Kebijakan">Kebijakan</SelectItem>
+                            <SelectItem value="Laporan">Laporan</SelectItem>
+                            <SelectItem value="Risalah">Risalah</SelectItem>
+                            <SelectItem value="Dokumentasi">Dokumentasi</SelectItem>
+                            <SelectItem value="Sosialisasi">Sosialisasi</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="editDocumentCategory">
+                          Kategori Dokumen
+                        </Label>
+                        <Input
+                          id="editDocumentCategory"
+                          value={editFormData.documentCategory || ''}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, documentCategory: e.target.value }))}
+                          placeholder="Masukkan kategori dokumen"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Organization */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      Organisasi
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="editDireksi">
+                          Direksi <span className="text-red-500">*</span>
+                        </Label>
+                        <Select value={editFormData.direksi || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, direksi: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih direksi" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {direksi && direksi.length > 0 ? (
+                              direksi.map((dir) => (
+                                <SelectItem key={dir.id} value={dir.nama}>
+                                  {dir.nama}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-data" disabled>
+                                Tidak ada data direksi
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="editDivision">
+                          Divisi <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="editDivision"
+                          value={editFormData.division || ''}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, division: e.target.value }))}
+                          placeholder="Masukkan divisi"
+                          list="division-suggestions"
+                        />
+                        <datalist id="division-suggestions">
+                          <option value="Divisi Keuangan" />
+                          <option value="Divisi SDM" />
+                          <option value="Divisi IT" />
+                          <option value="Divisi Operasional" />
+                          <option value="Divisi Pemasaran" />
+                        </datalist>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Document Management */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      Pengelolaan Dokumen
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="editStatus">
+                          Status
+                        </Label>
+                        <Select value={editFormData.status || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, status: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="review">Review</SelectItem>
+                            <SelectItem value="approved">Disetujui</SelectItem>
+                            <SelectItem value="rejected">Ditolak</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="editConfidentiality">
+                          Tingkat Kerahasiaan
+                        </Label>
+                        <Select value={editFormData.confidentiality || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, confidentiality: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih tingkat kerahasiaan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="public">Public</SelectItem>
+                            <SelectItem value="confidential">Rahasia</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                                    {/* Checklist GCG */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                      Pilih Checklist GCG (Opsional)
+                    </h3>
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600">
+                        Pilih satu checklist GCG yang sesuai dengan dokumen. 
+                        Checklist yang sudah digunakan di tahun {editingDocument.year} tidak akan muncul di daftar.
+                      </p>
+                      {/* Aspect Filter */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Filter berdasarkan Aspek:</Label>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge
+                            variant={!aspectFilter ? "default" : "secondary"}
+                            className="cursor-pointer"
+                            onClick={() => setAspectFilter('')}
+                          >
+                            Semua
+                          </Badge>
+                          {(() => {
+                            const aspects = [...new Set(checklist.map(item => item.aspek))];
+                            return aspects.map((aspect) => (
+                              <Badge
+                                key={aspect}
+                                variant={aspectFilter === aspect ? "default" : "secondary"}
+                                className="cursor-pointer"
+                                onClick={() => setAspectFilter(aspect)}
+                              >
+                                {aspect.replace(/^Aspek\s+/i, '')}
+                              </Badge>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+
+                      
+                      <div className="max-h-60 overflow-y-auto border rounded-lg p-4 space-y-2">
+                        {(() => {
+                          const availableItems = checklist.filter(item => {
+                            // Filter out items already used in the same year (kecuali yang sedang diedit)
+                            const isUsed = documents.some(doc =>
+                              doc.checklistId === item.id &&
+                              doc.year === editingDocument.year &&
+                              doc.id !== editingDocument.id
+                            );
+                            // Filter by aspect
+                            if (aspectFilter && item.aspek !== aspectFilter) return false;
+                            return !isUsed;
+                          }).sort((a, b) => a.aspek.localeCompare(b.aspek));
+                          return availableItems.length > 0 ? (
+                            availableItems.map((item) => (
+                              <div key={item.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
+                                <Checkbox
+                                  id={`edit-checklist-${item.id}`}
+                                  checked={editFormData.checklistId === item.id}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setEditFormData(prev => ({
+                                        ...prev,
+                                        checklistId: item.id,
+                                        title: item.deskripsi,
+                                        description: item.deskripsi,
+                                        gcgPrinciple: item.aspek.includes('TRANSPARANSI') ? 'Transparansi' :
+                                                      item.aspek.includes('AKUNTABILITAS') ? 'Akuntabilitas' :
+                                                      item.aspek.includes('RESPONSIBILITAS') ? 'Responsibilitas' :
+                                                      item.aspek.includes('INDEPENDENSI') ? 'Independensi' :
+                                                      item.aspek.includes('KESETARAAN') ? 'Kesetaraan' : prev.gcgPrinciple,
+                                        documentCategory: item.deskripsi
+                                      }));
+                                    } else {
+                                      setEditFormData(prev => ({
+                                        ...prev,
+                                        checklistId: null
+                                      }));
+                                    }
+                                  }}
+                                />
+                                <Label htmlFor={`edit-checklist-${item.id}`} className="flex-1 cursor-pointer">
+                                  <div className="flex items-center justify-between">
+                                    <div className="font-medium text-gray-900 flex-1">
+                                      {item.deskripsi}
+                                    </div>
+                                    <Badge variant="outline" className="ml-2 text-xs">
+                                      {item.aspek.replace(/^Aspek\s+/i, '')}
+                                    </Badge>
+                                  </div>
+                                </Label>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-center text-gray-500 py-4">
+                              {aspectFilter 
+                                ? `Tidak ada checklist tersedia untuk ${aspectFilter.replace(/^Aspek\s+/i, '')}`
+                                : `Semua checklist GCG untuk tahun ${editingDocument.year} sudah digunakan`
+                              }
+                            </p>
+                          );
+                        })()}
+                      </div>
+                      
+                      {/* Selected Checklist Info */}
+                      {editFormData.checklistId && (() => {
+                        const selectedItem = checklist.find(item => item.id === editFormData.checklistId);
+                        return selectedItem ? (
+                          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <span className="text-sm font-medium text-green-800">
+                                Checklist Terpilih
+                              </span>
+                            </div>
+                            <div className="text-sm text-green-700">
+                              <div className="font-medium">{selectedItem.aspek}</div>
+                              <div>{selectedItem.deskripsi}</div>
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Dialog Actions */}
+            <div className="flex justify-end space-x-2 pt-4 border-t mt-4">
+              <Button variant="outline" onClick={handleCancelEdit}>
+                Batal
+              </Button>
+              <Button onClick={handleSaveEdit} className="bg-blue-600 hover:bg-blue-700">
+                Simpan Perubahan
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

@@ -164,19 +164,19 @@ const AppRoutes = () => {
 const App = () => {
   return (
     <AuthProvider>
-      <UserProvider>
-        <DireksiProvider>
-          <ChecklistProvider>
-            <FileUploadProvider>
+    <UserProvider>
+      <DireksiProvider>
+        <ChecklistProvider>
+          <FileUploadProvider>
               <DocumentMetadataProvider>
-                <Router>
-                  <AppRoutes />
-                </Router>
+            <Router>
+              <AppRoutes />
+            </Router>
               </DocumentMetadataProvider>
-            </FileUploadProvider>
-          </ChecklistProvider>
-        </DireksiProvider>
-      </UserProvider>
+          </FileUploadProvider>
+        </ChecklistProvider>
+      </DireksiProvider>
+    </UserProvider>
     </AuthProvider>
   );
 };

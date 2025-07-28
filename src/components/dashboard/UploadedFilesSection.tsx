@@ -24,13 +24,13 @@ const UploadedFilesSection: React.FC = () => {
     <div className="bg-white rounded-xl shadow-md p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <FileText className="w-6 h-6 text-green-600" />
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Dokumen Terupload</h2>
-            <p className="text-sm text-gray-600">
-              Daftar dokumen yang sudah diupload untuk tahun {selectedYear}
-            </p>
-          </div>
+        <FileText className="w-6 h-6 text-green-600" />
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Dokumen Terupload</h2>
+          <p className="text-sm text-gray-600">
+            Daftar dokumen yang sudah diupload untuk tahun {selectedYear}
+          </p>
+        </div>
         </div>
 
       </div>

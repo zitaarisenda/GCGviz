@@ -848,6 +848,25 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                   </p>
                 )}
               </div>
+              
+              {/* Selected Checklist Info */}
+              {formData.selectedChecklistId && (() => {
+                const selectedItem = getAvailableChecklistItems().find(item => item.id === formData.selectedChecklistId);
+                return selectedItem ? (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">
+                        Checklist Terpilih
+                      </span>
+                    </div>
+                    <div className="text-sm text-green-700">
+                      <div className="font-medium">{selectedItem.aspek}</div>
+                      <div>{selectedItem.deskripsi}</div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
             </div>
           </div>
 

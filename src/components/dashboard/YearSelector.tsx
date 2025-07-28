@@ -58,9 +58,9 @@ const YearSelector = () => {
               Upload Dokumen Baru
             </Button>
           )}
-          <span className="text-sm text-gray-600">
+            <span className="text-sm text-gray-600">
             Tahun yang dipilih: <span className="font-semibold text-blue-600">{selectedYear || 'Belum dipilih'}</span>
-          </span>
+            </span>
         </div>
       </div>
 
