@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Shield, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuth();
@@ -17,10 +17,8 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(username, password);
-    
+    const success = await login(email, password);
     if (success) {
-      // Navigate based on role will be handled by App.tsx routing
       navigate('/');
     }
   };
@@ -34,23 +32,22 @@ const Login = () => {
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">Login</CardTitle>
           <CardDescription>
-            Masuk ke sistem GCG Docs Pos
+            Masuk ke sistem Manajemen Dokumen GCG
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Masukkan username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Masukkan email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -74,6 +71,22 @@ const Login = () => {
               </div>
             </div>
 
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <p className="text-sm text-green-800 mb-2">
+                <strong>Akun Admin Divisi:</strong>
+              </p>
+              <ul className="text-xs text-green-700 space-y-1">
+                <li>• admin.audit@posindonesia.co.id</li>
+                <li>• admin.risiko@posindonesia.co.id</li>
+                <li>• admin.sekper@posindonesia.co.id</li>
+                <li>• admin.keuangan@posindonesia.co.id</li>
+                <li>• admin.sdm@posindonesia.co.id</li>
+                <li>• admin.hukum@posindonesia.co.id</li>
+                <li>• admin.it@posindonesia.co.id</li>
+              </ul>
+              <p className="text-xs text-green-700 mt-2">Password: <strong>admin123</strong></p>
+            </div>
+
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
@@ -85,17 +98,11 @@ const Login = () => {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Belum punya akun?{' '}
+              Belum punya akun User?{' '}
               <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
                 Daftar di sini
               </Link>
             </p>
-          </div>
-
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-xs text-blue-800 font-medium">Demo Account:</p>
-            <p className="text-xs text-blue-700">Username: admin123</p>
-            <p className="text-xs text-blue-700">Password: admin123</p>
           </div>
         </CardContent>
       </Card>

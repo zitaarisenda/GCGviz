@@ -6,13 +6,16 @@ import { DireksiProvider } from '@/contexts/DireksiContext';
 import { ChecklistProvider } from '@/contexts/ChecklistContext';
 import { FileUploadProvider } from '@/contexts/FileUploadContext';
 import { DocumentMetadataProvider } from '@/contexts/DocumentMetadataContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import Login from '@/pages/auth/Login';
+import Register from '@/pages/Register';
 import Dashboard from '@/pages/dashboard/Dashboard';
 import ListGCG from '@/pages/ListGCG';
 import DocumentManagement from '@/pages/DocumentManagement';
 import KelolaAkun from '@/pages/admin/KelolaAkun';
 import ChecklistGCG from '@/pages/admin/ChecklistGCG';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -49,6 +52,10 @@ const AppRoutes = () => {
       <Route 
         path="/login" 
         element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
+      />
+      <Route 
+        path="/register" 
+        element={user ? <Navigate to="/dashboard" replace /> : <Register />} 
       />
       
       {/* Protected Routes */}
@@ -156,19 +163,21 @@ const AppRoutes = () => {
 
 const App = () => {
   return (
-    <UserProvider>
-      <DireksiProvider>
-        <ChecklistProvider>
-          <FileUploadProvider>
-            <DocumentMetadataProvider>
-              <Router>
-                <AppRoutes />
-              </Router>
-            </DocumentMetadataProvider>
-          </FileUploadProvider>
-        </ChecklistProvider>
-      </DireksiProvider>
-    </UserProvider>
+    <AuthProvider>
+      <UserProvider>
+        <DireksiProvider>
+          <ChecklistProvider>
+            <FileUploadProvider>
+              <DocumentMetadataProvider>
+                <Router>
+                  <AppRoutes />
+                </Router>
+              </DocumentMetadataProvider>
+            </FileUploadProvider>
+          </ChecklistProvider>
+        </DireksiProvider>
+      </UserProvider>
+    </AuthProvider>
   );
 };
 
