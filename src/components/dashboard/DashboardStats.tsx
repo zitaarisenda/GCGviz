@@ -143,56 +143,52 @@ const DashboardStats = () => {
 
   // Helper functions
   const getAspectIcon = (aspekName: string) => {
-    // ASPEK I. Komitmen
-    if (aspekName.includes('ASPEK I') || aspekName.includes('Komitmen')) return BarChart3;
-    
-    // ASPEK II. RUPS
-    if (aspekName.includes('ASPEK II') || aspekName.includes('RUPS')) return CheckCircle;
-    
-    // ASPEK III. Dewan Komisaris
-    if (aspekName.includes('ASPEK III') || aspekName.includes('Dewan Komisaris')) return TrendingUp;
-    
-    // ASPEK IV. Direksi
-    if (aspekName.includes('ASPEK IV') || aspekName.includes('Direksi')) return FileText;
-    
-    // ASPEK V. Pengungkapan
-    if (aspekName.includes('ASPEK V') || aspekName.includes('Pengungkapan')) return Upload;
-    
-    // ASPEK Tambahan
-    if (aspekName.includes('Tambahan')) return Plus;
-    
-    return Plus; // Default icon untuk aspek baru
+    if (aspekName.includes('ASPEK I')) return BarChart3;
+    if (aspekName.includes('ASPEK II')) return CheckCircle;
+    if (aspekName.includes('ASPEK III')) return TrendingUp;
+    if (aspekName.includes('ASPEK IV')) return FileText;
+    if (aspekName.includes('ASPEK V')) return Upload;
+    // Aspek baru/default
+    return Plus;
   };
 
-  const getAspectColor = (progress: number) => {
-    if (progress >= 80) return "green" as const;
-    if (progress >= 50) return "yellow" as const;
-    return "red" as const;
+  // Mapping warna unik untuk tiap aspek
+  const ASPECT_COLORS: Record<string, string> = {
+    'ASPEK I. Komitmen': '#2563eb', // biru
+    'ASPEK II. RUPS': '#059669',    // hijau
+    'ASPEK III. Dewan Komisaris': '#f59e42', // oranye
+    'ASPEK IV. Direksi': '#eab308', // kuning
+    'ASPEK V. Pengungkapan': '#d946ef', // ungu
+    // fallback
+    'default': '#ef4444', // merah
+  };
+
+  const getAspectColor = (aspekName: string, progress: number) => {
+    if (ASPECT_COLORS[aspekName]) return ASPECT_COLORS[aspekName];
+    if (progress >= 80) return '#059669'; // hijau
+    if (progress >= 50) return '#eab308'; // kuning
+    return '#ef4444'; // merah
   };
 
   // Create analysis data for first 4 aspects
-  const analysisData = firstFourAspects.map((aspect, index) => {
-    return {
-      title: aspect.aspek,
-      value: `${aspect.totalItems} item`,
-      subtitle: `${aspect.uploadedCount} sudah terupload`,
-      icon: getAspectIcon(aspect.aspek),
-      color: getAspectColor(aspect.progress),
-      percentage: aspect.progress
-    };
-  });
+  const analysisData = firstFourAspects.map((aspect) => ({
+    title: aspect.aspek,
+    value: `${aspect.totalItems} item`,
+    subtitle: `${aspect.uploadedCount} sudah terupload`,
+    icon: getAspectIcon(aspect.aspek),
+    color: getAspectColor(aspect.aspek, aspect.progress),
+    percentage: aspect.progress
+  }));
 
   // Create analysis data for all aspects
-  const allAnalysisData = allAspects.map((aspect, index) => {
-    return {
-      title: aspect.aspek,
-      value: `${aspect.totalItems} item`,
-      subtitle: `${aspect.uploadedCount} sudah terupload`,
-      icon: getAspectIcon(aspect.aspek),
-      color: getAspectColor(aspect.progress),
-      percentage: aspect.progress
-    };
-  });
+  const allAnalysisData = allAspects.map((aspect) => ({
+    title: aspect.aspek,
+    value: `${aspect.totalItems} item`,
+    subtitle: `${aspect.uploadedCount} sudah terupload`,
+    icon: getAspectIcon(aspect.aspek),
+    color: getAspectColor(aspect.aspek, aspect.progress),
+    percentage: aspect.progress
+  }));
 
   if (!selectedYear) {
     return (
@@ -234,7 +230,7 @@ const DashboardStats = () => {
           <div ref={sliderRef} className="keen-slider">
             {allAnalysisData.map((data, index) => (
               <div key={index} className="keen-slider__slide px-2">
-                <AnalysisCard {...data} />
+                <AnalysisCard {...data} highlightBorder={data.color} />
               </div>
             ))}
           </div>
