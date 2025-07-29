@@ -1,27 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useKeenSlider, KeenSliderPlugin } from 'keen-slider/react';
+import 'keen-slider/keen-slider.min.css';
 import { useNavigate } from 'react-router-dom';
-import AnalysisCard from '@/components/cards/AnalysisCard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
-import { useSidebar } from '@/contexts/SidebarContext';
+import { useYear } from '@/contexts/YearContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import AnalysisCard from '@/components/cards/AnalysisCard';
 import { 
+  BarChart3, 
+  TrendingUp, 
   FileText, 
+  Upload, 
   CheckCircle, 
   Clock, 
-  BarChart3, 
-  Upload,
-  TrendingUp,
-  AlertCircle,
-  ListTodo,
   Plus,
-  ChevronDown,
-  ChevronUp
+  Eye,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
-import 'keen-slider/keen-slider.min.css';
-import { useKeenSlider } from 'keen-slider/react';
-import { KeenSliderPlugin } from 'keen-slider';
 
 // Keen-slider autoplay plugin
 const autoplay = (run = true, interval = 2500): KeenSliderPlugin => (slider) => {
@@ -111,7 +111,8 @@ if (typeof document !== 'undefined') {
 
 const DashboardStats = () => {
   const navigate = useNavigate();
-  const { selectedYear, getYearStats, getFilesByYear } = useFileUpload();
+  const { selectedYear } = useYear();
+  const { getYearStats, getFilesByYear } = useFileUpload();
   const { checklist } = useChecklist();
   const { isSidebarOpen } = useSidebar();
   const [showAllAspects, setShowAllAspects] = useState(false);
@@ -265,29 +266,29 @@ const DashboardStats = () => {
 
   // Create analysis data for first 4 aspects
   const analysisData = firstFourAspects.map((aspect) => ({
-    title: aspect.aspek,
-    value: `${aspect.totalItems} item`,
-    subtitle: `${aspect.uploadedCount} sudah terupload`,
-    icon: getAspectIcon(aspect.aspek),
+      title: aspect.aspek,
+      value: `${aspect.totalItems} item`,
+      subtitle: `${aspect.uploadedCount} sudah terupload`,
+      icon: getAspectIcon(aspect.aspek),
     color: getAspectColor(aspect.aspek, aspect.progress),
-    percentage: aspect.progress
+      percentage: aspect.progress
   }));
 
   // Create analysis data for all aspects
   const allAnalysisData = allAspects.map((aspect) => ({
-    title: aspect.aspek,
-    value: `${aspect.totalItems} item`,
-    subtitle: `${aspect.uploadedCount} sudah terupload`,
-    icon: getAspectIcon(aspect.aspek),
+      title: aspect.aspek,
+      value: `${aspect.totalItems} item`,
+      subtitle: `${aspect.uploadedCount} sudah terupload`,
+      icon: getAspectIcon(aspect.aspek),
     color: getAspectColor(aspect.aspek, aspect.progress),
-    percentage: aspect.progress
+      percentage: aspect.progress
   }));
 
   if (!selectedYear) {
     return (
       <div className="mb-8">
         <div className="text-center py-12 bg-white rounded-xl shadow-md">
-          <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <Eye className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Pilih Tahun Buku
           </h3>
@@ -314,7 +315,7 @@ const DashboardStats = () => {
       {/* Analysis Cards Grid / Swiper */}
       <div className="relative">
         {showAllAspects ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {allAnalysisData.map((data, index) => (
               <AnalysisCard 
                 key={index} 
@@ -334,8 +335,8 @@ const DashboardStats = () => {
                     onClick={() => handleAspectClick(data.title)}
                   />
                 </div>
-              ))}
-            </div>
+          ))}
+        </div>
           </div>
         )}
         {/* View All Button */}

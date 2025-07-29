@@ -14,9 +14,7 @@ export interface UploadedFile {
 
 interface FileUploadContextType {
   uploadedFiles: UploadedFile[];
-  selectedYear: number | null;
-  setSelectedYear: (year: number | null) => void;
-  uploadFile: (file: File, checklistId?: number, checklistDescription?: string, aspect?: string) => void;
+  uploadFile: (file: File, year: number, checklistId?: number, checklistDescription?: string, aspect?: string) => void;
   deleteFile: (fileId: string) => void;
   getFilesByYear: (year: number) => UploadedFile[];
   getYearStats: (year: number) => {
@@ -31,12 +29,10 @@ const FileUploadContext = createContext<FileUploadContextType | undefined>(undef
 
 export const FileUploadProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   // Load data from localStorage on mount
   useEffect(() => {
     const savedFiles = localStorage.getItem('uploadedFiles');
-    const savedYear = localStorage.getItem('selectedYear');
     
     if (savedFiles) {
       const parsedFiles = JSON.parse(savedFiles).map((file: any) => ({
@@ -45,10 +41,6 @@ export const FileUploadProvider: React.FC<{ children: ReactNode }> = ({ children
       }));
       setUploadedFiles(parsedFiles);
     }
-    
-    if (savedYear) {
-      setSelectedYear(parseInt(savedYear));
-    }
   }, []);
 
   // Save to localStorage whenever data changes
@@ -56,23 +48,13 @@ export const FileUploadProvider: React.FC<{ children: ReactNode }> = ({ children
     localStorage.setItem('uploadedFiles', JSON.stringify(uploadedFiles));
   }, [uploadedFiles]);
 
-  useEffect(() => {
-    if (selectedYear) {
-      localStorage.setItem('selectedYear', selectedYear.toString());
-    } else {
-      localStorage.removeItem('selectedYear');
-    }
-  }, [selectedYear]);
-
-  const uploadFile = (file: File, checklistId?: number, checklistDescription?: string, aspect?: string) => {
-    if (!selectedYear) return;
-
+  const uploadFile = (file: File, year: number, checklistId?: number, checklistDescription?: string, aspect?: string) => {
     const newFile: UploadedFile = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       fileName: file.name,
       fileSize: file.size,
       uploadDate: new Date(),
-      year: selectedYear,
+      year: year,
       checklistId,
       checklistDescription,
       aspect,
@@ -107,8 +89,6 @@ export const FileUploadProvider: React.FC<{ children: ReactNode }> = ({ children
   return (
     <FileUploadContext.Provider value={{
       uploadedFiles,
-      selectedYear,
-      setSelectedYear,
       uploadFile,
       deleteFile,
       getFilesByYear,

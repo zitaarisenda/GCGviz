@@ -34,18 +34,24 @@ const Dashboard = () => {
           </div>
 
           {/* Year Selector */}
-          <YearSelector initialYear={filterYear ? parseInt(filterYear) : undefined} />
+          <div id="year-selector">
+            <YearSelector initialYear={filterYear ? parseInt(filterYear) : undefined} />
+          </div>
 
           {/* Dashboard Stats */}
-          <DashboardStats />
+          <div id="dashboard-stats">
+            <DashboardStats />
+          </div>
 
           {/* Document List */}
-          <DocumentList 
-            showFilters={true} 
-            highlightDocumentId={highlightDocumentId}
-            filterYear={filterYear ? parseInt(filterYear) : undefined}
-            filterType={filterType}
-          />
+          <div id="document-list">
+            <DocumentList 
+              showFilters={true} 
+              highlightDocumentId={highlightDocumentId}
+              filterYear={filterYear ? parseInt(filterYear) : undefined}
+              filterType={filterType}
+            />
+          </div>
         </div>
       </div>
     </div>

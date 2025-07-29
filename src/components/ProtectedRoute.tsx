@@ -1,30 +1,22 @@
 
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/contexts/UserContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requireRole?: 'Admin Divisi' | 'User';
+  requireRole?: 'superadmin' | 'admin' | 'user';
 }
 
 const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
-  const { user, profile, isLoading } = useAuth();
+  const { user } = useUser();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!user || !profile) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (requireRole && profile.role !== requireRole) {
-    return <Navigate to={profile.role === 'Admin Divisi' ? '/admin' : '/user'} replace />;
+  if (requireRole && user.role !== requireRole) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

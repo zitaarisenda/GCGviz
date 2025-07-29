@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
+import { useYear } from '@/contexts/YearContext';
 import FileUploadDialog from '@/components/dashboard/FileUploadDialog';
 import { 
   FileText, 
@@ -37,9 +38,9 @@ const ListGCG = () => {
   const { checklist } = useChecklist();
   const { documents } = useDocumentMetadata();
   const { isSidebarOpen } = useSidebar();
+  const { selectedYear, setSelectedYear } = useYear();
   const [selectedAspek, setSelectedAspek] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedYear, setSelectedYear] = useState(2024);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedChecklistItem, setSelectedChecklistItem] = useState<{
@@ -60,7 +61,7 @@ const ListGCG = () => {
     if (aspectParam) {
       setSelectedAspek(aspectParam);
     }
-  }, [searchParams]);
+  }, [searchParams, setSelectedYear]);
 
   // Generate tahun dari 2014 sampai sekarang
   const years = useMemo(() => {
@@ -208,210 +209,207 @@ const ListGCG = () => {
           </div>
 
           {/* Enhanced Year Selection */}
-          <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-blue-50">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2 text-blue-900">
-                <div className="p-2 bg-blue-100 rounded-lg">
+          <div id="year-selector">
+            <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-blue-50">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center space-x-2 text-blue-900">
                   <Calendar className="w-5 h-5 text-blue-600" />
+                  <span>Tahun Buku</span>
+                </CardTitle>
+                <CardDescription className="text-blue-700">
+                  Pilih tahun buku untuk melihat checklist GCG
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {years.map(year => (
+                    <Button
+                      key={year}
+                      variant={selectedYear === year ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedYear(year)}
+                      className={`transition-all duration-200 ${
+                        selectedYear === year 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {year}
+                    </Button>
+                  ))}
                 </div>
-                <span>Tahun Buku</span>
-              </CardTitle>
-              <CardDescription className="text-blue-700">
-                Pilih tahun buku untuk melihat checklist GCG
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {years.map(year => (
-                  <Button
-                    key={year}
-                    variant={selectedYear === year ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedYear(year)}
-                    className={`transition-all duration-200 ${
-                      selectedYear === year 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                        : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    {year}
-                  </Button>
-                ))}
-              </div>
-              
-              {selectedYear && (
-                <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    <strong>Tahun Buku {selectedYear}:</strong> Checklist GCG yang dibuat/dikumpulkan di tahun {selectedYear}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                
+                {selectedYear && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Tahun Buku {selectedYear}:</strong> Checklist GCG yang dibuat/dikumpulkan di tahun {selectedYear}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Enhanced Overall Progress Card */}
-          <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-green-50">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2 text-green-900">
-                <div className="p-2 bg-green-100 rounded-lg">
+          <div id="overall-progress">
+            <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-green-50">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center space-x-2 text-green-900">
                   <BarChart3 className="w-5 h-5 text-green-600" />
-                </div>
-                <span>Progress Keseluruhan - Tahun {selectedYear}</span>
-              </CardTitle>
-              <CardDescription className="text-green-700">
-                Progress upload dokumen GCG secara keseluruhan untuk tahun {selectedYear}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Enhanced Progress Bar */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-gray-700">Progress Upload</span>
-                    <span className="text-lg font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                      {overallProgress}%
-                    </span>
+                  <span>Progress Keseluruhan - Tahun {selectedYear}</span>
+                </CardTitle>
+                <CardDescription className="text-green-700">
+                  Progress upload dokumen GCG secara keseluruhan untuk tahun {selectedYear}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Enhanced Progress Bar */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-semibold text-gray-700">Progress Upload</span>
+                      <span className="text-lg font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                        {overallProgress}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
+                      <div 
+                        className="bg-gradient-to-r from-green-500 to-blue-500 h-4 rounded-full transition-all duration-500 shadow-lg"
+                        style={{ width: `${overallProgress}%` }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
-                    <div 
-                      className="bg-gradient-to-r from-green-500 to-blue-500 h-4 rounded-full transition-all duration-500 shadow-lg"
-                      style={{ width: `${overallProgress}%` }}
-                    ></div>
-                  </div>
-                </div>
 
-                {/* Enhanced Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm">
-                    <div className="p-3 bg-blue-500 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-white" />
+                  {/* Enhanced Statistics */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm">
+                      <div className="p-3 bg-blue-500 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-3xl font-bold text-blue-600 mb-1">{checklist.length}</div>
+                      <div className="text-sm text-blue-700 font-medium">Total Checklist</div>
                     </div>
-                    <div className="text-3xl font-bold text-blue-600 mb-1">{checklist.length}</div>
-                    <div className="text-sm text-blue-700 font-medium">Total Checklist</div>
+                    <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 shadow-sm">
+                      <div className="p-3 bg-green-500 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                        <CheckCircle className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-3xl font-bold text-green-600 mb-1">
+                        {checklist.filter(item => isChecklistUploaded(item.id)).length}
+                      </div>
+                      <div className="text-sm text-green-700 font-medium">Sudah Selesai</div>
+                    </div>
+                    <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border border-yellow-200 shadow-sm">
+                      <div className="p-3 bg-yellow-500 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                        <Clock className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-3xl font-bold text-yellow-600 mb-1">
+                        {checklist.filter(item => !isChecklistUploaded(item.id)).length}
+                      </div>
+                      <div className="text-sm text-yellow-700 font-medium">Belum Selesai</div>
+                    </div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 shadow-sm">
-                    <div className="p-3 bg-green-500 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                      <CheckCircle className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="text-3xl font-bold text-green-600 mb-1">
-                      {checklist.filter(item => isChecklistUploaded(item.id)).length}
-                    </div>
-                    <div className="text-sm text-green-700 font-medium">Sudah Selesai</div>
-                  </div>
-                  <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border border-yellow-200 shadow-sm">
-                    <div className="p-3 bg-yellow-500 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="text-3xl font-bold text-yellow-600 mb-1">
-                      {checklist.filter(item => !isChecklistUploaded(item.id)).length}
-                    </div>
-                    <div className="text-sm text-yellow-700 font-medium">Belum Selesai</div>
-                  </div>
-                </div>
 
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Enhanced Progress per Aspek */}
-          <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-purple-50">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2 text-purple-900">
-                <div className="p-2 bg-purple-100 rounded-lg">
+          <div id="aspect-progress">
+            <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-purple-50">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center space-x-2 text-purple-900">
                   <TrendingUp className="w-5 h-5 text-purple-600" />
-                </div>
-                <span>Progress per Aspek - Tahun {selectedYear}</span>
-              </CardTitle>
-              <CardDescription className="text-purple-700">
-                Progress upload dokumen berdasarkan aspek GCG untuk tahun {selectedYear}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {aspects.map((aspek) => {
-                  const progress = getAspekProgress(aspek);
-                  const aspekItems = checklist.filter(item => item.aspek === aspek);
-                  const uploadedCount = aspekItems.filter(item => isChecklistUploaded(item.id)).length;
-                  const pendingCount = aspekItems.length - uploadedCount;
-                  const aspectInfo = getAspectIcon(aspek);
-                  const IconComponent = aspectInfo.icon;
-                  
-                  return (
-                    <div key={aspek} className="p-6 border-0 rounded-xl shadow-md bg-white hover:shadow-lg transition-all duration-300 hover:scale-105">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div className={`p-3 rounded-lg ${aspectInfo.bgColor}`}>
-                            <IconComponent className={`w-6 h-6 ${aspectInfo.color}`} />
+                  <span>Progress per Aspek - Tahun {selectedYear}</span>
+                </CardTitle>
+                <CardDescription className="text-purple-700">
+                  Progress upload dokumen berdasarkan aspek GCG untuk tahun {selectedYear}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {aspects.map((aspek) => {
+                    const progress = getAspekProgress(aspek);
+                    const aspekItems = checklist.filter(item => item.aspek === aspek);
+                    const uploadedCount = aspekItems.filter(item => isChecklistUploaded(item.id)).length;
+                    const pendingCount = aspekItems.length - uploadedCount;
+                    const aspectInfo = getAspectIcon(aspek);
+                    const IconComponent = aspectInfo.icon;
+                    
+                    return (
+                      <div key={aspek} className="p-6 border-0 rounded-xl shadow-md bg-white hover:shadow-lg transition-all duration-300 hover:scale-105">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-3 rounded-lg ${aspectInfo.bgColor}`}>
+                              <IconComponent className={`w-6 h-6 ${aspectInfo.color}`} />
+                            </div>
+                            <h4 className="font-semibold text-gray-900 truncate">{aspek}</h4>
                           </div>
-                          <h4 className="font-semibold text-gray-900 truncate">{aspek}</h4>
+                          <Badge 
+                            variant={progress === 100 ? "default" : progress > 50 ? "secondary" : "destructive"}
+                            className={`${
+                              progress === 100 ? 'bg-green-100 text-green-800 border-green-200' :
+                              progress > 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                              'bg-red-100 text-red-800 border-red-200'
+                            }`}
+                          >
+                            {progress}%
+                          </Badge>
                         </div>
-                        <Badge 
-                          variant={progress === 100 ? "default" : progress > 50 ? "secondary" : "destructive"}
-                          className={`${
-                            progress === 100 ? 'bg-green-100 text-green-800 border-green-200' :
-                            progress > 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                            'bg-red-100 text-red-800 border-red-200'
-                          }`}
-                        >
-                          {progress}%
-                        </Badge>
+                        <div className="w-full bg-gray-200 rounded-full h-3 mb-4 shadow-inner">
+                          <div 
+                            className={`h-3 rounded-full transition-all duration-500 shadow-sm ${
+                              progress === 100 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                              progress > 50 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 
+                              'bg-gradient-to-r from-red-500 to-pink-500'
+                            }`}
+                            style={{ width: `${progress}%` }}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between text-sm mb-3">
+                          <span className="flex items-center bg-green-100 text-green-700 px-2 py-1 rounded-md">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            {uploadedCount}
+                          </span>
+                          <span className="flex items-center bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {pendingCount}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 font-medium">
+                          Total: {aspekItems.length} item
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3 mb-4 shadow-inner">
-                        <div 
-                          className={`h-3 rounded-full transition-all duration-500 shadow-sm ${
-                            progress === 100 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
-                            progress > 50 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 
-                            'bg-gradient-to-r from-red-500 to-pink-500'
-                          }`}
-                          style={{ width: `${progress}%` }}
-                        ></div>
-                      </div>
-                      <div className="flex justify-between text-sm mb-3">
-                        <span className="flex items-center bg-green-100 text-green-700 px-2 py-1 rounded-md">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          {uploadedCount}
-                        </span>
-                        <span className="flex items-center bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {pendingCount}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500 font-medium">
-                        Total: {aspekItems.length} item
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Enhanced Checklist Table */}
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-indigo-50">
-            <CardHeader>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <CardTitle className="flex items-center space-x-2 text-indigo-900">
-                    <div className="p-2 bg-indigo-100 rounded-lg">
+          <div id="checklist-table">
+            <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-indigo-50">
+              <CardHeader>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <CardTitle className="flex items-center space-x-2 text-indigo-900">
                       <FileText className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <span>Daftar Checklist GCG - Tahun {selectedYear}</span>
-                  </CardTitle>
-                  <CardDescription className="text-indigo-700 mt-2">
-                    {searchTerm ? (
-                      <span>
-                        <span className="font-semibold text-indigo-600">{filteredChecklist.length}</span> item ditemukan untuk pencarian "{searchTerm}"
-                      </span>
-                    ) : (
-                      <span>
-                        <span className="font-semibold text-indigo-600">{filteredChecklist.length}</span> item ditemukan
-                      </span>
-                    )}
-                  </CardDescription>
+                      <span>Daftar Checklist GCG - Tahun {selectedYear}</span>
+                    </CardTitle>
+                    <CardDescription className="text-indigo-700 mt-2">
+                      {searchTerm ? (
+                        <span>
+                          <span className="font-semibold text-indigo-600">{filteredChecklist.length}</span> item ditemukan untuk pencarian "{searchTerm}"
+                        </span>
+                      ) : (
+                        <span>
+                          <span className="font-semibold text-indigo-600">{filteredChecklist.length}</span> item ditemukan
+                        </span>
+                      )}
+                    </CardDescription>
+                  </div>
                 </div>
-              </div>
 
               {/* All Filters Integrated */}
               <div className="space-y-4">
@@ -696,6 +694,7 @@ const ListGCG = () => {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
 

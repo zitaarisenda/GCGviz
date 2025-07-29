@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Plus } from 'lucide-react';
 import { useFileUpload } from '@/contexts/FileUploadContext';
+import { useYear } from '@/contexts/YearContext';
 import FileUploadDialog from './FileUploadDialog';
 
 interface YearSelectorProps {
@@ -10,7 +11,8 @@ interface YearSelectorProps {
 }
 
 const YearSelector: React.FC<YearSelectorProps> = ({ initialYear }) => {
-  const { selectedYear, setSelectedYear, getFilesByYear } = useFileUpload();
+  const { selectedYear, setSelectedYear } = useYear();
+  const { getFilesByYear } = useFileUpload();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
   // Set initial year if provided

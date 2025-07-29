@@ -121,74 +121,76 @@ const ChecklistGCG = () => {
           </div>
 
           {/* Year Selection */}
-          <Card className="mb-6">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Calendar className="w-5 h-5" />
-                    <span>Pilih Tahun</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Pilih tahun untuk melihat dan mengelola checklist GCG
-                  </CardDescription>
+          <div id="year-selection">
+            <Card className="mb-6">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Calendar className="w-5 h-5" />
+                      <span>Pilih Tahun</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Pilih tahun untuk melihat dan mengelola checklist GCG
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Pilih tahun" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map(year => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Dialog open={isYearDialogOpen} onOpenChange={setIsYearDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Tambah Tahun
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Tambah Tahun Baru</DialogTitle>
+                          <DialogDescription>
+                            Tambahkan tahun baru untuk checklist GCG
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleAddYear} className="space-y-4">
+                          <div>
+                            <Label htmlFor="year">Tahun</Label>
+                            <Input
+                              id="year"
+                              type="number"
+                              min="2014"
+                              max={new Date().getFullYear() + 1}
+                              value={newYear}
+                              onChange={(e) => setNewYear(e.target.value)}
+                              placeholder="Masukkan tahun (2014-sekarang)"
+                              required
+                            />
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button type="button" variant="outline" onClick={() => setIsYearDialogOpen(false)}>
+                              Batal
+                            </Button>
+                            <Button type="submit">
+                              Tambah
+                            </Button>
+                          </div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Pilih tahun" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {years.map(year => (
-                        <SelectItem key={year} value={year.toString()}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Dialog open={isYearDialogOpen} onOpenChange={setIsYearDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Tambah Tahun
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Tambah Tahun Baru</DialogTitle>
-                        <DialogDescription>
-                          Tambahkan tahun baru untuk checklist GCG
-                        </DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={handleAddYear} className="space-y-4">
-                        <div>
-                          <Label htmlFor="year">Tahun</Label>
-                          <Input
-                            id="year"
-                            type="number"
-                            min="2014"
-                            max={new Date().getFullYear() + 1}
-                            value={newYear}
-                            onChange={(e) => setNewYear(e.target.value)}
-                            placeholder="Masukkan tahun (2014-sekarang)"
-                            required
-                          />
-                        </div>
-                        <div className="flex justify-end space-x-2">
-                          <Button type="button" variant="outline" onClick={() => setIsYearDialogOpen(false)}>
-                            Batal
-                          </Button>
-                          <Button type="submit">
-                            Tambah
-                          </Button>
-                        </div>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
+              </CardHeader>
+            </Card>
+          </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
@@ -207,7 +209,7 @@ const ChecklistGCG = () => {
             </TabsList>
 
             {/* Overview Tab */}
-            <TabsContent value="overview">
+            <TabsContent value="overview" id="overview-tab">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {aspects.map((aspek) => {
                   const items = groupedChecklist[aspek] || [];
@@ -246,7 +248,7 @@ const ChecklistGCG = () => {
             </TabsContent>
 
             {/* Aspek Tab */}
-            <TabsContent value="aspek">
+            <TabsContent value="aspek" id="aspek-tab">
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -337,7 +339,7 @@ const ChecklistGCG = () => {
             </TabsContent>
 
             {/* Checklist Tab */}
-            <TabsContent value="checklist">
+            <TabsContent value="checklist" id="checklist-tab">
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">

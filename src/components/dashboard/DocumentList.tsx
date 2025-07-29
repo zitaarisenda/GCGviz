@@ -12,6 +12,7 @@ import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useDireksi } from '@/contexts/DireksiContext';
+import { useYear } from '@/contexts/YearContext';
 import { 
   FileText, 
   Search, 
@@ -49,7 +50,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   filterType
 }) => {
   const { documents, getDocumentsByYear, deleteDocument, updateDocument } = useDocumentMetadata();
-  const { selectedYear, setSelectedYear } = useFileUpload();
+  const { selectedYear } = useYear();
   const { checklist } = useChecklist();
   const { direksi } = useDireksi();
   
@@ -79,9 +80,9 @@ const DocumentList: React.FC<DocumentListProps> = ({
   // Set year filter if provided
   React.useEffect(() => {
     if (filterYear && filterYear !== selectedYear) {
-      setSelectedYear(filterYear);
+      // setSelectedYear(filterYear); // This line is removed as per the new_code
     }
-  }, [filterYear, selectedYear, setSelectedYear]);
+  }, [filterYear, selectedYear]); // Removed setSelectedYear from dependency array
 
   // Handle highlight fade effect
   React.useEffect(() => {
@@ -434,9 +435,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                  </div>
+                  <FileText className="w-5 h-5 text-blue-600" />
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors">
                       {doc.title}

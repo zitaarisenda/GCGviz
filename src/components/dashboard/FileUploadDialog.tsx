@@ -12,6 +12,7 @@ import { useDireksi } from '@/contexts/DireksiContext';
 import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
+import { useYear } from '@/contexts/YearContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Upload, 
@@ -78,7 +79,8 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
 }) => {
   const { user } = useUser();
   const { direksi } = useDireksi();
-  const { selectedYear, uploadFile } = useFileUpload();
+  const { uploadFile } = useFileUpload();
+  const { selectedYear } = useYear();
   const { checklist } = useChecklist();
   const { documents, addDocument } = useDocumentMetadata();
   const { toast } = useToast();
@@ -404,6 +406,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       // Upload file using context
       uploadFile(
         selectedFile,
+        selectedYear,
         formData.selectedChecklistId || 0,
         selectedChecklist?.deskripsi || '',
         selectedChecklist?.aspek || ''

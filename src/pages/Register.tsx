@@ -5,31 +5,47 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useAuth } from '@/contexts/AuthContext';
 import { Shield, Eye, EyeOff } from 'lucide-react';
 
 const Register = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { register, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
+      alert('Password tidak cocok!');
       return;
     }
 
-    const success = await register(email, password, username);
+    // Simple registration logic
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    const existingUser = users.find((u: any) => u.username === username);
     
-    if (success) {
-      navigate('/login');
+    if (existingUser) {
+      alert('Username sudah digunakan!');
+      return;
     }
+
+    const newUser = {
+      id: Date.now(),
+      username,
+      password,
+      name,
+      role: 'user' as const
+    };
+
+    users.push(newUser);
+    localStorage.setItem("users", JSON.stringify(users));
+    
+    alert('Registrasi berhasil! Silakan login.');
+    navigate('/login');
   };
 
   return (
@@ -47,13 +63,13 @@ const Register = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="name">Nama Lengkap</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="Masukkan email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="name"
+                type="text"
+                placeholder="Masukkan nama lengkap"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
@@ -116,27 +132,19 @@ const Register = () => {
               </div>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <strong>Catatan:</strong> Registrasi ini hanya untuk User biasa. 
-                Akun Admin Divisi sudah tersedia dengan email: admin.[divisi]@posindonesia.co.id
-              </p>
-            </div>
-
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-              disabled={isLoading || password !== confirmPassword}
             >
-              {isLoading ? 'Memproses...' : 'Daftar'}
+              Daftar
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Sudah punya akun?{' '}
-              <Link to="/login" className="text-green-600 hover:text-green-800 font-medium">
-                Login di sini
+              <Link to="/login" className="text-green-600 hover:text-green-700 font-medium">
+                Login disini
               </Link>
             </p>
           </div>

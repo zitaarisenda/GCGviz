@@ -76,7 +76,7 @@ const KelolaAkun = () => {
             </TabsList>
 
             {/* Super Admin Tab */}
-            <TabsContent value="superadmin">
+            <TabsContent value="superadmin" id="superadmin-tab">
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -174,7 +174,7 @@ const KelolaAkun = () => {
             </TabsContent>
 
             {/* Direksi Tab */}
-            <TabsContent value="direksi">
+            <TabsContent value="direksi" id="direksi-tab">
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">

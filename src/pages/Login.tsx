@@ -5,21 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/contexts/UserContext';
 import { Shield, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading } = useAuth();
+  const { login } = useUser();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(email, password);
+    const success = login(username, password);
     if (success) {
-      navigate('/');
+      navigate('/dashboard');
+    } else {
+      alert('Username atau password salah!');
     }
   };
 
@@ -38,13 +40,13 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="Masukkan email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="Masukkan username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
@@ -73,34 +75,29 @@ const Login = () => {
 
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <p className="text-sm text-green-800 mb-2">
-                <strong>Akun Admin Divisi:</strong>
+                <strong>Akun Demo:</strong>
               </p>
               <ul className="text-xs text-green-700 space-y-1">
-                <li>• admin.audit@posindonesia.co.id</li>
-                <li>• admin.risiko@posindonesia.co.id</li>
-                <li>• admin.sekper@posindonesia.co.id</li>
-                <li>• admin.keuangan@posindonesia.co.id</li>
-                <li>• admin.sdm@posindonesia.co.id</li>
-                <li>• admin.hukum@posindonesia.co.id</li>
-                <li>• admin.it@posindonesia.co.id</li>
+                <li>• superadmin (Super Admin)</li>
+                <li>• admin (Admin)</li>
+                <li>• user (User)</li>
               </ul>
-              <p className="text-xs text-green-700 mt-2">Password: <strong>admin123</strong></p>
+              <p className="text-xs text-green-700 mt-2">Password: <strong>password</strong></p>
             </div>
 
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-              disabled={isLoading}
             >
-              {isLoading ? 'Memproses...' : 'Login'}
+              Login
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Belum punya akun User?{' '}
-              <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
-                Daftar di sini
+              Belum punya akun?{' '}
+              <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+                Daftar disini
               </Link>
             </p>
           </div>
