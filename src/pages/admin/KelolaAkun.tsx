@@ -306,6 +306,32 @@ const KelolaAkun = () => {
     }
   };
 
+  // Helper untuk tahun terkini
+  const getLatestYear = (dataKey: string): number | null => {
+    const data = localStorage.getItem(dataKey);
+    if (!data) return null;
+    const list = JSON.parse(data);
+    const years = list.map((d: any) => d.tahun).filter(Boolean);
+    if (years.length === 0) return null;
+    return Math.max(...years);
+  };
+  const getDireksiByYear = (year: number): string[] => {
+    const data = localStorage.getItem('direksi');
+    if (!data) return [];
+    const list = JSON.parse(data);
+    return Array.from(new Set(list.filter((d: any) => d.tahun === year).map((d: any) => String(d.nama)))).sort();
+  };
+  const getDivisiByYear = (year: number): string[] => {
+    const data = localStorage.getItem('divisi');
+    if (!data) return [];
+    const list = JSON.parse(data);
+    return Array.from(new Set(list.filter((d: any) => d.tahun === year).map((d: any) => String(d.nama)))).sort();
+  };
+  const latestDireksiYear = getLatestYear('direksi');
+  const latestDivisiYear = getLatestYear('divisi');
+  const direksiOptions = latestDireksiYear ? getDireksiByYear(latestDireksiYear) : [];
+  const divisiOptions = latestDivisiYear ? getDivisiByYear(latestDivisiYear) : [];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
@@ -398,12 +424,18 @@ const KelolaAkun = () => {
                       </div>
                       <div>
                         <Label htmlFor="direksi">Direksi (Opsional)</Label>
-                        <Input
+                        <select
                           id="direksi"
                           value={accountForm.direksi}
                           onChange={(e) => setAccountForm({ ...accountForm, direksi: e.target.value })}
-                          placeholder="Masukkan direksi"
-                        />
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          disabled={direksiOptions.length === 0}
+                        >
+                          <option value="">{direksiOptions.length > 0 ? 'Pilih direksi' : 'Belum ada data direksi tahun terkini'}</option>
+                          {direksiOptions.map((d) => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
                       </div>
                       <div>
                         <Label htmlFor="divisi">Divisi (Opsional)</Label>
@@ -412,7 +444,13 @@ const KelolaAkun = () => {
                           value={accountForm.divisi}
                           onChange={(e) => setAccountForm({ ...accountForm, divisi: e.target.value })}
                           placeholder="Masukkan divisi"
+                          list="divisi-suggestions"
                         />
+                        <datalist id="divisi-suggestions">
+                          {divisiOptions.map((d) => (
+                            <option key={d} value={d} />
+                          ))}
+                        </datalist>
                       </div>
                       <div className="flex justify-end space-x-2">
                         <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -609,12 +647,18 @@ const KelolaAkun = () => {
             </div>
             <div>
               <Label htmlFor="edit-direksi">Direksi (Opsional)</Label>
-              <Input
+              <select
                 id="edit-direksi"
                 value={accountForm.direksi}
                 onChange={(e) => setAccountForm({ ...accountForm, direksi: e.target.value })}
-                placeholder="Masukkan direksi"
-              />
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={direksiOptions.length === 0}
+              >
+                <option value="">{direksiOptions.length > 0 ? 'Pilih direksi' : 'Belum ada data direksi tahun terkini'}</option>
+                {direksiOptions.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
             </div>
             <div>
               <Label htmlFor="edit-divisi">Divisi (Opsional)</Label>
@@ -623,7 +667,13 @@ const KelolaAkun = () => {
                 value={accountForm.divisi}
                 onChange={(e) => setAccountForm({ ...accountForm, divisi: e.target.value })}
                 placeholder="Masukkan divisi"
+                list="divisi-suggestions"
               />
+              <datalist id="divisi-suggestions">
+                {divisiOptions.map((d) => (
+                  <option key={d} value={d} />
+                ))}
+              </datalist>
             </div>
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
