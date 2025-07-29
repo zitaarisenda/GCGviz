@@ -1,22 +1,24 @@
 import React from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
-  Search, 
   Bell, 
   Mail, 
   HelpCircle,
   User,
   Menu,
-  X
+  X,
+  ChevronRight,
+  Home
 } from 'lucide-react';
 
 const Topbar = () => {
   const { user } = useUser();
   const { isSidebarOpen, toggleSidebar } = useSidebar();
+  const location = useLocation();
 
   // Function to refresh page and scroll to top
   const handleLogoClick = () => {
@@ -27,6 +29,30 @@ const Topbar = () => {
       window.location.reload();
     }, 300);
   };
+
+  // Get current page title and breadcrumb
+  const getPageInfo = () => {
+    const path = location.pathname;
+    
+    switch (path) {
+      case '/dashboard':
+        return { title: 'Dashboard', breadcrumb: ['Dashboard'] };
+      case '/documents':
+        return { title: 'Manajemen Dokumen', breadcrumb: ['Dashboard', 'Manajemen Dokumen'] };
+      case '/list-gcg':
+        return { title: 'List GCG', breadcrumb: ['Dashboard', 'List GCG'] };
+      case '/penilaian-gcg':
+        return { title: 'Penilaian GCG', breadcrumb: ['Dashboard', 'Penilaian GCG'] };
+      case '/admin/kelola-akun':
+        return { title: 'Kelola Akun', breadcrumb: ['Dashboard', 'Admin', 'Kelola Akun'] };
+      case '/admin/checklist-gcg':
+        return { title: 'Checklist GCG', breadcrumb: ['Dashboard', 'Admin', 'Checklist GCG'] };
+      default:
+        return { title: 'Dashboard', breadcrumb: ['Dashboard'] };
+    }
+  };
+
+  const pageInfo = getPageInfo();
 
   return (
     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-50 shadow-sm">
@@ -67,14 +93,21 @@ const Topbar = () => {
         </div>
       </div>
 
-      {/* Center - Search */}
-      <div className="flex-1 max-w-md mx-8 hidden lg:block">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder="Cari dokumen, checklist, atau informasi..."
-            className="pl-10 bg-gray-50 border-gray-200 focus:bg-white"
-          />
+      {/* Center - Breadcrumb Navigation */}
+      <div className="flex-1 flex justify-center">
+        <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-600">
+          <Home className="w-4 h-4" />
+          {pageInfo.breadcrumb.map((item, index) => (
+            <React.Fragment key={index}>
+              <span className="text-gray-400">{item}</span>
+              {index < pageInfo.breadcrumb.length - 1 && (
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+        <div className="lg:hidden text-sm font-medium text-gray-900">
+          {pageInfo.title}
         </div>
       </div>
 

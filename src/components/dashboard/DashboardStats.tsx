@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { 
   FileText, 
   CheckCircle, 
@@ -60,24 +61,106 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+// Custom CSS for keen-slider
+const keenSliderStyles = `
+  .keen-slider {
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -khtml-user-select: none;
+    touch-action: pan-y;
+  }
+  .keen-slider__slide {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    min-height: 100%;
+    flex-shrink: 0;
+  }
+  .keen-slider[data-keen-slider-v] {
+    flex-wrap: wrap;
+  }
+  .keen-slider[data-keen-slider-v] .keen-slider__slide {
+    width: 100%;
+  }
+  .keen-slider[data-keen-slider-moves] * {
+    pointer-events: none;
+  }
+  .keen-slider[data-keen-slider-mode="free-snap"] {
+    scroll-snap-type: x mandatory;
+  }
+  .keen-slider[data-keen-slider-mode="free-snap"] .keen-slider__slide {
+    scroll-snap-align: start;
+  }
+`;
+
+// Inject custom styles
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = keenSliderStyles;
+  document.head.appendChild(styleElement);
+}
+
 const DashboardStats = () => {
   const navigate = useNavigate();
   const { selectedYear, getYearStats, getFilesByYear } = useFileUpload();
   const { checklist } = useChecklist();
+  const { isSidebarOpen } = useSidebar();
   const [showAllAspects, setShowAllAspects] = useState(false);
-  const [sliderRef] = useKeenSlider({
+  const [sliderRef, instanceRef] = useKeenSlider({
     loop: true,
+    mode: 'free-snap',
     slides: { perView: 1, spacing: 16 },
     breakpoints: {
-      '(min-width: 640px)': { slides: { perView: 2, spacing: 24 } },
-      '(min-width: 1024px)': { slides: { perView: 3, spacing: 24 } },
-      '(min-width: 1280px)': { slides: { perView: 4, spacing: 24 } },
+      '(min-width: 640px)': { slides: { perView: 2, spacing: 16 } },
+      '(min-width: 768px)': { slides: { perView: 2, spacing: 20 } },
+      '(min-width: 1024px)': { slides: { perView: 3, spacing: 20 } },
+      '(min-width: 1280px)': { slides: { perView: 4, spacing: 20 } },
+      '(min-width: 1536px)': { slides: { perView: 4, spacing: 24 } },
     },
     drag: true,
     created(slider) {
       slider.moveToIdx(0, true);
+    },
+    updated(slider) {
+      // Force recalculation on window resize or sidebar toggle
+      slider.update();
     }
   }, [autoplay()]);
+
+  // Update slider when sidebar state changes
+  useEffect(() => {
+    if (instanceRef.current) {
+      // Longer delay to ensure DOM has fully updated
+      setTimeout(() => {
+        instanceRef.current?.update();
+        // Force a second update after a short delay
+        setTimeout(() => {
+          instanceRef.current?.update();
+        }, 50);
+      }, 150);
+    }
+  }, [isSidebarOpen, instanceRef]);
+
+  // Update slider on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (instanceRef.current) {
+        instanceRef.current.update();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [instanceRef]);
 
   // Calculate statistics based on selected year
   const getStats = () => {
@@ -241,16 +324,18 @@ const DashboardStats = () => {
             ))}
           </div>
         ) : (
-          <div ref={sliderRef} className="keen-slider">
-            {allAnalysisData.map((data, index) => (
-              <div key={index} className="keen-slider__slide px-2">
-                <AnalysisCard 
-                  {...data} 
-                  highlightBorder={data.color}
-                  onClick={() => handleAspectClick(data.title)}
-                />
-              </div>
-            ))}
+          <div className="overflow-hidden">
+            <div ref={sliderRef} className="keen-slider">
+              {allAnalysisData.map((data, index) => (
+                <div key={index} className="keen-slider__slide">
+                  <AnalysisCard 
+                    {...data} 
+                    highlightBorder={data.color}
+                    onClick={() => handleAspectClick(data.title)}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
         {/* View All Button */}
