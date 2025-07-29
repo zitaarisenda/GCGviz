@@ -4,8 +4,10 @@ import Topbar from '@/components/layout/Topbar';
 import YearSelector from '@/components/dashboard/YearSelector';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import DocumentList from '@/components/dashboard/DocumentList';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 const Dashboard = () => {
+  const { isSidebarOpen } = useSidebar();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -13,7 +15,10 @@ const Dashboard = () => {
       <Topbar />
       
       {/* Main Content */}
-      <div className="ml-64 pt-16">
+      <div className={`
+        transition-all duration-300 ease-in-out pt-16
+        ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'}
+      `}>
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">

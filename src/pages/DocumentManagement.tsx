@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { useFileUpload } from '@/contexts/FileUploadContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { 
   FileText, 
   Upload, 
@@ -24,6 +25,7 @@ import { resetDocumentMetadata } from '@/lib/utils';
 const DocumentManagement = () => {
   const { selectedYear } = useFileUpload();
   const { getYearStats } = useDocumentMetadata();
+  const { isSidebarOpen } = useSidebar();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
   const yearStats = selectedYear ? getYearStats(selectedYear) : {
@@ -48,7 +50,10 @@ const DocumentManagement = () => {
         <Sidebar />
         <Topbar />
         
-        <div className="ml-64 pt-16">
+        <div className={`
+          transition-all duration-300 ease-in-out pt-16
+          ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'}
+        `}>
           <div className="p-6">
             <div className="text-center py-12">
               <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -70,7 +75,10 @@ const DocumentManagement = () => {
       <Sidebar />
       <Topbar />
       
-      <div className="ml-64 pt-16">
+      <div className={`
+        transition-all duration-300 ease-in-out pt-16
+        ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'}
+      `}>
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">

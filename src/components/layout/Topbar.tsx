@@ -1,5 +1,6 @@
 import React from 'react';
 import { useUser } from '@/contexts/UserContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,27 +9,57 @@ import {
   Bell, 
   Mail, 
   HelpCircle,
-  User
+  User,
+  Menu,
+  X
 } from 'lucide-react';
 
 const Topbar = () => {
   const { user } = useUser();
+  const { isSidebarOpen, toggleSidebar } = useSidebar();
 
   return (
-    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 fixed top-0 left-64 right-0 z-40">
-      {/* Left side */}
+    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-50 shadow-sm">
+      {/* Left side - Logo, Title, and Hamburger */}
       <div className="flex items-center space-x-4">
-        <Button variant="outline" className="bg-blue-600 text-white hover:bg-blue-700">
-          View as Client
+        {/* Hamburger Menu */}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={toggleSidebar}
+          className="p-2 hover:bg-gray-100"
+        >
+          {isSidebarOpen ? (
+            <X className="w-5 h-5 text-gray-600" />
+          ) : (
+            <Menu className="w-5 h-5 text-gray-600" />
+          )}
         </Button>
+
+        {/* Logo */}
+        <div className="flex items-center space-x-3">
+          <img 
+            src="/logo.png" 
+            alt="POSIND Logo" 
+            className="h-8 w-auto"
+          />
+          <div className="hidden md:block">
+            <h1 className="text-xl font-bold text-gray-900">
+              GCG Document Hub
+            </h1>
+            <p className="text-xs text-gray-500">
+              Good Corporate Governance Management System
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Center - Search */}
-      <div className="flex-1 max-w-md mx-8">
+      <div className="flex-1 max-w-md mx-8 hidden lg:block">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
-            placeholder="Search Mail"
+            placeholder="Cari dokumen, checklist, atau informasi..."
             className="pl-10 bg-gray-50 border-gray-200 focus:bg-white"
           />
         </div>

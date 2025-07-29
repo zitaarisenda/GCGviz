@@ -7,6 +7,7 @@ import { ChecklistProvider } from '@/contexts/ChecklistContext';
 import { FileUploadProvider } from '@/contexts/FileUploadContext';
 import { DocumentMetadataProvider } from '@/contexts/DocumentMetadataContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { SidebarProvider } from '@/contexts/SidebarContext';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/Register';
 import Dashboard from '@/pages/dashboard/Dashboard';
@@ -171,7 +172,9 @@ const App = () => {
           <FileUploadProvider>
               <DocumentMetadataProvider>
             <Router>
-              <AppRoutes />
+              <SidebarProvider>
+                <AppRoutes />
+              </SidebarProvider>
             </Router>
               </DocumentMetadataProvider>
           </FileUploadProvider>

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useChecklist } from '@/contexts/ChecklistContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import FileUploadDialog from '@/components/dashboard/FileUploadDialog';
 import { 
   FileText, 
@@ -23,6 +24,7 @@ import {
 const ListGCG = () => {
   const [searchParams] = useSearchParams();
   const { checklist } = useChecklist();
+  const { isSidebarOpen } = useSidebar();
   const [selectedAspek, setSelectedAspek] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState(2024);
@@ -114,13 +116,28 @@ const ListGCG = () => {
       <Sidebar />
       <Topbar />
       
-      {/* Main Content */}
-      <div className="ml-64 pt-16">
+      <div className={`
+        transition-all duration-300 ease-in-out pt-16
+        ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'}
+      `}>
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">List GCG</h1>
-            <p className="text-gray-600 mt-2">Daftar checklist Good Corporate Governance</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">List GCG</h1>
+                <p className="text-gray-600 mt-2">
+                  Daftar checklist Good Corporate Governance
+                </p>
+              </div>
+              <Button 
+                onClick={() => setIsUploadDialogOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Dokumen
+              </Button>
+            </div>
           </div>
 
           {/* Year Selection */}
