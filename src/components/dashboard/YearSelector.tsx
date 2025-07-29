@@ -1,13 +1,24 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Plus } from 'lucide-react';
 import { useFileUpload } from '@/contexts/FileUploadContext';
 import FileUploadDialog from './FileUploadDialog';
 
-const YearSelector = () => {
+interface YearSelectorProps {
+  initialYear?: number;
+}
+
+const YearSelector: React.FC<YearSelectorProps> = ({ initialYear }) => {
   const { selectedYear, setSelectedYear, getFilesByYear } = useFileUpload();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+
+  // Set initial year if provided
+  useEffect(() => {
+    if (initialYear && initialYear !== selectedYear) {
+      setSelectedYear(initialYear);
+    }
+  }, [initialYear, selectedYear, setSelectedYear]);
 
   // Generate years from 2014 to current year
   const years = useMemo(() => {

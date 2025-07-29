@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import YearSelector from '@/components/dashboard/YearSelector';
@@ -8,6 +9,12 @@ import { useSidebar } from '@/contexts/SidebarContext';
 
 const Dashboard = () => {
   const { isSidebarOpen } = useSidebar();
+  const [searchParams] = useSearchParams();
+  
+  // Get URL parameters
+  const highlightDocumentId = searchParams.get('highlight');
+  const filterYear = searchParams.get('year');
+  const filterType = searchParams.get('filter');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -27,13 +34,18 @@ const Dashboard = () => {
           </div>
 
           {/* Year Selector */}
-          <YearSelector />
+          <YearSelector initialYear={filterYear ? parseInt(filterYear) : undefined} />
 
           {/* Dashboard Stats */}
           <DashboardStats />
 
           {/* Document List */}
-          <DocumentList showFilters={true} />
+          <DocumentList 
+            showFilters={true} 
+            highlightDocumentId={highlightDocumentId}
+            filterYear={filterYear ? parseInt(filterYear) : undefined}
+            filterType={filterType}
+          />
         </div>
       </div>
     </div>

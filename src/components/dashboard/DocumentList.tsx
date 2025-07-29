@@ -35,15 +35,21 @@ interface DocumentListProps {
   year?: number;
   showFilters?: boolean;
   maxItems?: number;
+  highlightDocumentId?: string | null;
+  filterYear?: number;
+  filterType?: string | null;
 }
 
 const DocumentList: React.FC<DocumentListProps> = ({ 
   year, 
   showFilters = true, 
-  maxItems 
+  maxItems,
+  highlightDocumentId,
+  filterYear,
+  filterType
 }) => {
   const { documents, getDocumentsByYear, deleteDocument, updateDocument } = useDocumentMetadata();
-  const { selectedYear } = useFileUpload();
+  const { selectedYear, setSelectedYear } = useFileUpload();
   const { checklist } = useChecklist();
   const { direksi } = useDireksi();
   
@@ -66,6 +72,30 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<any>(null);
   const [editFormData, setEditFormData] = useState<any>({});
+
+  // Highlight state for fade effect
+  const [isHighlighted, setIsHighlighted] = useState(false);
+
+  // Set year filter if provided
+  React.useEffect(() => {
+    if (filterYear && filterYear !== selectedYear) {
+      setSelectedYear(filterYear);
+    }
+  }, [filterYear, selectedYear, setSelectedYear]);
+
+  // Handle highlight fade effect
+  React.useEffect(() => {
+    if (highlightDocumentId) {
+      setIsHighlighted(true);
+      
+      // Remove highlight after 3 seconds
+      const timer = setTimeout(() => {
+        setIsHighlighted(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [highlightDocumentId]);
 
   // Get documents for the specified year or selected year
   const targetYear = year || selectedYear || new Date().getFullYear();
@@ -120,6 +150,21 @@ const DocumentList: React.FC<DocumentListProps> = ({
 
     return maxItems ? filtered.slice(0, maxItems) : filtered;
   }, [yearDocuments, searchTerm, selectedPrinciple, selectedType, selectedDireksi, selectedStatus, filterChecklistStatus, filterChecklistAspect, checklist, maxItems]);
+
+  // Scroll to highlighted document
+  React.useEffect(() => {
+    if (highlightDocumentId && isHighlighted) {
+      const element = document.getElementById(`document-${highlightDocumentId}`);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }, 500); // Delay to ensure component is rendered
+      }
+    }
+  }, [highlightDocumentId, isHighlighted, filteredDocuments]);
 
   // Get unique values for filters
   const principles = useMemo(() => [...new Set(yearDocuments.map(doc => doc.gcgPrinciple))], [yearDocuments]);
@@ -376,7 +421,15 @@ const DocumentList: React.FC<DocumentListProps> = ({
       {/* Documents List */}
       <div className="space-y-4">
         {filteredDocuments.map((doc) => (
-          <div key={doc.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all duration-200">
+          <div 
+            key={doc.id} 
+            id={`document-${doc.id}`}
+            className={`bg-white border rounded-lg p-6 hover:shadow-md transition-all duration-500 ease-in-out ${
+              highlightDocumentId === doc.id && isHighlighted
+                ? 'border-2 border-blue-500 shadow-lg bg-blue-50 ring-2 ring-blue-200' 
+                : 'border-gray-200'
+            }`}
+          >
             {/* Header Row */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">

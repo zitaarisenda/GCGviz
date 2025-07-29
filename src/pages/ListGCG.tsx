@@ -5,6 +5,7 @@ import Topbar from '@/components/layout/Topbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useChecklist } from '@/contexts/ChecklistContext';
@@ -39,6 +40,7 @@ const ListGCG = () => {
   const [selectedAspek, setSelectedAspek] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState(2024);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedChecklistItem, setSelectedChecklistItem] = useState<{
     id: number;
@@ -100,8 +102,14 @@ const ListGCG = () => {
       filtered = filtered.filter(item => item.status === selectedStatus);
     }
 
+    if (searchTerm) {
+      filtered = filtered.filter(item => 
+        item.deskripsi.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
     return filtered;
-  }, [checklist, selectedAspek, selectedStatus, documents, selectedYear]);
+  }, [checklist, selectedAspek, selectedStatus, documents, selectedYear, searchTerm]);
 
   // Hitung progress overall untuk tahun yang dipilih
   const overallProgress = useMemo(() => {
@@ -122,7 +130,7 @@ const ListGCG = () => {
   const handleViewDocument = (checklistId: number) => {
     const document = getUploadedDocument(checklistId);
     if (document) {
-      navigate(`/dashboard?highlight=${document.id}&year=${selectedYear}`);
+      navigate(`/dashboard?highlight=${document.id}&year=${selectedYear}&filter=year`);
     }
   };
 
@@ -206,29 +214,38 @@ const ListGCG = () => {
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <Calendar className="w-5 h-5 text-blue-600" />
                 </div>
-                <span>Pilih Tahun</span>
+                <span>Tahun Buku</span>
               </CardTitle>
               <CardDescription className="text-blue-700">
-                Pilih tahun untuk melihat checklist GCG
+                Pilih tahun buku untuk melihat checklist GCG
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2">
                 {years.map(year => (
                   <Button
                     key={year}
                     variant={selectedYear === year ? "default" : "outline"}
+                    size="sm"
                     onClick={() => setSelectedYear(year)}
-                    className={`min-w-[90px] transition-all duration-200 ${
+                    className={`transition-all duration-200 ${
                       selectedYear === year 
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg' 
-                        : 'border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300'
+                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                        : 'hover:bg-gray-50'
                     }`}
                   >
                     {year}
                   </Button>
                 ))}
               </div>
+              
+              {selectedYear && (
+                <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Tahun Buku {selectedYear}:</strong> Checklist GCG yang dibuat/dikumpulkan di tahun {selectedYear}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -292,21 +309,6 @@ const ListGCG = () => {
                   </div>
                 </div>
 
-                {/* Enhanced Progress Details */}
-                <div className="flex justify-between text-sm">
-                  <span className="flex items-center bg-green-100 text-green-700 px-3 py-2 rounded-lg">
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    <span className="font-medium">
-                      {checklist.filter(item => isChecklistUploaded(item.id)).length} uploaded
-                    </span>
-                  </span>
-                  <span className="flex items-center bg-yellow-100 text-yellow-700 px-3 py-2 rounded-lg">
-                    <Clock className="w-4 h-4 mr-2" />
-                    <span className="font-medium">
-                      {checklist.filter(item => !isChecklistUploaded(item.id)).length} pending
-                    </span>
-                  </span>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -384,126 +386,12 @@ const ListGCG = () => {
             </CardContent>
           </Card>
 
-          {/* Enhanced Filters */}
-          <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-orange-50">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2 text-orange-900">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Filter className="w-5 h-5 text-orange-600" />
-                </div>
-                <span>Filter & Pencarian</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Enhanced Aspek Filter */}
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 mb-3 block flex items-center">
-                    <Filter className="w-4 h-4 mr-2 text-orange-600" />
-                    Filter Aspek
-                  </label>
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      variant={selectedAspek === 'all' ? "default" : "outline"}
-                      onClick={() => setSelectedAspek('all')}
-                      size="sm"
-                      className={selectedAspek === 'all' 
-                        ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700' 
-                        : 'border-orange-200 text-orange-600 hover:bg-orange-50'
-                      }
-                    >
-                      Semua Aspek
-                    </Button>
-                    {aspects.map(aspek => {
-                      const aspectInfo = getAspectIcon(aspek);
-                      const IconComponent = aspectInfo.icon;
-                      return (
-                        <Button
-                          key={aspek}
-                          variant={selectedAspek === aspek ? "default" : "outline"}
-                          onClick={() => setSelectedAspek(aspek)}
-                          size="sm"
-                          className={`text-xs flex items-center space-x-2 ${
-                            selectedAspek === aspek 
-                              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' 
-                              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                          }`}
-                        >
-                          <IconComponent className={`w-3 h-3 ${selectedAspek === aspek ? 'text-white' : aspectInfo.color}`} />
-                          <span>{aspek.replace('ASPEK ', '').replace('. ', ' - ')}</span>
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
 
-                {/* Enhanced Status Filter */}
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 mb-3 block flex items-center">
-                    <TrendingUp className="w-4 h-4 mr-2 text-orange-600" />
-                    Filter Status
-                  </label>
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      variant={selectedStatus === 'all' ? "default" : "outline"}
-                      onClick={() => setSelectedStatus('all')}
-                      size="sm"
-                      className={selectedStatus === 'all' 
-                        ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700' 
-                        : 'border-orange-200 text-orange-600 hover:bg-orange-50'
-                      }
-                    >
-                      Semua Status
-                    </Button>
-                    <Button
-                      variant={selectedStatus === 'uploaded' ? "default" : "outline"}
-                      onClick={() => setSelectedStatus('uploaded')}
-                      size="sm"
-                      className={selectedStatus === 'uploaded' 
-                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' 
-                        : 'border-green-200 text-green-600 hover:bg-green-50'
-                      }
-                    >
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Uploaded
-                    </Button>
-                    <Button
-                      variant={selectedStatus === 'not_uploaded' ? "default" : "outline"}
-                      onClick={() => setSelectedStatus('not_uploaded')}
-                      size="sm"
-                      className={selectedStatus === 'not_uploaded' 
-                        ? 'bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700' 
-                        : 'border-yellow-200 text-yellow-600 hover:bg-yellow-50'
-                      }
-                    >
-                      <Clock className="w-3 h-3 mr-1" />
-                      Pending
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Enhanced Reset Filter */}
-                <div className="flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setSelectedAspek('all');
-                      setSelectedStatus('all');
-                    }}
-                    className="border-orange-200 text-orange-600 hover:bg-orange-50"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Reset Filter
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Enhanced Checklist Table */}
           <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-indigo-50">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <div>
                   <CardTitle className="flex items-center space-x-2 text-indigo-900">
                     <div className="p-2 bg-indigo-100 rounded-lg">
@@ -512,8 +400,154 @@ const ListGCG = () => {
                     <span>Daftar Checklist GCG - Tahun {selectedYear}</span>
                   </CardTitle>
                   <CardDescription className="text-indigo-700 mt-2">
-                    <span className="font-semibold text-indigo-600">{filteredChecklist.length}</span> item ditemukan
+                    {searchTerm ? (
+                      <span>
+                        <span className="font-semibold text-indigo-600">{filteredChecklist.length}</span> item ditemukan untuk pencarian "{searchTerm}"
+                      </span>
+                    ) : (
+                      <span>
+                        <span className="font-semibold text-indigo-600">{filteredChecklist.length}</span> item ditemukan
+                      </span>
+                    )}
                   </CardDescription>
+                </div>
+              </div>
+
+              {/* All Filters Integrated */}
+              <div className="space-y-4">
+                {/* Search Bar */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block flex items-center">
+                    <Search className="w-4 h-4 mr-2 text-blue-600" />
+                    Pencarian Checklist
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <Input
+                      type="text"
+                      placeholder="Cari berdasarkan deskripsi checklist..."
+                      className="pl-10 pr-10"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    {searchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSearchTerm('')}
+                        className="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-gray-600"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Filter Row */}
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* Aspek Filter */}
+                  <div className="flex-1 min-w-0">
+                    <label className="text-sm font-semibold text-gray-700 mb-2 block flex items-center">
+                      <Filter className="w-4 h-4 mr-2 text-orange-600" />
+                      Filter Aspek
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={selectedAspek === 'all' ? "default" : "outline"}
+                        onClick={() => setSelectedAspek('all')}
+                        size="sm"
+                        className={selectedAspek === 'all' 
+                          ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700' 
+                          : 'border-orange-200 text-orange-600 hover:bg-orange-50'
+                        }
+                      >
+                        Semua Aspek
+                      </Button>
+                      {aspects.map(aspek => {
+                        const aspectInfo = getAspectIcon(aspek);
+                        const IconComponent = aspectInfo.icon;
+                        return (
+                          <Button
+                            key={aspek}
+                            variant={selectedAspek === aspek ? "default" : "outline"}
+                            onClick={() => setSelectedAspek(aspek)}
+                            size="sm"
+                            className={`text-xs flex items-center space-x-2 ${
+                              selectedAspek === aspek 
+                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' 
+                                : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            <IconComponent className={`w-3 h-3 ${selectedAspek === aspek ? 'text-white' : aspectInfo.color}`} />
+                            <span>{aspek.replace('ASPEK ', '').replace('. ', ' - ')}</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div className="flex-1 min-w-0">
+                    <label className="text-sm font-semibold text-gray-700 mb-2 block flex items-center">
+                      <TrendingUp className="w-4 h-4 mr-2 text-orange-600" />
+                      Filter Status
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={selectedStatus === 'all' ? "default" : "outline"}
+                        onClick={() => setSelectedStatus('all')}
+                        size="sm"
+                        className={selectedStatus === 'all' 
+                          ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700' 
+                          : 'border-orange-200 text-orange-600 hover:bg-orange-50'
+                        }
+                      >
+                        Semua Status
+                      </Button>
+                      <Button
+                        variant={selectedStatus === 'uploaded' ? "default" : "outline"}
+                        onClick={() => setSelectedStatus('uploaded')}
+                        size="sm"
+                        className={selectedStatus === 'uploaded' 
+                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' 
+                          : 'border-green-200 text-green-600 hover:bg-green-50'
+                        }
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Uploaded
+                      </Button>
+                      <Button
+                        variant={selectedStatus === 'not_uploaded' ? "default" : "outline"}
+                        onClick={() => setSelectedStatus('not_uploaded')}
+                        size="sm"
+                        className={selectedStatus === 'not_uploaded' 
+                          ? 'bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700' 
+                          : 'border-yellow-200 text-yellow-600 hover:bg-yellow-50'
+                        }
+                      >
+                        <Clock className="w-3 h-3 mr-1" />
+                        Pending
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Reset Button */}
+                  <div className="flex items-end">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setSelectedAspek('all');
+                        setSelectedStatus('all');
+                        setSearchTerm('');
+                      }}
+                      className="border-orange-200 text-orange-600 hover:bg-orange-50"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Reset Filter
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -574,12 +608,12 @@ const ListGCG = () => {
                               <div className="space-y-1">
                                 <div className="flex items-center space-x-2">
                                   <FileText className="w-4 h-4 text-blue-600" />
-                                  <span className="text-sm font-medium text-gray-900 truncate" title={uploadedDocument.fileName}>
-                                    {uploadedDocument.fileName}
+                                  <span className="text-sm font-medium text-gray-900 truncate" title={uploadedDocument.title}>
+                                    {uploadedDocument.title}
                                   </span>
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                  {(uploadedDocument.fileSize / 1024 / 1024).toFixed(2)} MB
+                                  Upload oleh: {uploadedDocument.uploadedBy}
                                 </div>
                                 <div className="text-xs text-gray-500">
                                   Upload: {new Date(uploadedDocument.uploadDate).toLocaleDateString('id-ID')}
