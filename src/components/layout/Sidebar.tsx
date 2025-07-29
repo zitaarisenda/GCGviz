@@ -19,7 +19,11 @@ import {
   Target,
   Users,
   Settings,
-  Building2
+  Building2,
+  Folder,
+  Download,
+  RotateCcw,
+  Plus
 } from 'lucide-react';
 
 interface MenuItem {
@@ -138,35 +142,6 @@ const Sidebar = () => {
       ]
     },
     { 
-      name: 'Manajemen Dokumen', 
-      icon: FileText, 
-      path: '/documents',
-      badge: null,
-      subItems: [
-        {
-          name: 'Statistik Dokumen',
-          icon: BarChart3,
-          path: '/documents',
-          anchor: '#document-stats',
-          description: 'Statistik dokumen'
-        },
-        {
-          name: 'Upload Dokumen',
-          icon: Upload,
-          path: '/documents',
-          anchor: '#upload-section',
-          description: 'Upload dokumen baru'
-        },
-        {
-          name: 'Daftar Dokumen',
-          icon: FileText,
-          path: '/documents',
-          anchor: '#document-list',
-          description: 'Daftar dokumen'
-        }
-      ]
-    },
-    { 
       name: 'Penilaian GCG', 
       icon: BarChart3, 
       path: '/penilaian-gcg',
@@ -178,24 +153,103 @@ const Sidebar = () => {
   if (user?.role === 'superadmin') {
     menuItems.push(
       {
+        name: 'Management Dokumen',
+        icon: FileText,
+        path: '/admin/document-management',
+        badge: 'Super Admin',
+        subItems: [
+          {
+            name: 'Folder Dokumen',
+            icon: Folder,
+            path: '/admin/document-management',
+            anchor: '#document-folders',
+            description: 'Kelola folder dokumen'
+          },
+          {
+            name: 'Upload ZIP',
+            icon: Upload,
+            path: '/admin/document-management',
+            anchor: '#upload-zip',
+            description: 'Upload file ZIP'
+          },
+          {
+            name: 'Download ZIP',
+            icon: Download,
+            path: '/admin/document-management',
+            anchor: '#download-zip',
+            description: 'Download semua dokumen'
+          },
+          {
+            name: 'Reset Data',
+            icon: RotateCcw,
+            path: '/admin/document-management',
+            anchor: '#reset-data',
+            description: 'Reset semua data'
+          }
+        ]
+      },
+      {
         name: 'Kelola Akun',
         icon: UserCog,
         path: '/admin/kelola-akun',
         badge: 'Super Admin',
         subItems: [
           {
-            name: 'Super Admin',
-            icon: Shield,
+            name: 'Daftar Akun',
+            icon: Users,
             path: '/admin/kelola-akun',
-            anchor: '#superadmin-tab',
-            description: 'Kelola akun Super Admin'
+            anchor: '#accounts-list',
+            description: 'Kelola akun admin dan user'
           },
           {
-            name: 'Struktur Perusahaan',
-            icon: Building2,
+            name: 'Tambah Akun',
+            icon: Plus,
             path: '/admin/kelola-akun',
-            anchor: '#direksi-tab',
-            description: 'Kelola struktur perusahaan'
+            anchor: '#add-account',
+            description: 'Tambah akun baru'
+          },
+          {
+            name: 'Edit Password',
+            icon: Shield,
+            path: '/admin/kelola-akun',
+            anchor: '#edit-password',
+            description: 'Edit password Super Admin'
+          }
+        ]
+      },
+      {
+        name: 'Struktur Perusahaan',
+        icon: Building2,
+        path: '/admin/struktur-perusahaan',
+        badge: 'Super Admin',
+        subItems: [
+          {
+            name: 'Daftar Direksi',
+            icon: Users,
+            path: '/admin/struktur-perusahaan',
+            anchor: '#direksi-list',
+            description: 'Kelola data direksi'
+          },
+          {
+            name: 'Tambah Direksi',
+            icon: Plus,
+            path: '/admin/struktur-perusahaan',
+            anchor: '#add-direksi',
+            description: 'Tambah direksi baru'
+          },
+          {
+            name: 'Daftar Divisi',
+            icon: Building2,
+            path: '/admin/struktur-perusahaan',
+            anchor: '#divisi-list',
+            description: 'Kelola data divisi'
+          },
+          {
+            name: 'Tambah Divisi',
+            icon: Plus,
+            path: '/admin/struktur-perusahaan',
+            anchor: '#add-divisi',
+            description: 'Tambah divisi baru'
           }
         ]
       },

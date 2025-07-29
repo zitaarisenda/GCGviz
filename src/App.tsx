@@ -15,6 +15,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/dashboard/Dashboard';
 import ListGCG from './pages/ListGCG';
 import DocumentManagement from './pages/DocumentManagement';
+import AdminDocumentManagement from './pages/admin/DocumentManagement';
+import StrukturPerusahaan from './pages/admin/StrukturPerusahaan';
 import ChecklistGCG from './pages/admin/ChecklistGCG';
 import KelolaAkun from './pages/admin/KelolaAkun';
 import NotFound from './pages/NotFound';
@@ -116,6 +118,22 @@ const AppRoutes = () => {
         element={
           <SuperAdminRoute>
             <KelolaAkun />
+          </SuperAdminRoute>
+        } 
+      />
+      <Route 
+        path="/admin/document-management" 
+        element={
+          <SuperAdminRoute>
+            <AdminDocumentManagement />
+          </SuperAdminRoute>
+        } 
+      />
+      <Route 
+        path="/admin/struktur-perusahaan" 
+        element={
+          <SuperAdminRoute>
+            <StrukturPerusahaan />
           </SuperAdminRoute>
         } 
       />

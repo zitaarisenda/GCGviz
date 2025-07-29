@@ -1,51 +1,308 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { useUser } from '@/contexts/UserContext';
-import { useDireksi } from '@/contexts/DireksiContext';
-import { Plus, Edit, Trash2, UserCog, Building2 } from 'lucide-react';
+import { 
+  UserCog, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Shield,
+  Users,
+  User,
+  UserCheck,
+  Lock,
+  Eye,
+  EyeOff
+} from 'lucide-react';
+
+interface Account {
+  id: number;
+  username: string;
+  name: string;
+  role: 'admin' | 'user';
+  direksi?: string;
+  divisi?: string;
+  createdAt: Date;
+  isActive: boolean;
+}
 
 const KelolaAkun = () => {
-  const { user } = useUser();
-  const { direksi, addDireksi, editDireksi, deleteDireksi } = useDireksi();
-  
-  // State untuk form direksi
-  const [isDireksiDialogOpen, setIsDireksiDialogOpen] = useState(false);
-  const [editingDireksi, setEditingDireksi] = useState<{ id: number; nama: string } | null>(null);
-  const [direksiForm, setDireksiForm] = useState({ nama: '' });
+  const { isSidebarOpen } = useSidebar();
+  const { user: currentUser } = useUser();
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
-  // State untuk form Super Admin
-  const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
-  const [adminForm, setAdminForm] = useState({ username: '', password: '', name: '' });
+  // Form states
+  const [accountForm, setAccountForm] = useState({
+    username: '',
+    password: '',
+    name: '',
+    role: 'user' as 'admin' | 'user',
+    direksi: '',
+    divisi: ''
+  });
 
-  const handleDireksiSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingDireksi) {
-      editDireksi(editingDireksi.id, direksiForm.nama);
-    } else {
-      addDireksi(direksiForm.nama);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  // Load accounts from localStorage
+  useEffect(() => {
+    const usersData = localStorage.getItem('users');
+    if (usersData) {
+      const users = JSON.parse(usersData);
+      const accountsData = users.map((user: any) => ({
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        direksi: user.direksi || '',
+        divisi: user.divisi || '',
+        createdAt: new Date(user.createdAt || Date.now()),
+        isActive: true
+      }));
+      setAccounts(accountsData);
     }
-    setDireksiForm({ nama: '' });
-    setEditingDireksi(null);
-    setIsDireksiDialogOpen(false);
+  }, []);
+
+  const handleAddAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form
+    if (!accountForm.username || !accountForm.password || !accountForm.name) {
+      alert('Semua field wajib diisi!');
+      return;
+    }
+
+    // Check if username already exists
+    const existingUser = accounts.find(acc => acc.username === accountForm.username);
+    if (existingUser) {
+      alert('Username sudah digunakan!');
+      return;
+    }
+
+    // Create new account
+    const newAccount: Account = {
+      id: Date.now(),
+      username: accountForm.username,
+      name: accountForm.name,
+      role: accountForm.role,
+      direksi: accountForm.direksi,
+      divisi: accountForm.divisi,
+      createdAt: new Date(),
+      isActive: true
+    };
+
+    // Save to localStorage
+    const usersData = localStorage.getItem('users');
+    const users = usersData ? JSON.parse(usersData) : [];
+    users.push({
+      ...newAccount,
+      password: accountForm.password // In real app, this should be hashed
+    });
+    localStorage.setItem('users', JSON.stringify(users));
+
+    // Update state
+    setAccounts(prev => [...prev, newAccount]);
+    
+    // Reset form and close dialog
+    setAccountForm({
+      username: '',
+      password: '',
+      name: '',
+      role: 'user',
+      direksi: '',
+      divisi: ''
+    });
+    setIsAddDialogOpen(false);
+    
+    alert('Akun berhasil ditambahkan!');
   };
 
-  const handleEditDireksi = (direksi: { id: number; nama: string }) => {
-    setEditingDireksi(direksi);
-    setDireksiForm({ nama: direksi.nama });
-    setIsDireksiDialogOpen(true);
+  const handleEditAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingAccount) return;
+
+    // Validate form
+    if (!accountForm.username || !accountForm.name) {
+      alert('Username dan nama wajib diisi!');
+      return;
+    }
+
+    // Check if username already exists (excluding current account)
+    const existingUser = accounts.find(acc => 
+      acc.username === accountForm.username && acc.id !== editingAccount.id
+    );
+    if (existingUser) {
+      alert('Username sudah digunakan!');
+      return;
+    }
+
+    // Update account
+    const updatedAccount: Account = {
+      ...editingAccount,
+      username: accountForm.username,
+      name: accountForm.name,
+      role: accountForm.role,
+      direksi: accountForm.direksi,
+      divisi: accountForm.divisi
+    };
+
+    // Update localStorage
+    const usersData = localStorage.getItem('users');
+    const users = usersData ? JSON.parse(usersData) : [];
+    const userIndex = users.findIndex((u: any) => u.id === editingAccount.id);
+    if (userIndex !== -1) {
+      users[userIndex] = {
+        ...users[userIndex],
+        username: accountForm.username,
+        name: accountForm.name,
+        role: accountForm.role,
+        direksi: accountForm.direksi,
+        divisi: accountForm.divisi
+      };
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+
+    // Update state
+    setAccounts(prev => prev.map(acc => 
+      acc.id === editingAccount.id ? updatedAccount : acc
+    ));
+    
+    // Reset form and close dialog
+    setAccountForm({
+      username: '',
+      password: '',
+      name: '',
+      role: 'user',
+      direksi: '',
+      divisi: ''
+    });
+    setEditingAccount(null);
+    setIsEditDialogOpen(false);
+    
+    alert('Akun berhasil diupdate!');
   };
 
-  const handleDeleteDireksi = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus direksi ini?')) {
-      deleteDireksi(id);
+  const handleDeleteAccount = () => {
+    if (!accountToDelete) return;
+
+    // Don't allow deleting superadmin
+    if (accountToDelete.role === 'superadmin') {
+      alert('Tidak dapat menghapus akun Super Admin!');
+      return;
+    }
+
+    // Don't allow deleting own account
+    if (accountToDelete.id === currentUser?.id) {
+      alert('Tidak dapat menghapus akun sendiri!');
+      return;
+    }
+
+    // Remove from localStorage
+    const usersData = localStorage.getItem('users');
+    const users = usersData ? JSON.parse(usersData) : [];
+    const filteredUsers = users.filter((u: any) => u.id !== accountToDelete.id);
+    localStorage.setItem('users', JSON.stringify(filteredUsers));
+
+    // Update state
+    setAccounts(prev => prev.filter(acc => acc.id !== accountToDelete.id));
+    
+    setAccountToDelete(null);
+    setIsDeleteDialogOpen(false);
+    
+    alert('Akun berhasil dihapus!');
+  };
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      alert('Semua field wajib diisi!');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert('Password baru dan konfirmasi password tidak cocok!');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      alert('Password minimal 6 karakter!');
+      return;
+    }
+
+    // Update password in localStorage
+    const usersData = localStorage.getItem('users');
+    const users = usersData ? JSON.parse(usersData) : [];
+    const userIndex = users.findIndex((u: any) => u.id === currentUser?.id);
+    if (userIndex !== -1) {
+      // In real app, verify current password first
+      users[userIndex].password = passwordForm.newPassword; // Should be hashed
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+
+    // Reset form and close dialog
+    setPasswordForm({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+    setIsPasswordDialogOpen(false);
+    
+    alert('Password berhasil diubah!');
+  };
+
+  const openEditDialog = (account: Account) => {
+    setEditingAccount(account);
+    setAccountForm({
+      username: account.username,
+      password: '',
+      name: account.name,
+      role: account.role,
+      direksi: account.direksi || '',
+      divisi: account.divisi || ''
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (account: Account) => {
+    setAccountToDelete(account);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'superadmin':
+        return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Super Admin</Badge>;
+      case 'admin':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Admin</Badge>;
+      case 'user':
+        return <Badge className="bg-green-100 text-green-800 border-green-200">User</Badge>;
+      default:
+        return <Badge variant="secondary">{role}</Badge>;
     }
   };
 
@@ -54,228 +311,353 @@ const KelolaAkun = () => {
       <Sidebar />
       <Topbar />
       
-      {/* Main Content */}
-      <div className="ml-64 pt-16">
+      <div className={`
+        transition-all duration-300 ease-in-out pt-16
+        ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'}
+      `}>
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Kelola Akun</h1>
-            <p className="text-gray-600 mt-2">Manajemen akun Super Admin dan struktur perusahaan</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Kelola Akun</h1>
+                <p className="text-gray-600 mt-2">
+                  Manajemen akun admin dan user
+                </p>
+              </div>
+              <div className="flex space-x-2">
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tambah Akun
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Tambah Akun Baru</DialogTitle>
+                      <DialogDescription>
+                        Buat akun baru untuk admin atau user
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleAddAccount} className="space-y-4">
+                      <div>
+                        <Label htmlFor="username">Username *</Label>
+                        <Input
+                          id="username"
+                          value={accountForm.username}
+                          onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
+                          placeholder="Masukkan username"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="password">Password *</Label>
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            value={accountForm.password}
+                            onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+                            placeholder="Masukkan password"
+                            required
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="name">Nama Lengkap *</Label>
+                        <Input
+                          id="name"
+                          value={accountForm.name}
+                          onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
+                          placeholder="Masukkan nama lengkap"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="role">Role *</Label>
+                        <select
+                          id="role"
+                          value={accountForm.role}
+                          onChange={(e) => setAccountForm({ ...accountForm, role: e.target.value as 'admin' | 'user' })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="direksi">Direksi (Opsional)</Label>
+                        <Input
+                          id="direksi"
+                          value={accountForm.direksi}
+                          onChange={(e) => setAccountForm({ ...accountForm, direksi: e.target.value })}
+                          placeholder="Masukkan direksi"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="divisi">Divisi (Opsional)</Label>
+                        <Input
+                          id="divisi"
+                          value={accountForm.divisi}
+                          onChange={(e) => setAccountForm({ ...accountForm, divisi: e.target.value })}
+                          placeholder="Masukkan divisi"
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                          Batal
+                        </Button>
+                        <Button type="submit">
+                          Tambah Akun
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="text-orange-600 border-orange-600 hover:bg-orange-50">
+                      <Lock className="w-4 h-4 mr-2" />
+                      Edit Password
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Edit Password Super Admin</DialogTitle>
+                      <DialogDescription>
+                        Ubah password untuk akun Super Admin
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleChangePassword} className="space-y-4">
+                      <div>
+                        <Label htmlFor="currentPassword">Password Saat Ini *</Label>
+                        <Input
+                          id="currentPassword"
+                          type="password"
+                          value={passwordForm.currentPassword}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                          placeholder="Masukkan password saat ini"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="newPassword">Password Baru *</Label>
+                        <div className="relative">
+                          <Input
+                            id="newPassword"
+                            type={showNewPassword ? "text" : "password"}
+                            value={passwordForm.newPassword}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                            placeholder="Masukkan password baru"
+                            required
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                          >
+                            {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="confirmPassword">Konfirmasi Password Baru *</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          value={passwordForm.confirmPassword}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                          placeholder="Konfirmasi password baru"
+                          required
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button type="button" variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                          Batal
+                        </Button>
+                        <Button type="submit">
+                          Ubah Password
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
           </div>
 
-          <Tabs defaultValue="superadmin" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="superadmin" className="flex items-center space-x-2">
-                <UserCog className="w-4 h-4" />
-                <span>Super Admin</span>
-              </TabsTrigger>
-              <TabsTrigger value="direksi" className="flex items-center space-x-2">
-                <Building2 className="w-4 h-4" />
-                <span>Struktur Perusahaan</span>
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Super Admin Tab */}
-            <TabsContent value="superadmin" id="superadmin-tab">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Manajemen Akun Super Admin</CardTitle>
-                      <CardDescription>
-                        Kelola akun Super Admin yang dapat mengakses fitur admin panel
-                      </CardDescription>
-                    </div>
-                    <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="flex items-center space-x-2">
-                          <Plus className="w-4 h-4" />
-                          <span>Tambah Super Admin</span>
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Tambah Super Admin Baru</DialogTitle>
-                          <DialogDescription>
-                            Buat akun Super Admin baru untuk mengelola sistem
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form className="space-y-4">
-                          <div>
-                            <Label htmlFor="username">Username</Label>
-                            <Input
-                              id="username"
-                              value={adminForm.username}
-                              onChange={(e) => setAdminForm({ ...adminForm, username: e.target.value })}
-                              placeholder="Masukkan username"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                              id="password"
-                              type="password"
-                              value={adminForm.password}
-                              onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
-                              placeholder="Masukkan password"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="name">Nama Lengkap</Label>
-                            <Input
-                              id="name"
-                              value={adminForm.name}
-                              onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
-                              placeholder="Masukkan nama lengkap"
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-2">
-                            <Button variant="outline" onClick={() => setIsAdminDialogOpen(false)}>
-                              Batal
-                            </Button>
-                            <Button type="submit">
-                              Simpan
-                            </Button>
-                          </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Username</TableHead>
-                        <TableHead>Nama</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>{user?.username}</TableCell>
-                        <TableCell>{user?.name}</TableCell>
+          {/* Accounts List */}
+          <div id="accounts-list">
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <span>Daftar Akun</span>
+                </CardTitle>
+                <CardDescription>
+                  {accounts.length} akun ditemukan
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Nama</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Direksi</TableHead>
+                      <TableHead>Divisi</TableHead>
+                      <TableHead>Tanggal Dibuat</TableHead>
+                      <TableHead>Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {accounts.map((account) => (
+                      <TableRow key={account.id}>
+                        <TableCell className="font-medium">{account.username}</TableCell>
+                        <TableCell>{account.name}</TableCell>
+                        <TableCell>{getRoleBadge(account.role)}</TableCell>
+                        <TableCell>{account.direksi || '-'}</TableCell>
+                        <TableCell>{account.divisi || '-'}</TableCell>
+                        <TableCell>{account.createdAt.toLocaleDateString('id-ID')}</TableCell>
                         <TableCell>
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                            {user?.role}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Direksi Tab */}
-            <TabsContent value="direksi" id="direksi-tab">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Pengaturan Struktur Perusahaan</CardTitle>
-                      <CardDescription>
-                        Kelola data direksi dan struktur organisasi perusahaan
-                      </CardDescription>
-                    </div>
-                    <Dialog open={isDireksiDialogOpen} onOpenChange={setIsDireksiDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          className="flex items-center space-x-2"
-                          onClick={() => {
-                            setEditingDireksi(null);
-                            setDireksiForm({ nama: '' });
-                          }}
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>Tambah Direksi</span>
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>
-                            {editingDireksi ? 'Edit Direksi' : 'Tambah Direksi Baru'}
-                          </DialogTitle>
-                          <DialogDescription>
-                            {editingDireksi ? 'Edit data direksi' : 'Tambahkan direksi baru ke struktur perusahaan'}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleDireksiSubmit} className="space-y-4">
-                          <div>
-                            <Label htmlFor="nama">Nama Direksi</Label>
-                            <Input
-                              id="nama"
-                              value={direksiForm.nama}
-                              onChange={(e) => setDireksiForm({ nama: e.target.value })}
-                              placeholder="Masukkan nama direksi"
-                              required
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-2">
+                          <div className="flex space-x-2">
                             <Button 
-                              type="button" 
                               variant="outline" 
-                              onClick={() => setIsDireksiDialogOpen(false)}
+                              size="sm"
+                              onClick={() => openEditDialog(account)}
+                              disabled={account.role === 'superadmin'}
                             >
-                              Batal
+                              <Edit className="w-4 h-4" />
                             </Button>
-                            <Button type="submit">
-                              {editingDireksi ? 'Update' : 'Simpan'}
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => openDeleteDialog(account)}
+                              disabled={account.role === 'superadmin' || account.id === currentUser?.id}
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>No</TableHead>
-                        <TableHead>Nama Direksi</TableHead>
-                        <TableHead>Aksi</TableHead>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {direksi.map((item, index) => (
-                        <TableRow key={item.id}>
-                          <TableCell>{index + 1}</TableCell>
-                          <TableCell>{item.nama}</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEditDireksi(item)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleDeleteDireksi(item.id)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
+
+      {/* Edit Account Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Akun</DialogTitle>
+            <DialogDescription>
+              Edit informasi akun
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditAccount} className="space-y-4">
+            <div>
+              <Label htmlFor="edit-username">Username *</Label>
+              <Input
+                id="edit-username"
+                value={accountForm.username}
+                onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
+                placeholder="Masukkan username"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-name">Nama Lengkap *</Label>
+              <Input
+                id="edit-name"
+                value={accountForm.name}
+                onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
+                placeholder="Masukkan nama lengkap"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-role">Role *</Label>
+              <select
+                id="edit-role"
+                value={accountForm.role}
+                onChange={(e) => setAccountForm({ ...accountForm, role: e.target.value as 'admin' | 'user' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="edit-direksi">Direksi (Opsional)</Label>
+              <Input
+                id="edit-direksi"
+                value={accountForm.direksi}
+                onChange={(e) => setAccountForm({ ...accountForm, direksi: e.target.value })}
+                placeholder="Masukkan direksi"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-divisi">Divisi (Opsional)</Label>
+              <Input
+                id="edit-divisi"
+                value={accountForm.divisi}
+                onChange={(e) => setAccountForm({ ...accountForm, divisi: e.target.value })}
+                placeholder="Masukkan divisi"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Batal
+              </Button>
+              <Button type="submit">
+                Update Akun
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Akun</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus akun "{accountToDelete?.username}"? 
+              Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAccount}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
