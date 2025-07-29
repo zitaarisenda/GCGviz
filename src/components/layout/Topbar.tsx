@@ -18,6 +18,16 @@ const Topbar = () => {
   const { user } = useUser();
   const { isSidebarOpen, toggleSidebar } = useSidebar();
 
+  // Function to refresh page and scroll to top
+  const handleLogoClick = () => {
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Refresh page after a short delay to allow scroll animation
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
+  };
+
   return (
     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-50 shadow-sm">
       {/* Left side - Logo, Title, and Hamburger */}
@@ -37,7 +47,10 @@ const Topbar = () => {
         </Button>
 
         {/* Logo */}
-        <div className="flex items-center space-x-3">
+        <div 
+          className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+          onClick={handleLogoClick}
+        >
           <img 
             src="/logo.png" 
             alt="POSIND Logo" 
