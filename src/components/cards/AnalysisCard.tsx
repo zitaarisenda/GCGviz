@@ -10,6 +10,7 @@ interface AnalysisCardProps {
   color: string;
   percentage: number;
   highlightBorder?: string;
+  onClick?: () => void;
 }
 
 const AnalysisCard: React.FC<AnalysisCardProps> = ({
@@ -19,13 +20,15 @@ const AnalysisCard: React.FC<AnalysisCardProps> = ({
   icon: Icon,
   color,
   percentage,
-  highlightBorder
+  highlightBorder,
+  onClick
 }) => {
 
   return (
     <Card
       className={`rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.04] cursor-pointer group bg-gradient-to-br from-white via-gray-50 to-gray-100 border-0 ${highlightBorder ? 'border-b-4' : ''}`}
       style={highlightBorder ? { borderBottomColor: highlightBorder } : {}}
+      onClick={onClick}
     >
       <CardContent className="p-6">
         <div className="flex items-center justify-between gap-4">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AnalysisCard from '@/components/cards/AnalysisCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,7 @@ const formatFileSize = (bytes: number) => {
 };
 
 const DashboardStats = () => {
+  const navigate = useNavigate();
   const { selectedYear, getYearStats, getFilesByYear } = useFileUpload();
   const { checklist } = useChecklist();
   const [showAllAspects, setShowAllAspects] = useState(false);
@@ -170,6 +172,14 @@ const DashboardStats = () => {
     return '#ef4444'; // merah
   };
 
+  // Function to navigate to List GCG with filters
+  const handleAspectClick = (aspectName: string) => {
+    if (!selectedYear) return;
+    
+    // Navigate to List GCG with year and aspect parameters
+    navigate(`/list-gcg?year=${selectedYear}&aspect=${encodeURIComponent(aspectName)}`);
+  };
+
   // Create analysis data for first 4 aspects
   const analysisData = firstFourAspects.map((aspect) => ({
     title: aspect.aspek,
@@ -223,14 +233,22 @@ const DashboardStats = () => {
         {showAllAspects ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {allAnalysisData.map((data, index) => (
-              <AnalysisCard key={index} {...data} />
+              <AnalysisCard 
+                key={index} 
+                {...data} 
+                onClick={() => handleAspectClick(data.title)}
+              />
             ))}
           </div>
         ) : (
           <div ref={sliderRef} className="keen-slider">
             {allAnalysisData.map((data, index) => (
               <div key={index} className="keen-slider__slide px-2">
-                <AnalysisCard {...data} highlightBorder={data.color} />
+                <AnalysisCard 
+                  {...data} 
+                  highlightBorder={data.color}
+                  onClick={() => handleAspectClick(data.title)}
+                />
               </div>
             ))}
           </div>

@@ -10,10 +10,11 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/Register';
 import Dashboard from '@/pages/dashboard/Dashboard';
-import ListGCG from '@/pages/ListGCG';
 import DocumentManagement from '@/pages/DocumentManagement';
+import ListGCG from '@/pages/ListGCG';
 import KelolaAkun from '@/pages/admin/KelolaAkun';
 import ChecklistGCG from '@/pages/admin/ChecklistGCG';
+import NotFound from '@/pages/NotFound';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -69,19 +70,19 @@ const AppRoutes = () => {
       />
       
       <Route 
-        path="/list-gcg" 
+        path="/documents" 
         element={
           <ProtectedRoute>
-            <ListGCG />
+            <DocumentManagement />
           </ProtectedRoute>
         } 
       />
       
       <Route 
-        path="/documents" 
+        path="/list-gcg" 
         element={
           <ProtectedRoute>
-            <DocumentManagement />
+            <ListGCG />
           </ProtectedRoute>
         } 
       />

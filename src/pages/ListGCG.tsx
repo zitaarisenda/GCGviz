@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 
 const ListGCG = () => {
+  const [searchParams] = useSearchParams();
   const { checklist } = useChecklist();
   const [selectedAspek, setSelectedAspek] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -30,6 +32,20 @@ const ListGCG = () => {
     aspek: string;
     deskripsi: string;
   } | null>(null);
+
+  // Auto-set filters from URL parameters
+  useEffect(() => {
+    const yearParam = searchParams.get('year');
+    const aspectParam = searchParams.get('aspect');
+    
+    if (yearParam) {
+      setSelectedYear(parseInt(yearParam));
+    }
+    
+    if (aspectParam) {
+      setSelectedAspek(aspectParam);
+    }
+  }, [searchParams]);
 
   // Generate tahun dari 2014 sampai sekarang
   const years = useMemo(() => {
