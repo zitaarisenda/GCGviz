@@ -110,6 +110,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [customDivision, setCustomDivision] = useState('');
+  const [customDireksi, setCustomDireksi] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedAspectFilter, setSelectedAspectFilter] = useState<string>('');
 
@@ -222,44 +223,22 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     { value: 'archived', label: 'Diarsipkan' }
   ];
 
-  // Division suggestions based on direksi
-  const getDivisionSuggestions = (direksiName: string) => {
-    const suggestions: { [key: string]: string[] } = {
-      'Direktorat Bisnis Kurir dan Logistik': [
-        'Divisi Operasional Kurir',
-        'Divisi Logistik',
-        'Divisi Customer Service',
-        'Divisi Pengembangan Bisnis Kurir'
-      ],
-      'Direktorat Business Development and Portofolio Management': [
-        'Divisi Pengembangan Bisnis',
-        'Divisi Portofolio',
-        'Divisi Strategic Planning',
-        'Divisi Investment Management'
-      ],
-      'Direktorat Human Capital Management': [
-        'Divisi Rekrutmen',
-        'Divisi Training & Development',
-        'Divisi Compensation & Benefits',
-        'Divisi Industrial Relations'
-      ],
-      'Direktorat Bisnis Jasa Keuangan': [
-        'Divisi Perbankan',
-        'Divisi Asuransi',
-        'Divisi Investasi',
-        'Divisi Treasury'
-      ],
-      'Non Direktorat': [
-        'Divisi Sekretaris Perusahaan',
-        'Divisi Hukum',
-        'Divisi Internal Audit',
-        'Divisi Manajemen Risiko',
-        'Divisi Teknologi Informasi',
-        'Divisi Keuangan',
-        'Divisi Akuntansi'
-      ]
-    };
-    return suggestions[direksiName] || [];
+  // Ambil saran divisi dari localStorage sesuai tahun buku
+  const getDivisionSuggestionsByYear = (year: number): string[] => {
+    const divisiData = localStorage.getItem('divisi');
+    if (!divisiData) return [];
+    const divisiList = JSON.parse(divisiData);
+    const filtered = divisiList.filter((d: any) => d.tahun === year);
+    return Array.from(new Set(filtered.map((d: any) => String(d.nama)))).sort() as string[];
+  };
+
+  // Ambil saran direksi dari localStorage sesuai tahun buku
+  const getDireksiSuggestionsByYear = (year: number): string[] => {
+    const direksiData = localStorage.getItem('direksi');
+    if (!direksiData) return [];
+    const direksiList = JSON.parse(direksiData);
+    const filtered = direksiList.filter((d: any) => d.tahun === year);
+    return Array.from(new Set(filtered.map((d: any) => String(d.nama)))).sort() as string[];
   };
 
   // Get unique aspects for sorting
@@ -469,6 +448,9 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const divisionSuggestions = getDivisionSuggestionsByYear(selectedYear);
+  const direksiSuggestions = getDireksiSuggestionsByYear(selectedYear);
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
@@ -673,25 +655,22 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                 <Label htmlFor="direksi">
                   Direksi <span className="text-red-500">*</span>
                 </Label>
-                <Select 
-                  value={formData.direksi} 
-                  onValueChange={(value) => {
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      direksi: value,
-                      division: '' // Reset division when direksi changes
-                    }));
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih direksi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {direksi.map(d => (
-                      <SelectItem key={d.id} value={d.nama}>{d.nama}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Select 
+                    value={formData.direksi} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, direksi: value }))}
+                    disabled={direksiSuggestions.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={direksiSuggestions.length > 0 ? "Pilih direksi" : "Belum ada data direksi tahun ini"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {direksiSuggestions.map(direksi => (
+                        <SelectItem key={direksi} value={direksi}>{direksi}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -704,29 +683,26 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                     onValueChange={(value) => setFormData(prev => ({ ...prev, division: value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih divisi" />
+                      <SelectValue placeholder={divisionSuggestions.length > 0 ? "Pilih divisi" : "Belum ada data divisi tahun ini"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {formData.direksi && getDivisionSuggestions(formData.direksi).map(division => (
+                      {divisionSuggestions.map(division => (
                         <SelectItem key={division} value={division}>{division}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  
-                  {formData.direksi && (
-                    <div className="space-y-2">
-                      <Label htmlFor="customDivision">Atau ketik divisi manual</Label>
-                      <Input
-                        id="customDivision"
-                        value={customDivision}
-                        onChange={(e) => {
-                          setCustomDivision(e.target.value);
-                          setFormData(prev => ({ ...prev, division: e.target.value }));
-                        }}
-                        placeholder="Ketik nama divisi jika tidak ada di daftar"
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="customDivision">Atau ketik divisi manual</Label>
+                    <Input
+                      id="customDivision"
+                      value={customDivision}
+                      onChange={(e) => {
+                        setCustomDivision(e.target.value);
+                        setFormData(prev => ({ ...prev, division: e.target.value }));
+                      }}
+                      placeholder="Ketik nama divisi jika tidak ada di daftar"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
