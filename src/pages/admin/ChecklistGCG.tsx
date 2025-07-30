@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useChecklist } from '@/contexts/ChecklistContext';
-import { Plus, Edit, Trash2, ListTodo, Calendar, FileText, CheckCircle } from 'lucide-react';
+import { useSidebar } from '@/contexts/SidebarContext';
+import { Plus, Edit, Trash2, ListTodo, Calendar, FileText, CheckCircle, Target, Filter } from 'lucide-react';
 
 interface ChecklistItem {
   id: number;
@@ -23,12 +24,21 @@ interface ChecklistItem {
 }
 
 const ChecklistGCG = () => {
-  const { checklist } = useChecklist();
+  const { 
+    checklist, 
+    getChecklistByYear, 
+    addChecklist, 
+    editChecklist, 
+    deleteChecklist,
+    addAspek,
+    editAspek,
+    deleteAspek,
+    initializeYearData
+  } = useChecklist();
+  const { isSidebarOpen } = useSidebar();
   
   // State untuk tahun
-  const [selectedYear, setSelectedYear] = useState(2024);
-  const [isYearDialogOpen, setIsYearDialogOpen] = useState(false);
-  const [newYear, setNewYear] = useState('');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   
   // State untuk aspek
   const [isAspekDialogOpen, setIsAspekDialogOpen] = useState(false);
@@ -40,6 +50,9 @@ const ChecklistGCG = () => {
   const [editingChecklist, setEditingChecklist] = useState<ChecklistItem | null>(null);
   const [checklistForm, setChecklistForm] = useState({ aspek: '', deskripsi: '' });
   
+  // State untuk filter aspek
+  const [selectedAspek, setSelectedAspek] = useState('all');
+  
   // Generate tahun dari 2014 sampai sekarang
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -50,14 +63,19 @@ const ChecklistGCG = () => {
     return yearsArray;
   }, []);
 
+  // Initialize year data when year changes
+  useEffect(() => {
+    initializeYearData(selectedYear);
+  }, [selectedYear, initializeYearData]);
+
   // Filter checklist berdasarkan tahun
   const filteredChecklist = useMemo(() => {
-    return checklist.map(item => ({
+    const yearData = getChecklistByYear(selectedYear);
+    return yearData.map(item => ({
       ...item,
-      tahun: selectedYear,
       status: 'not_uploaded' as 'uploaded' | 'not_uploaded'
     }));
-  }, [checklist, selectedYear]);
+  }, [getChecklistByYear, selectedYear]);
 
   // Group checklist berdasarkan aspek
   const groupedChecklist = useMemo(() => {
@@ -71,14 +89,40 @@ const ChecklistGCG = () => {
     return grouped;
   }, [filteredChecklist]);
 
-  // Get unique aspects
+  // Get unique aspects for selected year
   const aspects = useMemo(() => {
-    return [...new Set(checklist.map(item => item.aspek))];
-  }, [checklist]);
+    return [...new Set(filteredChecklist.map(item => item.aspek))];
+  }, [filteredChecklist]);
 
   const handleAspekSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement add/edit aspek
+    
+    if (!aspekForm.nama.trim()) {
+      alert('Nama aspek tidak boleh kosong!');
+      return;
+    }
+
+    // Check if aspek already exists for the selected year (excluding current editing aspek)
+    const existingAspek = aspects.find(aspek => 
+      aspek.toLowerCase() === aspekForm.nama.toLowerCase() && 
+      (!editingAspek || aspek !== editingAspek.nama)
+    );
+    
+    if (existingAspek) {
+      alert('Aspek sudah ada untuk tahun ini!');
+      return;
+    }
+
+    if (editingAspek) {
+      // Update existing aspek
+      editAspek(editingAspek.nama, aspekForm.nama, selectedYear);
+      alert('Aspek berhasil diupdate!');
+    } else {
+      // Add new aspek
+      addAspek(aspekForm.nama, selectedYear);
+      alert('Aspek berhasil ditambahkan!');
+    }
+
     setAspekForm({ nama: '' });
     setEditingAspek(null);
     setIsAspekDialogOpen(false);
@@ -86,24 +130,70 @@ const ChecklistGCG = () => {
 
   const handleChecklistSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement add/edit checklist
+    
+    if (!checklistForm.aspek || !checklistForm.deskripsi.trim()) {
+      alert('Aspek dan deskripsi wajib diisi!');
+      return;
+    }
+
+    if (editingChecklist) {
+      // Update existing checklist
+      editChecklist(editingChecklist.id, checklistForm.aspek, checklistForm.deskripsi, selectedYear);
+      alert('Checklist berhasil diupdate!');
+    } else {
+      // Add new checklist
+      addChecklist(checklistForm.aspek, checklistForm.deskripsi, selectedYear);
+      alert('Checklist berhasil ditambahkan!');
+    }
+
     setChecklistForm({ aspek: '', deskripsi: '' });
     setEditingChecklist(null);
     setIsChecklistDialogOpen(false);
   };
 
-  const handleAddYear = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newYear && !years.includes(parseInt(newYear))) {
-      // TODO: Implement add year
-      setNewYear('');
-      setIsYearDialogOpen(false);
-    }
-  };
+
 
   const getProgressPercentage = (items: ChecklistItem[]) => {
     const uploaded = items.filter(item => item.status === 'uploaded').length;
     return Math.round((uploaded / items.length) * 100);
+  };
+
+  const getAspectIcon = (aspekName: string) => {
+    const aspectIcons = {
+      'ASPEK I. Komitmen': { icon: Target, color: 'text-red-500' },
+      'ASPEK II. Implementasi': { icon: CheckCircle, color: 'text-green-500' },
+      'ASPEK III. Pengawasan': { icon: FileText, color: 'text-blue-500' },
+      'ASPEK IV. Pelaporan': { icon: ListTodo, color: 'text-purple-500' },
+      'ASPEK V. Evaluasi': { icon: Calendar, color: 'text-orange-500' }
+    };
+    
+    return aspectIcons[aspekName] || { icon: Target, color: 'text-gray-500' };
+  };
+
+  const handleEditAspek = (aspek: string) => {
+    setEditingAspek({ id: Date.now(), nama: aspek });
+    setAspekForm({ nama: aspek });
+    setIsAspekDialogOpen(true);
+  };
+
+  const handleDeleteAspek = (aspek: string) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus aspek "${aspek}"? Semua checklist dalam aspek ini juga akan dihapus.`)) {
+      deleteAspek(aspek, selectedYear);
+      alert('Aspek berhasil dihapus!');
+    }
+  };
+
+  const handleEditChecklist = (item: ChecklistItem) => {
+    setEditingChecklist(item);
+    setChecklistForm({ aspek: item.aspek, deskripsi: item.deskripsi });
+    setIsChecklistDialogOpen(true);
+  };
+
+  const handleDeleteChecklist = (item: ChecklistItem) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus checklist ini?`)) {
+      deleteChecklist(item.id, selectedYear);
+      alert('Checklist berhasil dihapus!');
+    }
   };
 
   return (
@@ -112,7 +202,10 @@ const ChecklistGCG = () => {
       <Topbar />
       
       {/* Main Content */}
-      <div className="ml-64 pt-16">
+      <div className={`
+        transition-all duration-300 ease-in-out pt-16
+        ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'}
+      `}>
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
@@ -122,73 +215,28 @@ const ChecklistGCG = () => {
 
           {/* Year Selection */}
           <div id="year-selection">
-            <Card className="mb-6">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Calendar className="w-5 h-5" />
-                      <span>Pilih Tahun</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Pilih tahun untuk melihat dan mengelola checklist GCG
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Pilih tahun" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {years.map(year => (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Dialog open={isYearDialogOpen} onOpenChange={setIsYearDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline">
-                          <Plus className="w-4 h-4 mr-2" />
-                          Tambah Tahun
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Tambah Tahun Baru</DialogTitle>
-                          <DialogDescription>
-                            Tambahkan tahun baru untuk checklist GCG
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleAddYear} className="space-y-4">
-                          <div>
-                            <Label htmlFor="year">Tahun</Label>
-                            <Input
-                              id="year"
-                              type="number"
-                              min="2014"
-                              max={new Date().getFullYear() + 1}
-                              value={newYear}
-                              onChange={(e) => setNewYear(e.target.value)}
-                              placeholder="Masukkan tahun (2014-sekarang)"
-                              required
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-2">
-                            <Button type="button" variant="outline" onClick={() => setIsYearDialogOpen(false)}>
-                              Batal
-                            </Button>
-                            <Button type="submit">
-                              Tambah
-                            </Button>
-                          </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
+            <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-blue-50">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center space-x-2 text-blue-900">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <span>Tahun Buku</span>
+                </CardTitle>
+                <CardDescription>Pilih tahun buku untuk mengelola checklist GCG</CardDescription>
               </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {years.map((year) => (
+                    <Button
+                      key={year}
+                      variant={selectedYear === year ? 'default' : 'outline'}
+                      className={selectedYear === year ? 'bg-blue-600 text-white' : ''}
+                      onClick={() => setSelectedYear(year)}
+                    >
+                      {year}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
             </Card>
           </div>
 
@@ -210,6 +258,15 @@ const ChecklistGCG = () => {
 
             {/* Overview Tab */}
             <TabsContent value="overview" id="overview-tab">
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold text-blue-900">Tahun {selectedYear}</span>
+                </div>
+                <p className="text-blue-700 text-sm mt-1">
+                  Menampilkan overview checklist GCG untuk tahun {selectedYear}
+                </p>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {aspects.map((aspek) => {
                   const items = groupedChecklist[aspek] || [];
@@ -249,35 +306,38 @@ const ChecklistGCG = () => {
 
             {/* Aspek Tab */}
             <TabsContent value="aspek" id="aspek-tab">
-              <Card>
+              <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Kelola Aspek GCG</CardTitle>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Target className="w-5 h-5 text-green-600" />
+                        <span>Kelola Aspek GCG - Tahun {selectedYear}</span>
+                      </CardTitle>
                       <CardDescription>
-                        Tambah, edit, atau hapus aspek checklist GCG
+                        Tambah, edit, atau hapus aspek checklist GCG untuk tahun {selectedYear}
                       </CardDescription>
                     </div>
                     <Dialog open={isAspekDialogOpen} onOpenChange={setIsAspekDialogOpen}>
                       <DialogTrigger asChild>
                         <Button 
-                          className="flex items-center space-x-2"
+                          className="bg-green-600 hover:bg-green-700"
                           onClick={() => {
                             setEditingAspek(null);
                             setAspekForm({ nama: '' });
                           }}
                         >
-                          <Plus className="w-4 h-4" />
-                          <span>Tambah Aspek</span>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Tambah Aspek
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>
-                            {editingAspek ? 'Edit Aspek' : 'Tambah Aspek Baru'}
+                            {editingAspek ? 'Edit Aspek' : 'Tambah Aspek Baru'} - Tahun {selectedYear}
                           </DialogTitle>
                           <DialogDescription>
-                            {editingAspek ? 'Edit aspek checklist GCG' : 'Tambahkan aspek baru untuk checklist GCG'}
+                            {editingAspek ? `Edit aspek checklist GCG untuk tahun ${selectedYear}` : `Tambahkan aspek baru untuk checklist GCG tahun ${selectedYear}`}
                           </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleAspekSubmit} className="space-y-4">
@@ -322,10 +382,19 @@ const ChecklistGCG = () => {
                           <TableCell>{groupedChecklist[aspek]?.length || 0}</TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditAspek(aspek)}
+                              >
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                onClick={() => handleDeleteAspek(aspek)}
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
@@ -340,35 +409,38 @@ const ChecklistGCG = () => {
 
             {/* Checklist Tab */}
             <TabsContent value="checklist" id="checklist-tab">
-              <Card>
+              <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Kelola Checklist Item</CardTitle>
+                      <CardTitle className="flex items-center space-x-2">
+                        <ListTodo className="w-5 h-5 text-purple-600" />
+                        <span>Kelola Checklist Item - Tahun {selectedYear}</span>
+                      </CardTitle>
                       <CardDescription>
-                        Tambah, edit, atau hapus item checklist GCG
+                        Tambah, edit, atau hapus item checklist GCG untuk tahun {selectedYear}
                       </CardDescription>
                     </div>
                     <Dialog open={isChecklistDialogOpen} onOpenChange={setIsChecklistDialogOpen}>
                       <DialogTrigger asChild>
                         <Button 
-                          className="flex items-center space-x-2"
+                          className="bg-purple-600 hover:bg-purple-700"
                           onClick={() => {
                             setEditingChecklist(null);
                             setChecklistForm({ aspek: '', deskripsi: '' });
                           }}
                         >
-                          <Plus className="w-4 h-4" />
-                          <span>Tambah Checklist</span>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Tambah Checklist
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl">
                         <DialogHeader>
                           <DialogTitle>
-                            {editingChecklist ? 'Edit Checklist' : 'Tambah Checklist Baru'}
+                            {editingChecklist ? 'Edit Checklist' : 'Tambah Checklist Baru'} - Tahun {selectedYear}
                           </DialogTitle>
                           <DialogDescription>
-                            {editingChecklist ? 'Edit item checklist GCG' : 'Tambahkan item baru untuk checklist GCG'}
+                            {editingChecklist ? `Edit item checklist GCG untuk tahun ${selectedYear}` : `Tambahkan item baru untuk checklist GCG tahun ${selectedYear}`}
                           </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleChecklistSubmit} className="space-y-4">
@@ -412,50 +484,174 @@ const ChecklistGCG = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>No</TableHead>
-                        <TableHead>Aspek</TableHead>
-                        <TableHead>Deskripsi</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredChecklist.slice(0, 10).map((item, index) => (
-                        <TableRow key={item.id}>
-                          <TableCell>{index + 1}</TableCell>
-                          <TableCell className="max-w-xs truncate">{item.aspek}</TableCell>
-                          <TableCell className="max-w-md truncate">{item.deskripsi}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              item.status === 'uploaded' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {item.status === 'uploaded' ? 'Uploaded' : 'Pending'}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Edit className="w-4 h-4" />
+                  <div className="space-y-4">
+                    {/* Filter Row */}
+                    <div className="flex flex-wrap items-center gap-4">
+                      {/* Aspek Filter */}
+                      <div className="flex-1 min-w-0">
+                        <label className="text-sm font-semibold text-gray-700 mb-2 block flex items-center">
+                          <Filter className="w-4 h-4 mr-2 text-orange-600" />
+                          Filter Aspek - Tahun {selectedYear}
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant={selectedAspek === 'all' ? "default" : "outline"}
+                            onClick={() => setSelectedAspek('all')}
+                            size="sm"
+                            className={selectedAspek === 'all' 
+                              ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700' 
+                              : 'border-orange-200 text-orange-600 hover:bg-orange-50'
+                            }
+                          >
+                            Semua Aspek
+                          </Button>
+                          {aspects.map(aspek => {
+                            const aspectInfo = getAspectIcon(aspek);
+                            const IconComponent = aspectInfo.icon;
+                            return (
+                              <Button
+                                key={aspek}
+                                variant={selectedAspek === aspek ? "default" : "outline"}
+                                onClick={() => setSelectedAspek(aspek)}
+                                size="sm"
+                                className={`text-xs flex items-center space-x-2 ${
+                                  selectedAspek === aspek 
+                                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' 
+                                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                                }`}
+                              >
+                                <IconComponent className={`w-3 h-3 ${selectedAspek === aspek ? 'text-white' : aspectInfo.color}`} />
+                                <span>{aspek.replace('ASPEK ', '').replace('. ', ' - ')}</span>
                               </Button>
-                              <Button variant="outline" size="sm">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  {filteredChecklist.length > 10 && (
-                    <div className="mt-4 text-center">
-                      <p className="text-gray-600">Menampilkan 10 dari {filteredChecklist.length} item</p>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                  )}
+                    
+                    {/* Table Content */}
+                    <div className="mt-4">
+                      {selectedAspek === 'all' ? (
+                        <>
+                          <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="w-4 h-4 text-purple-600" />
+                              <span className="font-semibold text-purple-900">Tahun {selectedYear}</span>
+                            </div>
+                            <p className="text-purple-700 text-sm mt-1">
+                              Menampilkan {selectedAspek === 'all' ? 'semua aspek' : `aspek ${selectedAspek}`} untuk tahun {selectedYear}
+                            </p>
+                          </div>
+                          <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>No</TableHead>
+                              <TableHead>Aspek</TableHead>
+                              <TableHead>Deskripsi</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Aksi</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredChecklist.map((item, index) => (
+                              <TableRow key={item.id}>
+                                <TableCell>{index + 1}</TableCell>
+                                <TableCell className="max-w-xs truncate">{item.aspek}</TableCell>
+                                <TableCell className="max-w-md truncate">{item.deskripsi}</TableCell>
+                                <TableCell>
+                                  <span className={`px-2 py-1 rounded-full text-xs ${
+                                    item.status === 'uploaded' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {item.status === 'uploaded' ? 'Uploaded' : 'Pending'}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => handleEditChecklist(item)}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="text-red-600 border-red-200 hover:bg-red-50"
+                                      onClick={() => handleDeleteChecklist(item)}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        </>
+                      ) : (
+                        <>
+                          <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="w-4 h-4 text-purple-600" />
+                              <span className="font-semibold text-purple-900">Tahun {selectedYear}</span>
+                            </div>
+                            <p className="text-purple-700 text-sm mt-1">
+                              Menampilkan {selectedAspek === 'all' ? 'semua aspek' : `aspek ${selectedAspek}`} untuk tahun {selectedYear}
+                            </p>
+                          </div>
+                          <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>No</TableHead>
+                              <TableHead>Deskripsi</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Aksi</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {groupedChecklist[selectedAspek]?.map((item, index) => (
+                              <TableRow key={item.id}>
+                                <TableCell>{index + 1}</TableCell>
+                                <TableCell className="max-w-md truncate">{item.deskripsi}</TableCell>
+                                <TableCell>
+                                  <span className={`px-2 py-1 rounded-full text-xs ${
+                                    item.status === 'uploaded' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {item.status === 'uploaded' ? 'Uploaded' : 'Pending'}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => handleEditChecklist(item)}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="text-red-600 border-red-200 hover:bg-red-50"
+                                      onClick={() => handleDeleteChecklist(item)}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

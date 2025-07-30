@@ -435,53 +435,53 @@ const KelolaAkun = () => {
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
+                  <div className="flex items-center justify-between">
+                    <div>
                 <h1 className="text-3xl font-bold text-gray-900">Kelola Akun</h1>
                 <p className="text-gray-600 mt-2">
                   Manajemen akun admin dan user
                 </p>
-              </div>
+                    </div>
               <div className="flex space-x-2">
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                  <DialogTrigger asChild>
+                      <DialogTrigger asChild>
                     <Button className="bg-blue-600 hover:bg-blue-700">
                       <Plus className="w-4 h-4 mr-2" />
                       Tambah Akun
-                    </Button>
-                  </DialogTrigger>
+                        </Button>
+                      </DialogTrigger>
                   <DialogContent className="max-w-md">
-                    <DialogHeader>
+                        <DialogHeader>
                       <DialogTitle>Tambah Akun Baru</DialogTitle>
-                      <DialogDescription>
+                          <DialogDescription>
                         Buat akun baru untuk admin atau user
-                      </DialogDescription>
-                    </DialogHeader>
+                          </DialogDescription>
+                        </DialogHeader>
                     <form onSubmit={handleAddAccount} className="space-y-4">
-                      <div>
+                          <div>
                         <Label htmlFor="username">Username *</Label>
-                        <Input
-                          id="username"
+                            <Input
+                              id="username"
                           value={accountForm.username}
                           onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
-                          placeholder="Masukkan username"
+                              placeholder="Masukkan username"
                           required
-                        />
-                      </div>
-                      <div>
+                            />
+                          </div>
+                          <div>
                         <Label htmlFor="name">Nama Lengkap *</Label>
-                        <Input
+                            <Input
                           id="name"
                           value={accountForm.name}
                           onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
                           placeholder="Masukkan nama lengkap"
                           required
-                        />
-                      </div>
-                      <div>
+                            />
+                          </div>
+                          <div>
                         <Label htmlFor="password">Password *</Label>
                         <div className="relative">
-                          <Input
+                            <Input
                             id="password"
                             type={showPassword ? "text" : "password"}
                             value={accountForm.password}
@@ -578,33 +578,33 @@ const KelolaAkun = () => {
                             <option key={d} value={d} />
                           ))}
                         </datalist>
-                      </div>
-                      <div className="flex justify-end space-x-2">
+                          </div>
+                          <div className="flex justify-end space-x-2">
                         <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                          Batal
-                        </Button>
-                        <Button type="submit">
+                              Batal
+                            </Button>
+                            <Button type="submit">
                           Tambah Akun
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                            </Button>
+                          </div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
 
                 <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
-                  <DialogTrigger asChild>
+                      <DialogTrigger asChild>
                     <Button variant="outline" className="text-orange-600 border-orange-600 hover:bg-orange-50">
                       <Lock className="w-4 h-4 mr-2" />
                       Edit Password
-                    </Button>
-                  </DialogTrigger>
+                        </Button>
+                      </DialogTrigger>
                   <DialogContent className="max-w-md">
-                    <DialogHeader>
+                        <DialogHeader>
                       <DialogTitle>Edit Password Super Admin</DialogTitle>
-                      <DialogDescription>
+                          <DialogDescription>
                         Ubah password untuk akun Super Admin
-                      </DialogDescription>
-                    </DialogHeader>
+                          </DialogDescription>
+                        </DialogHeader>
                     <form onSubmit={handleChangePassword} className="space-y-4">
                       <div>
                         <Label htmlFor="currentPassword">Password Saat Ini *</Label>
@@ -639,29 +639,29 @@ const KelolaAkun = () => {
                           </Button>
                         </div>
                       </div>
-                      <div>
+                          <div>
                         <Label htmlFor="confirmPassword">Konfirmasi Password Baru *</Label>
-                        <Input
+                            <Input
                           id="confirmPassword"
                           type="password"
                           value={passwordForm.confirmPassword}
                           onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                           placeholder="Konfirmasi password baru"
-                          required
-                        />
-                      </div>
-                      <div className="flex justify-end space-x-2">
+                              required
+                            />
+                          </div>
+                          <div className="flex justify-end space-x-2">
                         <Button type="button" variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
-                          Batal
-                        </Button>
-                        <Button type="submit">
+                              Batal
+                            </Button>
+                            <Button type="submit">
                           Ubah Password
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
+                            </Button>
+                          </div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
             </div>
           </div>
 
@@ -676,21 +676,21 @@ const KelolaAkun = () => {
                 <CardDescription>
                   {accounts.length} akun ditemukan
                 </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
                       <TableHead>Username</TableHead>
                       <TableHead>Nama</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Direksi</TableHead>
                       <TableHead>Divisi</TableHead>
                       <TableHead>Tanggal Dibuat</TableHead>
-                      <TableHead>Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                        <TableHead>Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                     {accounts.map((account) => (
                       <TableRow key={account.id}>
                         <TableCell className="font-medium">{account.username}</TableCell>
@@ -699,32 +699,32 @@ const KelolaAkun = () => {
                         <TableCell>{account.direksi || '-'}</TableCell>
                         <TableCell>{account.divisi || '-'}</TableCell>
                         <TableCell>{account.createdAt.toLocaleDateString('id-ID')}</TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
                               onClick={() => openEditDialog(account)}
                               disabled={account.role === 'superadmin'}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
                               onClick={() => openDeleteDialog(account)}
                               disabled={account.role === 'superadmin' || account.id === currentUser?.id}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
           </div>
         </div>
       </div>

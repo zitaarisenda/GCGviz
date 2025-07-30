@@ -40,7 +40,7 @@ const Dashboard = () => {
 
           {/* Dashboard Stats */}
           <div id="dashboard-stats">
-            <DashboardStats />
+          <DashboardStats />
           </div>
 
           {/* Document List */}

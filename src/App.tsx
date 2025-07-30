@@ -19,6 +19,7 @@ import AdminDocumentManagement from './pages/admin/DocumentManagement';
 import StrukturPerusahaan from './pages/admin/StrukturPerusahaan';
 import ChecklistGCG from './pages/admin/ChecklistGCG';
 import KelolaAkun from './pages/admin/KelolaAkun';
+import MetaData from './pages/admin/MetaData';
 import NotFound from './pages/NotFound';
 import { useUser } from './contexts/UserContext';
 
@@ -134,6 +135,14 @@ const AppRoutes = () => {
         element={
           <SuperAdminRoute>
             <StrukturPerusahaan />
+          </SuperAdminRoute>
+        } 
+      />
+      <Route 
+        path="/admin/meta-data" 
+        element={
+          <SuperAdminRoute>
+            <MetaData />
           </SuperAdminRoute>
         } 
       />

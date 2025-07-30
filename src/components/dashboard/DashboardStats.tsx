@@ -193,10 +193,11 @@ const DashboardStats = () => {
     if (!selectedYear) return [];
 
     const yearFiles = getFilesByYear(selectedYear);
-    const aspects = [...new Set(checklist.map(item => item.aspek))];
+    const yearChecklist = checklist.filter(item => item.tahun === selectedYear);
+    const aspects = [...new Set(yearChecklist.map(item => item.aspek))];
     
     return aspects.map(aspek => {
-      const aspectItems = checklist.filter(item => item.aspek === aspek);
+      const aspectItems = yearChecklist.filter(item => item.aspek === aspek);
       const uploadedFiles = yearFiles.filter(file => file.aspect === aspek);
       const totalItems = aspectItems.length;
       const uploadedCount = uploadedFiles.length;

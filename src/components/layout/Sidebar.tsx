@@ -177,6 +177,12 @@ const Sidebar = () => {
         icon: ListTodo,
         path: '/admin/checklist-gcg',
         badgeIcon: Lock
+      },
+      {
+        name: 'Meta Data',
+        icon: Settings,
+        path: '/admin/meta-data',
+        badgeIcon: Lock
       }
     );
   }
