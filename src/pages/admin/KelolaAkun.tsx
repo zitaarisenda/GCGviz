@@ -30,7 +30,7 @@ interface Account {
   id: number;
   username: string;
   name: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'superadmin';
   direksi?: string;
   divisi?: string;
   createdAt: Date;
@@ -55,10 +55,88 @@ const KelolaAkun = () => {
     username: '',
     password: '',
     name: '',
-    role: 'user' as 'admin' | 'user',
+    role: 'user' as 'admin' | 'user' | 'superadmin',
     direksi: '',
     divisi: ''
   });
+
+  // Password strength indicator
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    label: '',
+    color: ''
+  });
+
+  // Password strength indicator for edit dialog
+  const [editPasswordStrength, setEditPasswordStrength] = useState({
+    score: 0,
+    label: '',
+    color: ''
+  });
+
+  // Generate strong password
+  const generateStrongPassword = () => {
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    
+    let password = '';
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    // Fill remaining 8 characters with random mix
+    const allChars = uppercase + lowercase + numbers + symbols;
+    for (let i = 0; i < 8; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    
+    return password;
+  };
+
+  // Check password strength
+  const checkPasswordStrength = (password: string) => {
+    let score = 0;
+    let label = '';
+    let color = '';
+
+    if (password.length >= 8) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    switch (score) {
+      case 0:
+      case 1:
+        label = 'Sangat Lemah';
+        color = 'text-red-500';
+        break;
+      case 2:
+        label = 'Lemah';
+        color = 'text-orange-500';
+        break;
+      case 3:
+        label = 'Sedang';
+        color = 'text-yellow-500';
+        break;
+      case 4:
+        label = 'Kuat';
+        color = 'text-blue-500';
+        break;
+      case 5:
+        label = 'Sangat Kuat';
+        color = 'text-green-500';
+        break;
+    }
+
+    return { score, label, color };
+  };
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -130,7 +208,7 @@ const KelolaAkun = () => {
       username: '',
       password: '',
       name: '',
-      role: 'user',
+      role: 'user' as 'admin' | 'user' | 'superadmin',
       direksi: '',
       divisi: ''
     });
@@ -180,7 +258,9 @@ const KelolaAkun = () => {
         name: accountForm.name,
         role: accountForm.role,
         direksi: accountForm.direksi,
-        divisi: accountForm.divisi
+        divisi: accountForm.divisi,
+        // Only update password if provided
+        ...(accountForm.password && { password: accountForm.password })
       };
       localStorage.setItem('users', JSON.stringify(users));
     }
@@ -195,12 +275,13 @@ const KelolaAkun = () => {
       username: '',
       password: '',
       name: '',
-      role: 'user',
+      role: 'user' as 'admin' | 'user' | 'superadmin',
       direksi: '',
       divisi: ''
     });
     setEditingAccount(null);
     setIsEditDialogOpen(false);
+    setEditPasswordStrength({ score: 0, label: '', color: '' });
     
     alert('Akun berhasil diupdate!');
   };
@@ -285,8 +366,18 @@ const KelolaAkun = () => {
       direksi: account.direksi || '',
       divisi: account.divisi || ''
     });
+    setEditPasswordStrength({ score: 0, label: '', color: '' });
     setIsEditDialogOpen(true);
   };
+
+  // Auto-generate password when add dialog opens
+  useEffect(() => {
+    if (isAddDialogOpen) {
+      const newPassword = generateStrongPassword();
+      setAccountForm(prev => ({ ...prev, password: newPassword }));
+      setPasswordStrength(checkPasswordStrength(newPassword));
+    }
+  }, [isAddDialogOpen]);
 
   const openDeleteDialog = (account: Account) => {
     setAccountToDelete(account);
@@ -318,13 +409,13 @@ const KelolaAkun = () => {
   const getDireksiByYear = (year: number): string[] => {
     const data = localStorage.getItem('direksi');
     if (!data) return [];
-    const list = JSON.parse(data);
+    const list = JSON.parse(data) as any[];
     return Array.from(new Set(list.filter((d: any) => d.tahun === year).map((d: any) => String(d.nama)))).sort();
   };
   const getDivisiByYear = (year: number): string[] => {
     const data = localStorage.getItem('divisi');
     if (!data) return [];
-    const list = JSON.parse(data);
+    const list = JSON.parse(data) as any[];
     return Array.from(new Set(list.filter((d: any) => d.tahun === year).map((d: any) => String(d.nama)))).sort();
   };
   const latestDireksiYear = getLatestYear('direksi');
@@ -378,14 +469,28 @@ const KelolaAkun = () => {
                         />
                       </div>
                       <div>
+                        <Label htmlFor="name">Nama Lengkap *</Label>
+                        <Input
+                          id="name"
+                          value={accountForm.name}
+                          onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
+                          placeholder="Masukkan nama lengkap"
+                          required
+                        />
+                      </div>
+                      <div>
                         <Label htmlFor="password">Password *</Label>
                         <div className="relative">
                           <Input
                             id="password"
                             type={showPassword ? "text" : "password"}
                             value={accountForm.password}
-                            onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
-                            placeholder="Masukkan password"
+                            onChange={(e) => {
+                              const newPassword = e.target.value;
+                              setAccountForm({ ...accountForm, password: newPassword });
+                              setPasswordStrength(checkPasswordStrength(newPassword));
+                            }}
+                            placeholder="Password akan dibuat otomatis"
                             required
                           />
                           <Button
@@ -398,23 +503,45 @@ const KelolaAkun = () => {
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                         </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="name">Nama Lengkap *</Label>
-                        <Input
-                          id="name"
-                          value={accountForm.name}
-                          onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
-                          placeholder="Masukkan nama lengkap"
-                          required
-                        />
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center space-x-2">
+                            <div className={`text-sm font-medium ${passwordStrength.color}`}>
+                              {passwordStrength.label}
+                            </div>
+                            <div className="flex space-x-1">
+                              {[1, 2, 3, 4, 5].map((level) => (
+                                <div
+                                  key={level}
+                                  className={`w-2 h-2 rounded-full ${
+                                    level <= passwordStrength.score
+                                      ? passwordStrength.color.replace('text-', 'bg-')
+                                      : 'bg-gray-200'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newPassword = generateStrongPassword();
+                              setAccountForm({ ...accountForm, password: newPassword });
+                              setPasswordStrength(checkPasswordStrength(newPassword));
+                            }}
+                            className="text-xs"
+                          >
+                            Generate Password
+                          </Button>
+                        </div>
                       </div>
                       <div>
                         <Label htmlFor="role">Role *</Label>
                         <select
                           id="role"
                           value={accountForm.role}
-                          onChange={(e) => setAccountForm({ ...accountForm, role: e.target.value as 'admin' | 'user' })}
+                          onChange={(e) => setAccountForm({ ...accountForm, role: e.target.value as 'admin' | 'user' | 'superadmin' })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         >
@@ -423,7 +550,7 @@ const KelolaAkun = () => {
                         </select>
                       </div>
                       <div>
-                        <Label htmlFor="direksi">Direksi (Opsional)</Label>
+                        <Label htmlFor="direksi">Direksi</Label>
                         <select
                           id="direksi"
                           value={accountForm.direksi}
@@ -438,7 +565,7 @@ const KelolaAkun = () => {
                         </select>
                       </div>
                       <div>
-                        <Label htmlFor="divisi">Divisi (Opsional)</Label>
+                        <Label htmlFor="divisi">Divisi</Label>
                         <Input
                           id="divisi"
                           value={accountForm.divisi}
@@ -633,11 +760,68 @@ const KelolaAkun = () => {
               />
             </div>
             <div>
+              <Label htmlFor="edit-password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="edit-password"
+                  type={showPassword ? "text" : "password"}
+                  value={accountForm.password}
+                  onChange={(e) => {
+                    const newPassword = e.target.value;
+                    setAccountForm({ ...accountForm, password: newPassword });
+                    setEditPasswordStrength(checkPasswordStrength(newPassword));
+                  }}
+                  placeholder="Kosongkan jika tidak ingin mengubah password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center space-x-2">
+                  <div className={`text-sm font-medium ${editPasswordStrength.color}`}>
+                    {editPasswordStrength.label}
+                  </div>
+                  <div className="flex space-x-1">
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <div
+                        key={level}
+                        className={`w-2 h-2 rounded-full ${
+                          level <= editPasswordStrength.score
+                            ? editPasswordStrength.color.replace('text-', 'bg-')
+                            : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newPassword = generateStrongPassword();
+                    setAccountForm({ ...accountForm, password: newPassword });
+                    setEditPasswordStrength(checkPasswordStrength(newPassword));
+                  }}
+                  className="text-xs"
+                >
+                  Generate Password
+                </Button>
+              </div>
+            </div>
+            <div>
               <Label htmlFor="edit-role">Role *</Label>
               <select
                 id="edit-role"
                 value={accountForm.role}
-                onChange={(e) => setAccountForm({ ...accountForm, role: e.target.value as 'admin' | 'user' })}
+                onChange={(e) => setAccountForm({ ...accountForm, role: e.target.value as 'admin' | 'user' | 'superadmin' })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
@@ -646,7 +830,7 @@ const KelolaAkun = () => {
               </select>
             </div>
             <div>
-              <Label htmlFor="edit-direksi">Direksi (Opsional)</Label>
+              <Label htmlFor="edit-direksi">Direksi</Label>
               <select
                 id="edit-direksi"
                 value={accountForm.direksi}
@@ -661,7 +845,7 @@ const KelolaAkun = () => {
               </select>
             </div>
             <div>
-              <Label htmlFor="edit-divisi">Divisi (Opsional)</Label>
+              <Label htmlFor="edit-divisi">Divisi</Label>
               <Input
                 id="edit-divisi"
                 value={accountForm.divisi}
@@ -676,7 +860,10 @@ const KelolaAkun = () => {
               </datalist>
             </div>
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => {
+                setIsEditDialogOpen(false);
+                setEditPasswordStrength({ score: 0, label: '', color: '' });
+              }}>
                 Batal
               </Button>
               <Button type="submit">
