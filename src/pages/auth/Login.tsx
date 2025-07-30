@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useUser } from '@/contexts/UserContext';
-import { Shield, Eye, EyeOff, Mail, Lock, ArrowRight, Building2, Users, FileText } from 'lucide-react';
+import { Shield, Eye, EyeOff, Mail, Lock, ArrowRight, Building2, Users, FileText, CheckCircle, Globe, Award, Zap } from 'lucide-react';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -35,182 +35,269 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <div className="w-full max-w-md">
-          {/* Logo and Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center space-x-3 mb-6">
-              <div className="w-16 h-16 bg-gradient-to-r from-red-600 to-red-700 rounded-2xl flex items-center justify-center shadow-lg">
-                <Building2 className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-left">
-                <h1 className="text-2xl font-bold text-gray-900">POS Indonesia</h1>
-                <p className="text-sm text-gray-600">GCG Document Hub</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Navigation Header */}
+      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <img 
+                src="/aset/POSIND_2023_(with_wordmark).svg.png" 
+                alt="POS Indonesia" 
+                className="h-10 w-auto"
+              />
+              <div className="hidden md:block">
+                <h1 className="text-xl font-bold text-gray-900">GCG Document Hub</h1>
+                <p className="text-sm text-gray-600">Sistem Manajemen Dokumen GCG</p>
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Selamat Datang Kembali</h2>
-            <p className="text-gray-600">Masuk ke sistem manajemen dokumen GCG</p>
+            <div className="flex items-center space-x-4">
+              <Link 
+                to="/register" 
+                className="text-gray-600 hover:text-blue-600 font-medium transition-colors"
+              >
+                Daftar
+              </Link>
+              <Link 
+                to="/login" 
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Masuk
+              </Link>
+            </div>
           </div>
+        </div>
+      </nav>
 
-          {/* Login Form */}
-          <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-            <CardContent className="p-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="text-sm font-medium text-gray-700">
-                    Username
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <Input
-                      id="username"
-                      type="text"
-                      placeholder="Masukkan username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Masukkan password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-12 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-gray-600"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200 flex items-center space-x-2">
-                    <Shield className="w-4 h-4" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <Button 
-                  type="submit" 
-                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Memproses...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center space-x-2">
-                      <span>Masuk</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
-                  )}
-                </Button>
-              </form>
-
-              {/* Demo Account Info */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Account:</h4>
-                <div className="space-y-1 text-sm text-blue-800">
-                  <p><span className="font-medium">Username:</span> superadmin</p>
-                  <p><span className="font-medium">Password:</span> superadmin123</p>
-                </div>
-              </div>
-
-              {/* Register Link */}
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
-                  Belum punya akun?{' '}
-                  <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
-                    Daftar sebagai User
-                  </Link>
+      <div className="flex min-h-[calc(100vh-4rem)]">
+        {/* Left Side - Landing Content */}
+        <div className="hidden lg:flex flex-1 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.1),transparent_50%)]"></div>
+            <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.1),transparent_50%)]"></div>
+          </div>
+          
+          <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+            <div className="max-w-2xl">
+              <div className="mb-8">
+                <h2 className="text-5xl font-bold mb-6 leading-tight">
+                  Sistem Manajemen Dokumen
+                  <span className="block text-blue-200">Good Corporate Governance</span>
+                </h2>
+                <p className="text-xl text-blue-100 mb-8 leading-relaxed">
+                  Platform terintegrasi untuk mengelola dokumen GCG dengan efisien, terstruktur, dan aman. 
+                  Dukung implementasi Good Corporate Governance yang transparan dan akuntabel.
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              
+              {/* Key Features */}
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Manajemen Dokumen Terpusat</h3>
+                      <p className="text-blue-100 text-sm leading-relaxed">
+                        Upload, organize, dan kelola dokumen GCG dengan sistem folder yang terstruktur berdasarkan Direksi dan metadata.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Shield className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Keamanan Tingkat Tinggi</h3>
+                      <p className="text-blue-100 text-sm leading-relaxed">
+                        Dokumen terlindungi dengan sistem keamanan yang kuat dan kontrol akses berbasis peran.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Users className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Role-Based Access Control</h3>
+                      <p className="text-blue-100 text-sm leading-relaxed">
+                        Kontrol akses berdasarkan peran (User, Admin, Super Admin) dengan hak akses yang terdefinisi jelas.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Zap className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Workflow Efisien</h3>
+                      <p className="text-blue-100 text-sm leading-relaxed">
+                        Proses upload, review, dan approval dokumen yang streamlined untuk meningkatkan produktivitas.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-      {/* Right Side - Features Preview */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
-        </div>
-        
-        <div className="relative z-10 flex flex-col justify-center px-12 text-white">
-          <div className="max-w-lg">
-            <h2 className="text-4xl font-bold mb-6">
-              Sistem Manajemen Dokumen GCG
-            </h2>
-            <p className="text-xl text-blue-100 mb-8">
-              Platform terintegrasi untuk mengelola dokumen Good Corporate Governance dengan efisien dan terstruktur
-            </p>
-            
-            {/* Features List */}
-            <div className="space-y-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-white" />
+              {/* Statistics */}
+              <div className="mt-12 grid grid-cols-3 gap-8 pt-8 border-t border-white/20">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-200 mb-1">100%</div>
+                  <div className="text-sm text-blue-100">Compliance GCG</div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Manajemen Dokumen</h3>
-                  <p className="text-blue-100">Upload, organize, dan kelola dokumen GCG dengan mudah</p>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-200 mb-1">24/7</div>
+                  <div className="text-sm text-blue-100">Akses Sistem</div>
                 </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Role-Based Access</h3>
-                  <p className="text-blue-100">Kontrol akses berdasarkan peran dan tanggung jawab</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Keamanan Data</h3>
-                  <p className="text-blue-100">Dokumen terlindungi dengan sistem keamanan tingkat tinggi</p>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-200 mb-1">99.9%</div>
+                  <div className="text-sm text-blue-100">Uptime</div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Floating Elements */}
+          <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse"></div>
+          <div className="absolute bottom-20 left-20 w-24 h-24 bg-white/10 rounded-full blur-xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 right-10 w-16 h-16 bg-white/10 rounded-full blur-xl animate-pulse delay-500"></div>
         </div>
 
-        {/* Floating Elements */}
-        <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
-        <div className="absolute bottom-20 left-20 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-        <div className="absolute top-1/2 right-10 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
+        {/* Right Side - Login Form */}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="w-full max-w-md">
+            {/* Mobile Logo */}
+            <div className="lg:hidden text-center mb-8">
+              <img 
+                src="/aset/POSIND_2023_(with_wordmark).svg.png" 
+                alt="POS Indonesia" 
+                className="h-12 w-auto mx-auto mb-4"
+              />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">GCG Document Hub</h2>
+              <p className="text-gray-600">Sistem Manajemen Dokumen GCG</p>
+            </div>
+
+            {/* Login Form */}
+            <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
+              <CardContent className="p-8">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Selamat Datang Kembali</h2>
+                  <p className="text-gray-600">Masuk ke sistem manajemen dokumen GCG</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+                      Username
+                    </Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <Input
+                        id="username"
+                        type="text"
+                        placeholder="Masukkan username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="pl-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                      Password
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Masukkan password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-10 pr-12 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-gray-600"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200 flex items-center space-x-2">
+                      <Shield className="w-4 h-4" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Memproses...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center space-x-2">
+                        <span>Masuk</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
+                    )}
+                  </Button>
+                </form>
+
+                {/* Demo Account Info */}
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2 flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Demo Account</span>
+                  </h4>
+                  <div className="space-y-1 text-sm text-blue-800">
+                    <p><span className="font-medium">Username:</span> superadmin</p>
+                    <p><span className="font-medium">Password:</span> superadmin123</p>
+                  </div>
+                </div>
+
+                {/* Register Link */}
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-gray-600">
+                    Belum punya akun?{' '}
+                    <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+                      Daftar sebagai User
+                    </Link>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Footer */}
+            <div className="mt-8 text-center text-sm text-gray-500">
+              <p>© 2024 POS Indonesia. All rights reserved.</p>
+              <p className="mt-1">Sistem Manajemen Dokumen GCG</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
