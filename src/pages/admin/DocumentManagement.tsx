@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useYear } from '@/contexts/YearContext';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
+import { useFileUpload } from '@/contexts/FileUploadContext';
+import { useKlasifikasi } from '@/contexts/KlasifikasiContext';
 import { 
   FileText, 
   Upload, 
@@ -39,22 +41,30 @@ import {
   MoreVertical,
   Info,
   Users,
-  Building2
+  Building2,
+  User,
+  Briefcase
 } from 'lucide-react';
 
-interface DocumentFolder {
+interface DireksiFolder {
+  id: string;
+  direksiName: string;
+  year: number;
+  totalFiles: number;
+  totalSize: number;
+  lastModified: Date;
+  categories: CategoryFolder[];
+}
+
+interface CategoryFolder {
   id: string;
   name: string;
-  year: number;
   principle: string;
   type: string;
   category: string;
   fileCount: number;
   totalSize: number;
-  lastModified: Date;
   files: DocumentFile[];
-  direksi?: string;
-  divisi?: string;
 }
 
 interface DocumentFile {
@@ -64,22 +74,24 @@ interface DocumentFile {
   fileType: string;
   uploadDate: Date;
   uploadedBy: string;
-  direksi?: string;
-  divisi?: string;
-  principle?: string;
-  documentType?: string;
-  category?: string;
+  direksi: string;
+  divisi: string;
+  principle: string;
+  documentType: string;
+  category: string;
 }
 
 const DocumentManagement = () => {
   const { isSidebarOpen } = useSidebar();
   const { selectedYear } = useYear();
-  const { getYearStats } = useDocumentMetadata();
-  const [folders, setFolders] = useState<DocumentFolder[]>([]);
-  const [selectedFolder, setSelectedFolder] = useState<DocumentFolder | null>(null);
+  const { documents, getYearStats } = useDocumentMetadata();
+  const { getFilesByYear } = useFileUpload();
+  const { klasifikasiPrinsip, klasifikasiJenis, klasifikasiKategori } = useKlasifikasi();
+  const [direksiFolders, setDireksiFolders] = useState<DireksiFolder[]>([]);
+  const [selectedDireksi, setSelectedDireksi] = useState<DireksiFolder | null>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-  const [isFolderDetailOpen, setIsFolderDetailOpen] = useState(false);
+  const [isDireksiDetailOpen, setIsDireksiDetailOpen] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -89,76 +101,100 @@ const DocumentManagement = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterPrinciple, setFilterPrinciple] = useState<string>('all');
 
-  // Generate folders from existing documents
+  // Generate direksi folders from existing documents
   useEffect(() => {
     if (selectedYear) {
-      // Get documents from localStorage for now
-      const documentsData = localStorage.getItem('documentMetadata');
-      const documents = documentsData ? JSON.parse(documentsData) : [];
-      const yearDocuments = documents.filter((doc: any) => doc.tahunBuku === selectedYear);
+      // Get documents for selected year
+      const yearDocuments = documents.filter((doc: any) => doc.year === selectedYear);
       
-      const folderMap = new Map<string, DocumentFolder>();
+      // Group by direksi first, then by metadata
+      const direksiMap = new Map<string, DireksiFolder>();
 
       yearDocuments.forEach((doc: any) => {
-        const folderKey = `${doc.prinsipGCG}-${doc.jenisDokumen}-${doc.kategori}`;
+        const direksiName = doc.direksi || 'Unknown Direksi';
         
-        if (!folderMap.has(folderKey)) {
-          folderMap.set(folderKey, {
-            id: folderKey,
-            name: `${doc.prinsipGCG} - ${doc.jenisDokumen}`,
+        if (!direksiMap.has(direksiName)) {
+          direksiMap.set(direksiName, {
+            id: direksiName,
+            direksiName,
             year: selectedYear,
-            principle: doc.prinsipGCG,
-            type: doc.jenisDokumen,
-            category: doc.kategori,
-            fileCount: 0,
+            totalFiles: 0,
             totalSize: 0,
             lastModified: new Date(),
-            files: [],
-            direksi: doc.direksi,
-            divisi: doc.divisi
+            categories: []
           });
         }
 
-        const folder = folderMap.get(folderKey)!;
-        folder.files.push({
+        const direksiFolder = direksiMap.get(direksiName)!;
+        
+        // Create category key
+        const categoryKey = `${doc.gcgPrinciple}-${doc.documentType}-${doc.documentCategory}`;
+        let categoryFolder = direksiFolder.categories.find(cat => cat.id === categoryKey);
+        
+        if (!categoryFolder) {
+          categoryFolder = {
+            id: categoryKey,
+            name: `${doc.gcgPrinciple} - ${doc.documentType}`,
+            principle: doc.gcgPrinciple,
+            type: doc.documentType,
+            category: doc.documentCategory,
+            fileCount: 0,
+            totalSize: 0,
+            files: []
+          };
+          direksiFolder.categories.push(categoryFolder);
+        }
+
+        // Add file to category
+        const file: DocumentFile = {
           id: doc.id,
-          name: doc.judulDokumen,
+          name: doc.title,
           size: doc.fileSize || 0,
-          fileType: doc.fileType || 'unknown',
+          fileType: doc.fileName?.split('.').pop() || 'unknown',
           uploadDate: new Date(doc.uploadDate),
           uploadedBy: doc.uploadedBy || 'Unknown',
           direksi: doc.direksi,
-          divisi: doc.divisi,
-          principle: doc.prinsipGCG,
-          documentType: doc.jenisDokumen,
-          category: doc.kategori
-        });
-        folder.fileCount++;
-        folder.totalSize += doc.fileSize || 0;
+          divisi: doc.division,
+          principle: doc.gcgPrinciple,
+          documentType: doc.documentType,
+          category: doc.documentCategory
+        };
+
+        categoryFolder.files.push(file);
+        categoryFolder.fileCount++;
+        categoryFolder.totalSize += file.size;
+        
+        // Update direksi folder stats
+        direksiFolder.totalFiles++;
+        direksiFolder.totalSize += file.size;
         
         const uploadDate = new Date(doc.uploadDate);
-        if (uploadDate > folder.lastModified) {
-          folder.lastModified = uploadDate;
+        if (uploadDate > direksiFolder.lastModified) {
+          direksiFolder.lastModified = uploadDate;
         }
       });
 
-      setFolders(Array.from(folderMap.values()));
+      setDireksiFolders(Array.from(direksiMap.values()));
     }
-  }, [selectedYear]);
+  }, [selectedYear, documents]);
 
-  // Filter and sort folders
-  const filteredAndSortedFolders = folders
-    .filter(folder => {
-      const matchesSearch = folder.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           folder.category.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesPrinciple = filterPrinciple === 'all' || folder.principle === filterPrinciple;
+  // Filter and sort direksi folders
+  const filteredAndSortedDireksiFolders = direksiFolders
+    .filter(direksi => {
+      const matchesSearch = direksi.direksiName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           direksi.categories.some(cat => 
+                             cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             cat.category.toLowerCase().includes(searchTerm.toLowerCase())
+                           );
+      const matchesPrinciple = filterPrinciple === 'all' || 
+                              direksi.categories.some(cat => cat.principle === filterPrinciple);
       return matchesSearch && matchesPrinciple;
     })
     .sort((a, b) => {
       let comparison = 0;
       switch (sortBy) {
         case 'name':
-          comparison = a.name.localeCompare(b.name);
+          comparison = a.direksiName.localeCompare(b.direksiName);
           break;
         case 'size':
           comparison = a.totalSize - b.totalSize;
@@ -167,7 +203,7 @@ const DocumentManagement = () => {
           comparison = a.lastModified.getTime() - b.lastModified.getTime();
           break;
         case 'files':
-          comparison = a.fileCount - b.fileCount;
+          comparison = a.totalFiles - b.totalFiles;
           break;
       }
       return sortOrder === 'asc' ? comparison : -comparison;
@@ -226,7 +262,7 @@ const DocumentManagement = () => {
     }
   };
 
-  const handleDownloadZIP = async () => {
+  const handleDownloadDireksiZIP = async (direksiFolder: DireksiFolder) => {
     setIsProcessing(true);
     setDownloadProgress(0);
     
@@ -237,15 +273,41 @@ const DocumentManagement = () => {
         await new Promise(resolve => setTimeout(resolve, 150));
       }
       
-      // Here you would implement actual ZIP creation and download
+      // Here you would implement actual ZIP creation with folder structure
       const link = document.createElement('a');
       link.href = 'data:application/zip;base64,UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA==';
-      link.download = `GCG_Documents_${selectedYear}.zip`;
+      link.download = `${direksiFolder.direksiName}_GCG_Documents_${selectedYear}.zip`;
       link.click();
       
-      alert('ZIP file downloaded successfully!');
+      alert(`ZIP file for ${direksiFolder.direksiName} downloaded successfully!`);
     } catch (error) {
       alert('Error creating ZIP file');
+    } finally {
+      setIsProcessing(false);
+      setDownloadProgress(0);
+    }
+  };
+
+  const handleDownloadAllZIP = async () => {
+    setIsProcessing(true);
+    setDownloadProgress(0);
+    
+    try {
+      // Simulate ZIP creation with progress
+      for (let i = 0; i <= 100; i += 10) {
+        setDownloadProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      // Here you would implement actual ZIP creation for all direksi
+      const link = document.createElement('a');
+      link.href = 'data:application/zip;base64,UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA==';
+      link.download = `All_GCG_Documents_${selectedYear}.zip`;
+      link.click();
+      
+      alert('All ZIP files downloaded successfully!');
+    } catch (error) {
+      alert('Error creating ZIP files');
     } finally {
       setIsProcessing(false);
       setDownloadProgress(0);
@@ -259,7 +321,7 @@ const DocumentManagement = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Here you would implement actual data reset
-      setFolders([]);
+      setDireksiFolders([]);
       alert('All data has been reset successfully!');
       setIsResetDialogOpen(false);
     } catch (error) {
@@ -269,9 +331,9 @@ const DocumentManagement = () => {
     }
   };
 
-  const handleFolderClick = (folder: DocumentFolder) => {
-    setSelectedFolder(folder);
-    setIsFolderDetailOpen(true);
+  const handleDireksiClick = (direksiFolder: DireksiFolder) => {
+    setSelectedDireksi(direksiFolder);
+    setIsDireksiDetailOpen(true);
   };
 
   const yearStats = selectedYear ? getYearStats(selectedYear) : {
@@ -281,8 +343,6 @@ const DocumentManagement = () => {
     byType: {},
     byDireksi: {}
   };
-
-  const principles = ['Transparansi', 'Akuntabilitas', 'Responsibilitas', 'Independensi', 'Kesetaraan'];
 
   if (!selectedYear) {
     return (
@@ -320,14 +380,24 @@ const DocumentManagement = () => {
         ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'}
       `}>
         <div className="p-6">
-          {/* Header */}
+          {/* Enhanced Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Management Dokumen</h1>
-                <p className="text-gray-600 mt-2">
-                  Kelola folder dokumen GCG untuk tahun {selectedYear}
-                </p>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
+                    <Folder className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                      Management Dokumen
+                    </h1>
+                    <p className="text-gray-600 mt-1 flex items-center">
+                      <User className="w-4 h-4 mr-2 text-blue-500" />
+                      Kelola dokumen GCG berdasarkan Direksi dengan struktur folder terorganisir
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="flex space-x-2">
                 <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
@@ -341,7 +411,7 @@ const DocumentManagement = () => {
                     <DialogHeader>
                       <DialogTitle>Upload File ZIP</DialogTitle>
                       <DialogDescription>
-                        Upload file ZIP yang berisi dokumen GCG. File akan otomatis diekstrak dan dikelompokkan.
+                        Upload file ZIP yang berisi dokumen GCG. File akan otomatis diekstrak dan dikelompokkan berdasarkan Direksi.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -392,13 +462,13 @@ const DocumentManagement = () => {
                 </Dialog>
 
                 <Button 
-                  onClick={handleDownloadZIP}
-                  disabled={isProcessing}
+                  onClick={handleDownloadAllZIP}
+                  disabled={isProcessing || direksiFolders.length === 0}
                   variant="outline"
                   className="text-green-600 border-green-600 hover:bg-green-50"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Download ZIP
+                  Download All
                 </Button>
 
                 <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
@@ -431,17 +501,59 @@ const DocumentManagement = () => {
             </div>
           </div>
 
+          {/* Year Selector Panel */}
+          <div className="mb-8">
+            <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-blue-50">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center space-x-2 text-blue-900">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <span>Tahun Buku</span>
+                </CardTitle>
+                <CardDescription className="text-blue-700">
+                  Pilih tahun buku untuk melihat folder dokumen GCG berdasarkan Direksi
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {[2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014].map(year => (
+                    <Button
+                      key={year}
+                      variant={selectedYear === year ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => window.location.href = `/dashboard?year=${year}`}
+                      className={`transition-all duration-200 ${
+                        selectedYear === year 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {year}
+                    </Button>
+                  ))}
+                </div>
+                
+                {selectedYear && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Tahun Buku {selectedYear}:</strong> Dokumen GCG dikelompokkan berdasarkan Direksi dengan struktur folder terorganisir
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Statistics Cards */}
-          <div id="document-folders" className="mb-8">
+          <div className="mb-8">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-blue-100 text-sm">Total Folder</p>
-                      <p className="text-3xl font-bold">{folders.length}</p>
+                      <p className="text-blue-100 text-sm">Total Direksi</p>
+                      <p className="text-3xl font-bold">{direksiFolders.length}</p>
                     </div>
-                    <Folder className="w-8 h-8 text-blue-200" />
+                    <User className="w-8 h-8 text-blue-200" />
                   </div>
                 </CardContent>
               </Card>
@@ -474,10 +586,12 @@ const DocumentManagement = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-orange-100 text-sm">Prinsip GCG</p>
-                      <p className="text-3xl font-bold">{Object.keys(yearStats.byPrinciple).length}</p>
+                      <p className="text-orange-100 text-sm">Kategori</p>
+                      <p className="text-3xl font-bold">
+                        {direksiFolders.reduce((total, direksi) => total + direksi.categories.length, 0)}
+                      </p>
                     </div>
-                    <BarChart3 className="w-8 h-8 text-orange-200" />
+                    <Briefcase className="w-8 h-8 text-orange-200" />
                   </div>
                 </CardContent>
               </Card>
@@ -493,7 +607,7 @@ const DocumentManagement = () => {
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <Input
-                        placeholder="Cari folder atau kategori..."
+                        placeholder="Cari direksi atau kategori..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -507,7 +621,7 @@ const DocumentManagement = () => {
                       className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="all">Semua Prinsip</option>
-                      {principles.map(principle => (
+                      {klasifikasiPrinsip.map(principle => (
                         <option key={principle} value={principle}>{principle}</option>
                       ))}
                     </select>
@@ -535,18 +649,18 @@ const DocumentManagement = () => {
             </Card>
           </div>
 
-          {/* Document Folders */}
-          <div id="document-folders" className="mb-8">
+          {/* Direksi Folders */}
+          <div className="mb-8">
             <Card className="border-0 shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="flex items-center space-x-2">
-                      <FolderOpen className="w-5 h-5 text-blue-600" />
-                      <span>Folder Dokumen - Tahun {selectedYear}</span>
+                      <User className="w-5 h-5 text-blue-600" />
+                      <span>Folder Direksi - Tahun {selectedYear}</span>
                     </CardTitle>
                     <CardDescription>
-                      {filteredAndSortedFolders.length} folder ditemukan
+                      {filteredAndSortedDireksiFolders.length} direksi ditemukan
                       {searchTerm && ` untuk pencarian "${searchTerm}"`}
                     </CardDescription>
                   </div>
@@ -562,67 +676,84 @@ const DocumentManagement = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {filteredAndSortedFolders.length === 0 ? (
+                {filteredAndSortedDireksiFolders.length === 0 ? (
                   <div className="text-center py-12">
-                    <Folder className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {searchTerm ? 'Tidak ada folder yang ditemukan' : 'Belum ada folder dokumen'}
+                      {searchTerm ? 'Tidak ada direksi yang ditemukan' : 'Belum ada folder direksi'}
                     </h3>
                     <p className="text-gray-600">
-                      {searchTerm ? 'Coba ubah kata kunci pencarian' : 'Upload dokumen atau file ZIP untuk membuat folder'}
+                      {searchTerm ? 'Coba ubah kata kunci pencarian' : 'Upload dokumen atau file ZIP untuk membuat folder direksi'}
                     </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredAndSortedFolders.map((folder) => (
+                    {filteredAndSortedDireksiFolders.map((direksiFolder) => (
                       <Card 
-                        key={folder.id} 
+                        key={direksiFolder.id} 
                         className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105"
-                        onClick={() => handleFolderClick(folder)}
+                        onClick={() => handleDireksiClick(direksiFolder)}
                       >
                         <CardHeader>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <div className="p-2 bg-blue-100 rounded-lg">
-                                <Folder className="w-5 h-5 text-blue-600" />
+                                <User className="w-5 h-5 text-blue-600" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <CardTitle className="text-lg truncate">{folder.name}</CardTitle>
-                                <p className="text-sm text-gray-500 truncate">{folder.category}</p>
+                                <CardTitle className="text-lg truncate">{direksiFolder.direksiName}</CardTitle>
+                                <p className="text-sm text-gray-500 truncate">{direksiFolder.categories.length} kategori</p>
                               </div>
                             </div>
-                            <Badge variant="secondary">{folder.fileCount} files</Badge>
+                            <Badge variant="secondary">{direksiFolder.totalFiles} files</Badge>
                           </div>
-                          <div className="mt-2">
-                            <Badge className={`text-xs ${getPrincipleColor(folder.principle)}`}>
-                              {folder.principle}
-                            </Badge>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {direksiFolder.categories.slice(0, 3).map((category) => (
+                              <Badge key={category.id} className={`text-xs ${getPrincipleColor(category.principle)}`}>
+                                {category.principle}
+                              </Badge>
+                            ))}
+                            {direksiFolder.categories.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{direksiFolder.categories.length - 3} more
+                              </Badge>
+                            )}
                           </div>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Ukuran:</span>
-                              <span className="font-medium">{formatFileSize(folder.totalSize)}</span>
+                              <span className="font-medium">{formatFileSize(direksiFolder.totalSize)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Update terakhir:</span>
                               <span className="font-medium">
-                                {folder.lastModified.toLocaleDateString('id-ID')}
+                                {direksiFolder.lastModified.toLocaleDateString('id-ID')}
                               </span>
                             </div>
-                            {folder.direksi && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Direksi:</span>
-                                <span className="font-medium truncate">{folder.direksi}</span>
-                              </div>
-                            )}
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDireksiClick(direksiFolder);
+                                }}
+                              >
                                 <Eye className="w-4 h-4 mr-1" />
                                 Lihat
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadDireksiZIP(direksiFolder);
+                                }}
+                              >
                                 <Download className="w-4 h-4 mr-1" />
                                 Download
                               </Button>
@@ -639,98 +770,122 @@ const DocumentManagement = () => {
         </div>
       </div>
 
-      {/* Folder Detail Dialog */}
-      <Dialog open={isFolderDetailOpen} onOpenChange={setIsFolderDetailOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      {/* Direksi Detail Dialog */}
+      <Dialog open={isDireksiDetailOpen} onOpenChange={setIsDireksiDetailOpen}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
-              <FolderOpen className="w-5 h-5 text-blue-600" />
-              <span>Detail Folder: {selectedFolder?.name}</span>
+              <User className="w-5 h-5 text-blue-600" />
+              <span>Detail Direksi: {selectedDireksi?.direksiName}</span>
             </DialogTitle>
             <DialogDescription>
-              Informasi detail dan file-file dalam folder ini
+              Informasi detail dan kategori dokumen dalam folder direksi ini
             </DialogDescription>
           </DialogHeader>
-          {selectedFolder && (
+          {selectedDireksi && (
             <div className="space-y-6">
-              {/* Folder Info */}
+              {/* Direksi Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Informasi Folder</CardTitle>
+                  <CardTitle className="text-lg">Informasi Direksi</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600">Prinsip GCG</p>
-                      <p className="font-medium">{selectedFolder.principle}</p>
+                      <p className="text-sm text-gray-600">Nama Direksi</p>
+                      <p className="font-medium">{selectedDireksi.direksiName}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Jenis Dokumen</p>
-                      <p className="font-medium">{selectedFolder.type}</p>
+                      <p className="text-sm text-gray-600">Tahun</p>
+                      <p className="font-medium">{selectedDireksi.year}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Kategori</p>
-                      <p className="font-medium">{selectedFolder.category}</p>
+                      <p className="text-sm text-gray-600">Jumlah Kategori</p>
+                      <p className="font-medium">{selectedDireksi.categories.length}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Jumlah File</p>
-                      <p className="font-medium">{selectedFolder.fileCount}</p>
+                      <p className="text-sm text-gray-600">Total File</p>
+                      <p className="font-medium">{selectedDireksi.totalFiles}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Total Ukuran</p>
-                      <p className="font-medium">{formatFileSize(selectedFolder.totalSize)}</p>
+                      <p className="font-medium">{formatFileSize(selectedDireksi.totalSize)}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Update Terakhir</p>
-                      <p className="font-medium">{selectedFolder.lastModified.toLocaleDateString('id-ID')}</p>
+                      <p className="font-medium">{selectedDireksi.lastModified.toLocaleDateString('id-ID')}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Files Table */}
+              {/* Categories */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Daftar File</CardTitle>
+                  <CardTitle className="text-lg">Kategori Dokumen</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nama File</TableHead>
-                        <TableHead>Ukuran</TableHead>
-                        <TableHead>Tipe</TableHead>
-                        <TableHead>Upload Date</TableHead>
-                        <TableHead>Uploader</TableHead>
-                        <TableHead>Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedFolder.files.map((file) => (
-                        <TableRow key={file.id}>
-                          <TableCell className="font-medium">{file.name}</TableCell>
-                          <TableCell>{formatFileSize(file.size)}</TableCell>
-                                                     <TableCell>
-                             <Badge variant="outline">{file.fileType}</Badge>
-                           </TableCell>
-                          <TableCell>{file.uploadDate.toLocaleDateString('id-ID')}</TableCell>
-                          <TableCell>{file.uploadedBy}</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button variant="outline" size="sm">
-                                <Download className="w-4 h-4" />
-                              </Button>
+                  <div className="space-y-4">
+                    {selectedDireksi.categories.map((category) => (
+                      <div key={category.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="font-medium">{category.name}</h4>
+                            <p className="text-sm text-gray-600">{category.category}</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge className={`text-xs ${getPrincipleColor(category.principle)}`}>
+                              {category.principle}
+                            </Badge>
+                            <Badge variant="secondary">{category.fileCount} files</Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                          <div className="text-sm">
+                            <span className="text-gray-600">Ukuran: </span>
+                            <span className="font-medium">{formatFileSize(category.totalSize)}</span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="text-gray-600">Jenis: </span>
+                            <span className="font-medium">{category.type}</span>
+                          </div>
+                        </div>
+
+                        {/* Files in category */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700">Files:</p>
+                          {category.files.map((file) => (
+                            <div key={file.id} className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{file.name}</p>
+                                <p className="text-gray-600 text-xs">{file.divisi}</p>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-gray-600">{formatFileSize(file.size)}</span>
+                                <Badge variant="outline" className="text-xs">{file.fileType}</Badge>
+                              </div>
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
+
+              {/* Download Button */}
+              <div className="flex justify-center">
+                <Button 
+                  onClick={() => handleDownloadDireksiZIP(selectedDireksi)}
+                  disabled={isProcessing}
+                  className="bg-green-600 hover:bg-green-700"
+                  size="lg"
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  Download ZIP - {selectedDireksi.direksiName}
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
