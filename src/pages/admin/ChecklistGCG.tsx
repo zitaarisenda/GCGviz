@@ -306,16 +306,25 @@ const ChecklistGCG = () => {
 
             {/* Aspek Tab */}
             <TabsContent value="aspek" id="aspek-tab">
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Target className="w-5 h-5 text-green-600" />
+                  <span className="font-semibold text-green-900">Kelola Aspek GCG - Tahun {selectedYear}</span>
+                </div>
+                <p className="text-green-700 text-sm mt-1">
+                  Tambah, edit, atau hapus aspek checklist GCG untuk tahun {selectedYear}
+                </p>
+              </div>
               <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="flex items-center space-x-2">
                         <Target className="w-5 h-5 text-green-600" />
-                        <span>Kelola Aspek GCG - Tahun {selectedYear}</span>
+                        <span>Daftar Aspek</span>
                       </CardTitle>
                       <CardDescription>
-                        Tambah, edit, atau hapus aspek checklist GCG untuk tahun {selectedYear}
+                        {aspects.length} aspek ditemukan untuk tahun {selectedYear}
                       </CardDescription>
                     </div>
                     <Dialog open={isAspekDialogOpen} onOpenChange={setIsAspekDialogOpen}>
@@ -409,16 +418,25 @@ const ChecklistGCG = () => {
 
             {/* Checklist Tab */}
             <TabsContent value="checklist" id="checklist-tab">
+              <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <ListTodo className="w-5 h-5 text-purple-600" />
+                  <span className="font-semibold text-purple-900">Kelola Checklist Item - Tahun {selectedYear}</span>
+                </div>
+                <p className="text-purple-700 text-sm mt-1">
+                  Tambah, edit, atau hapus item checklist GCG untuk tahun {selectedYear}
+                </p>
+              </div>
               <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="flex items-center space-x-2">
                         <ListTodo className="w-5 h-5 text-purple-600" />
-                        <span>Kelola Checklist Item - Tahun {selectedYear}</span>
+                        <span>Daftar Checklist</span>
                       </CardTitle>
                       <CardDescription>
-                        Tambah, edit, atau hapus item checklist GCG untuk tahun {selectedYear}
+                        {filteredChecklist.length} item checklist ditemukan untuk tahun {selectedYear}
                       </CardDescription>
                     </div>
                     <Dialog open={isChecklistDialogOpen} onOpenChange={setIsChecklistDialogOpen}>
@@ -532,17 +550,7 @@ const ChecklistGCG = () => {
                     {/* Table Content */}
                     <div className="mt-4">
                       {selectedAspek === 'all' ? (
-                        <>
-                          <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <Calendar className="w-4 h-4 text-purple-600" />
-                              <span className="font-semibold text-purple-900">Tahun {selectedYear}</span>
-                            </div>
-                            <p className="text-purple-700 text-sm mt-1">
-                              Menampilkan {selectedAspek === 'all' ? 'semua aspek' : `aspek ${selectedAspek}`} untuk tahun {selectedYear}
-                            </p>
-                          </div>
-                          <Table>
+                        <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>No</TableHead>
@@ -590,19 +598,8 @@ const ChecklistGCG = () => {
                             ))}
                           </TableBody>
                         </Table>
-                        </>
                       ) : (
-                        <>
-                          <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <Calendar className="w-4 h-4 text-purple-600" />
-                              <span className="font-semibold text-purple-900">Tahun {selectedYear}</span>
-                            </div>
-                            <p className="text-purple-700 text-sm mt-1">
-                              Menampilkan {selectedAspek === 'all' ? 'semua aspek' : `aspek ${selectedAspek}`} untuk tahun {selectedYear}
-                            </p>
-                          </div>
-                          <Table>
+                        <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>No</TableHead>
@@ -648,7 +645,6 @@ const ChecklistGCG = () => {
                             ))}
                           </TableBody>
                         </Table>
-                        </>
                       )}
                     </div>
                   </div>
