@@ -261,8 +261,8 @@ const DashboardStats = () => {
   const handleAspectClick = (aspectName: string) => {
     if (!selectedYear) return;
     
-    // Navigate to List GCG with year and aspect parameters
-    navigate(`/list-gcg?year=${selectedYear}&aspect=${encodeURIComponent(aspectName)}`);
+    // Navigate to List GCG with year and aspect parameters, and auto-scroll to checklist table
+    navigate(`/list-gcg?year=${selectedYear}&aspect=${encodeURIComponent(aspectName)}&scroll=checklist`);
   };
 
   // Create analysis data for first 4 aspects

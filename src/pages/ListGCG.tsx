@@ -60,6 +60,7 @@ const ListGCG = () => {
   useEffect(() => {
     const yearParam = searchParams.get('year');
     const aspectParam = searchParams.get('aspect');
+    const scrollParam = searchParams.get('scroll');
     
     if (yearParam) {
       setSelectedYear(parseInt(yearParam));
@@ -67,6 +68,19 @@ const ListGCG = () => {
     
     if (aspectParam) {
       setSelectedAspek(aspectParam);
+    }
+
+    // Auto-scroll to checklist table if scroll parameter is present
+    if (scrollParam === 'checklist') {
+      setTimeout(() => {
+        const checklistElement = document.getElementById('checklist-table');
+        if (checklistElement) {
+          checklistElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }
+      }, 500); // Delay to ensure filters are applied first
     }
   }, [searchParams, setSelectedYear]);
 
@@ -140,9 +154,20 @@ const ListGCG = () => {
 
   // Navigate to dashboard with document highlight
   const handleViewDocument = (checklistId: number) => {
-    const document = getUploadedDocument(checklistId);
-    if (document) {
-      navigate(`/dashboard?highlight=${document.id}&year=${selectedYear}&filter=year`);
+    const uploadedFile = getUploadedDocument(checklistId);
+    if (uploadedFile) {
+      // Find the corresponding document in DocumentMetadata using fileName
+      const documentMetadata = documents.find(doc => 
+        doc.fileName === uploadedFile.fileName && 
+        doc.year === selectedYear
+      );
+      
+      if (documentMetadata) {
+        navigate(`/dashboard?highlight=${documentMetadata.id}&year=${selectedYear}&filter=year`);
+      } else {
+        // Fallback: navigate without highlight if document not found in metadata
+        navigate(`/dashboard?year=${selectedYear}&filter=year`);
+      }
     }
   };
 
@@ -563,7 +588,7 @@ const ListGCG = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-hidden rounded-lg border border-indigo-100">
+              <div id="checklist-table" className="overflow-hidden rounded-lg border border-indigo-100">
               <Table>
                 <TableHeader>
                     <TableRow className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100">

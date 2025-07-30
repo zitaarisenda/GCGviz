@@ -23,9 +23,9 @@ const Login = () => {
     
     // Simulate loading
     setTimeout(() => {
-      const success = login(username, password);
-      
-      if (success) {
+    const success = login(username, password);
+    
+    if (success) {
         navigate('/dashboard');
       } else {
         setError('Username atau password salah');
@@ -192,56 +192,56 @@ const Login = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-2">
+            <div className="space-y-2">
                     <Label htmlFor="username" className="text-sm font-medium text-gray-700">
                       Username
                     </Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Input
-                        id="username"
-                        type="text"
-                        placeholder="Masukkan username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+              <Input
+                id="username"
+                type="text"
+                placeholder="Masukkan username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                         className="pl-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        required
-                      />
-                    </div>
+                required
+              />
+            </div>
                   </div>
 
-                  <div className="space-y-2">
+            <div className="space-y-2">
                     <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                       Password
                     </Label>
-                    <div className="relative">
+              <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Masukkan password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Masukkan password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                         className="pl-10 pr-12 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-gray-600"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
                           <EyeOff className="h-5 w-5" />
-                        ) : (
+                  ) : (
                           <Eye className="h-5 w-5" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+                  )}
+                </Button>
+              </div>
+            </div>
 
-                  {error && (
+            {error && (
                     <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200 flex items-center space-x-2">
                       <Shield className="w-4 h-4" />
                       <span>{error}</span>
@@ -262,10 +262,10 @@ const Login = () => {
                       <div className="flex items-center justify-center space-x-2">
                         <span>Masuk</span>
                         <ArrowRight className="w-4 h-4" />
-                      </div>
-                    )}
-                  </Button>
-                </form>
+              </div>
+            )}
+            </Button>
+          </form>
 
                 {/* Demo Account Info */}
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -287,9 +287,9 @@ const Login = () => {
                       Daftar sebagai User
                     </Link>
                   </p>
-                </div>
-              </CardContent>
-            </Card>
+          </div>
+        </CardContent>
+      </Card>
 
             {/* Footer */}
             <div className="mt-8 text-center text-sm text-gray-500">
