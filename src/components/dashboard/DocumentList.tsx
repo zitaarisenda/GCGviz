@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -312,6 +312,48 @@ const DocumentList: React.FC<DocumentListProps> = ({
     setEditFormData({});
   };
 
+  // Optimized input handlers to reduce lag - using direct state updates
+  const handleEditInputChange = useCallback((field: string, value: string) => {
+    setEditFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleEditSelectChange = useCallback((field: string, value: string) => {
+    setEditFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  // Memoized input components to prevent unnecessary re-renders
+  const MemoizedEditInput = useCallback(({ id, value, onChange, placeholder, required = false }: {
+    id: string;
+    value: string;
+    onChange: (value: string) => void;
+    placeholder: string;
+    required?: boolean;
+  }) => (
+    <Input
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      required={required}
+    />
+  ), []);
+
+  const MemoizedEditTextarea = useCallback(({ id, value, onChange, placeholder, rows = 3 }: {
+    id: string;
+    value: string;
+    onChange: (value: string) => void;
+    placeholder: string;
+    rows?: number;
+  }) => (
+    <Textarea
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+    />
+  ), []);
+
   if (!targetYear) {
     return (
       <Card>
@@ -370,7 +412,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Prinsip</SelectItem>
-                  {Array.from(new Set(documents.map(doc => doc.gcgPrinciple))).filter(Boolean).map(principle => (
+                  {principles.filter(Boolean).map(principle => (
                     <SelectItem key={principle} value={principle}>{principle}</SelectItem>
                   ))}
                 </SelectContent>
@@ -384,7 +426,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Jenis</SelectItem>
-                  {Array.from(new Set(documents.map(doc => doc.documentType))).filter(Boolean).map(type => (
+                  {types.filter(Boolean).map(type => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
                 </SelectContent>
@@ -398,7 +440,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Direksi</SelectItem>
-                  {Array.from(new Set(documents.map(doc => doc.direksi))).filter(Boolean).map(direksi => (
+                  {direksis.filter(Boolean).map(direksi => (
                     <SelectItem key={direksi} value={direksi}>{direksi}</SelectItem>
                   ))}
                 </SelectContent>
@@ -885,10 +927,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Label htmlFor="editTitle">
                           Judul Dokumen <span className="text-red-500">*</span>
                         </Label>
-                        <Input
+                        <MemoizedEditInput
                           id="editTitle"
                           value={editFormData.title || ''}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                          onChange={(value) => handleEditInputChange('title', value)}
                           placeholder="Masukkan judul dokumen"
                         />
                       </div>
@@ -896,10 +938,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Label htmlFor="editDocumentNumber">
                           Nomor Dokumen
                         </Label>
-                        <Input
+                        <MemoizedEditInput
                           id="editDocumentNumber"
                           value={editFormData.documentNumber || ''}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, documentNumber: e.target.value }))}
+                          onChange={(value) => handleEditInputChange('documentNumber', value)}
                           placeholder="Masukkan nomor dokumen"
                         />
                       </div>
@@ -907,10 +949,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Label htmlFor="editDescription">
                           Deskripsi
                         </Label>
-                        <Textarea
+                        <MemoizedEditTextarea
                           id="editDescription"
                           value={editFormData.description || ''}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                          onChange={(value) => handleEditInputChange('description', value)}
                           placeholder="Masukkan deskripsi dokumen"
                           rows={3}
                         />
@@ -928,7 +970,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Label htmlFor="editGcgPrinciple">
                           Prinsip GCG <span className="text-red-500">*</span>
                         </Label>
-                        <Select value={editFormData.gcgPrinciple || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, gcgPrinciple: value }))}>
+                        <Select value={editFormData.gcgPrinciple || ''} onValueChange={(value) => handleEditSelectChange('gcgPrinciple', value)}>
                           <SelectTrigger>
                             <SelectValue placeholder="Pilih prinsip GCG" />
                           </SelectTrigger>
@@ -943,7 +985,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Label htmlFor="editDocumentType">
                           Jenis Dokumen <span className="text-red-500">*</span>
                         </Label>
-                        <Select value={editFormData.documentType || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, documentType: value }))}>
+                        <Select value={editFormData.documentType || ''} onValueChange={(value) => handleEditSelectChange('documentType', value)}>
                           <SelectTrigger>
                             <SelectValue placeholder="Pilih jenis dokumen" />
                           </SelectTrigger>
@@ -958,7 +1000,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Label htmlFor="editDocumentCategory">
                           Kategori Dokumen
                         </Label>
-                        <Select value={editFormData.documentCategory || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, documentCategory: value }))}>
+                        <Select value={editFormData.documentCategory || ''} onValueChange={(value) => handleEditSelectChange('documentCategory', value)}>
                           <SelectTrigger>
                             <SelectValue placeholder="Pilih kategori dokumen" />
                           </SelectTrigger>
