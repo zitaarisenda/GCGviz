@@ -63,15 +63,9 @@ const ListGCG = () => {
     }
   }, [searchParams, setSelectedYear]);
 
-  // Generate tahun dari 2014 sampai sekarang
-  const years = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const yearsArray = [];
-    for (let year = currentYear; year >= 2014; year--) {
-      yearsArray.push(year);
-    }
-    return yearsArray;
-  }, []);
+  // Use years from global context
+  const { availableYears } = useYear();
+  const years = availableYears;
 
   // Get unique aspects for selected year
   const aspects = useMemo(() => {

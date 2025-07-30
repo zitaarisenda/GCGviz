@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { useYear } from '@/contexts/YearContext';
+import { useKlasifikasi } from '@/contexts/KlasifikasiContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Upload, 
@@ -84,6 +85,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
   const { checklist } = useChecklist();
   const { documents, addDocument } = useDocumentMetadata();
   const { toast } = useToast();
+  const { klasifikasiPrinsip: gcgPrinciples, klasifikasiJenis: documentTypes, klasifikasiKategori: documentCategories } = useKlasifikasi();
 
   // Form state
   const [formData, setFormData] = useState<UploadFormData>({
@@ -162,53 +164,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     }
   }, [user]);
 
-  // Constants for dropdowns
-  const gcgPrinciples = [
-    'Transparansi',
-    'Akuntabilitas', 
-    'Responsibilitas',
-    'Independensi',
-    'Kesetaraan'
-  ];
 
-  const documentTypes = [
-    'Kebijakan',
-    'Laporan',
-    'Risalah',
-    'Dokumentasi',
-    'Sosialisasi',
-    'Peraturan',
-    'SOP',
-    'Pedoman',
-    'Manual',
-    'Piagam',
-    'Surat Keputusan',
-    'Surat Edaran',
-    'Nota Dinas',
-    'Lainnya'
-  ];
-
-  const documentCategories = [
-    'Laporan Keuangan',
-    'Laporan Manajemen',
-    'Laporan Audit',
-    'Laporan Triwulan',
-    'Laporan Tahunan',
-    'Risalah Rapat Direksi',
-    'Risalah Rapat Komisaris',
-    'Risalah Rapat Komite',
-    'Code of Conduct',
-    'Board Manual',
-    'Pedoman Tata Kelola',
-    'Kebijakan Manajemen Risiko',
-    'Kebijakan Pengendalian Intern',
-    'LHKPN',
-    'WBS',
-    'CV Dewan',
-    'Surat Pernyataan',
-    'Pakta Integritas',
-    'Lainnya'
-  ];
 
   const confidentialityLevels = [
     { value: 'public', label: 'Publik' },

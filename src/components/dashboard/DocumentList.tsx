@@ -13,6 +13,7 @@ import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useDireksi } from '@/contexts/DireksiContext';
 import { useYear } from '@/contexts/YearContext';
+import { useKlasifikasi } from '@/contexts/KlasifikasiContext';
 import { 
   FileText, 
   Search, 
@@ -49,10 +50,11 @@ const DocumentList: React.FC<DocumentListProps> = ({
   filterYear,
   filterType
 }) => {
-  const { documents, getDocumentsByYear, deleteDocument, updateDocument } = useDocumentMetadata();
+  const { documents, getDocumentsByYear, deleteDocument, updateDocument, refreshDocuments } = useDocumentMetadata();
   const { selectedYear } = useYear();
   const { checklist } = useChecklist();
   const { direksi } = useDireksi();
+  const { klasifikasiPrinsip, klasifikasiJenis, klasifikasiKategori, klasifikasiData } = useKlasifikasi();
   
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -97,6 +99,18 @@ const DocumentList: React.FC<DocumentListProps> = ({
       return () => clearTimeout(timer);
     }
   }, [highlightDocumentId]);
+
+  // Listen for localStorage changes to refresh documents
+  React.useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'documentMetadata') {
+        refreshDocuments();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [refreshDocuments]);
 
   // Get documents for the specified year or selected year
   const targetYear = year || selectedYear || new Date().getFullYear();
@@ -223,6 +237,38 @@ const DocumentList: React.FC<DocumentListProps> = ({
     return (
       <Badge variant={config.variant as any} className={`text-xs ${config.className}`}>
         {level.charAt(0).toUpperCase() + level.slice(1)}
+      </Badge>
+    );
+  };
+
+  // Function to check if klasifikasi is active
+  const isKlasifikasiActive = (nama: string, tipe: 'prinsip' | 'jenis' | 'kategori') => {
+    return klasifikasiData.some(item => 
+      item.nama === nama && 
+      item.tipe === tipe && 
+      item.isActive
+    );
+  };
+
+  // Function to get klasifikasi badge with proper styling
+  const getKlasifikasiBadge = (nama: string, tipe: 'prinsip' | 'jenis' | 'kategori') => {
+    const isActive = isKlasifikasiActive(nama, tipe);
+    
+    const baseClasses = "text-xs";
+    const activeClasses = {
+      'prinsip': 'bg-purple-50 border-purple-200 text-purple-700',
+      'jenis': 'bg-blue-50 border-blue-200 text-blue-700',
+      'kategori': 'bg-green-50 border-green-200 text-green-700'
+    };
+    const inactiveClasses = 'bg-gray-100 border-gray-300 text-gray-500 opacity-60';
+    
+    const className = isActive 
+      ? `${baseClasses} ${activeClasses[tipe]}` 
+      : `${baseClasses} ${inactiveClasses}`;
+    
+    return (
+      <Badge variant="outline" className={className}>
+        {nama}
       </Badge>
     );
   };
@@ -508,17 +554,9 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   <span className="text-xs font-medium text-gray-700">Klasifikasi GCG</span>
                 </div>
                 <div className="space-y-1">
-                  <Badge variant="outline" className="text-xs bg-purple-50 border-purple-200 text-purple-700">
-                    {doc.gcgPrinciple}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-700">
-                    {doc.documentType}
-                  </Badge>
-                  {doc.documentCategory && (
-                    <Badge variant="outline" className="text-xs bg-green-50 border-green-200 text-green-700">
-                      {doc.documentCategory}
-                    </Badge>
-                  )}
+                  {getKlasifikasiBadge(doc.gcgPrinciple, 'prinsip')}
+                  {getKlasifikasiBadge(doc.documentType, 'jenis')}
+                  {doc.documentCategory && getKlasifikasiBadge(doc.documentCategory, 'kategori')}
                 </div>
               </div>
               
@@ -667,15 +705,24 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Prinsip GCG</Label>
-                      <p className="text-sm text-gray-900">{selectedDocument.gcgPrinciple}</p>
+                      <div className="mt-1">
+                        {getKlasifikasiBadge(selectedDocument.gcgPrinciple, 'prinsip')}
+                      </div>
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Jenis Dokumen</Label>
-                      <p className="text-sm text-gray-900">{selectedDocument.documentType}</p>
+                      <div className="mt-1">
+                        {getKlasifikasiBadge(selectedDocument.documentType, 'jenis')}
+                      </div>
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Kategori</Label>
-                      <p className="text-sm text-gray-900">{selectedDocument.documentCategory || '-'}</p>
+                      <div className="mt-1">
+                        {selectedDocument.documentCategory ? 
+                          getKlasifikasiBadge(selectedDocument.documentCategory, 'kategori') : 
+                          <span className="text-sm text-gray-500">-</span>
+                        }
+                      </div>
                     </div>
                   </div>
                   {/* Checklist GCG Info */}
@@ -886,11 +933,9 @@ const DocumentList: React.FC<DocumentListProps> = ({
                             <SelectValue placeholder="Pilih prinsip GCG" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Transparansi">Transparansi</SelectItem>
-                            <SelectItem value="Akuntabilitas">Akuntabilitas</SelectItem>
-                            <SelectItem value="Responsibilitas">Responsibilitas</SelectItem>
-                            <SelectItem value="Independensi">Independensi</SelectItem>
-                            <SelectItem value="Kesetaraan">Kesetaraan</SelectItem>
+                            {klasifikasiPrinsip.map((prinsip) => (
+                              <SelectItem key={prinsip} value={prinsip}>{prinsip}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -903,11 +948,9 @@ const DocumentList: React.FC<DocumentListProps> = ({
                             <SelectValue placeholder="Pilih jenis dokumen" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Kebijakan">Kebijakan</SelectItem>
-                            <SelectItem value="Laporan">Laporan</SelectItem>
-                            <SelectItem value="Risalah">Risalah</SelectItem>
-                            <SelectItem value="Dokumentasi">Dokumentasi</SelectItem>
-                            <SelectItem value="Sosialisasi">Sosialisasi</SelectItem>
+                            {klasifikasiJenis.map((jenis) => (
+                              <SelectItem key={jenis} value={jenis}>{jenis}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -915,12 +958,16 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Label htmlFor="editDocumentCategory">
                           Kategori Dokumen
                         </Label>
-                        <Input
-                          id="editDocumentCategory"
-                          value={editFormData.documentCategory || ''}
-                          onChange={(e) => setEditFormData(prev => ({ ...prev, documentCategory: e.target.value }))}
-                          placeholder="Masukkan kategori dokumen"
-                        />
+                        <Select value={editFormData.documentCategory || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, documentCategory: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih kategori dokumen" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {klasifikasiKategori.map((kategori) => (
+                              <SelectItem key={kategori} value={kategori}>{kategori}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>

@@ -56,6 +56,7 @@ interface DocumentMetadataContextType {
     byType: { [key: string]: number };
     byDireksi: { [key: string]: number };
   };
+  refreshDocuments: () => void;
 }
 
 const DocumentMetadataContext = createContext<DocumentMetadataContextType | undefined>(undefined);
@@ -148,6 +149,19 @@ export const DocumentMetadataProvider: React.FC<{ children: ReactNode }> = ({ ch
     };
   };
 
+  const refreshDocuments = () => {
+    const savedDocuments = localStorage.getItem('documentMetadata');
+    if (savedDocuments) {
+      try {
+        const parsedDocuments = JSON.parse(savedDocuments);
+        setDocuments(parsedDocuments);
+      } catch (error) {
+        console.error('Error parsing document metadata:', error);
+        setDocuments([]);
+      }
+    }
+  };
+
   return (
     <DocumentMetadataContext.Provider value={{
       documents,
@@ -159,7 +173,8 @@ export const DocumentMetadataProvider: React.FC<{ children: ReactNode }> = ({ ch
       getDocumentsByDireksi,
       getDocumentsByPrinciple,
       getDocumentById,
-      getYearStats
+      getYearStats,
+      refreshDocuments
     }}>
       {children}
     </DocumentMetadataContext.Provider>

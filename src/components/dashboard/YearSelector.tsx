@@ -11,7 +11,7 @@ interface YearSelectorProps {
 }
 
 const YearSelector: React.FC<YearSelectorProps> = ({ initialYear }) => {
-  const { selectedYear, setSelectedYear } = useYear();
+  const { selectedYear, setSelectedYear, availableYears } = useYear();
   const { getFilesByYear } = useFileUpload();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
@@ -22,15 +22,8 @@ const YearSelector: React.FC<YearSelectorProps> = ({ initialYear }) => {
     }
   }, [initialYear, selectedYear, setSelectedYear]);
 
-  // Generate years from 2014 to current year
-  const years = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const yearsArray = [];
-    for (let year = currentYear; year >= 2014; year--) {
-      yearsArray.push(year);
-    }
-    return yearsArray;
-  }, []);
+  // Use years from global context
+  const years = availableYears;
 
   const handleYearSelect = (year: number) => {
     setSelectedYear(year);
