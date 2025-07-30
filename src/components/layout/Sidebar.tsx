@@ -23,7 +23,8 @@ import {
   Folder,
   Download,
   RotateCcw,
-  Plus
+  Plus,
+  Lock
 } from 'lucide-react';
 
 interface MenuItem {
@@ -31,6 +32,7 @@ interface MenuItem {
   icon: any;
   path: string;
   badge?: string | null;
+  badgeIcon?: any;
   subItems?: SubMenuItem[];
 }
 
@@ -156,138 +158,25 @@ const Sidebar = () => {
         name: 'Management Dokumen',
         icon: FileText,
         path: '/admin/document-management',
-        badge: 'Super Admin',
-        subItems: [
-          {
-            name: 'Folder Dokumen',
-            icon: Folder,
-            path: '/admin/document-management',
-            anchor: '#document-folders',
-            description: 'Kelola folder dokumen'
-          },
-          {
-            name: 'Upload ZIP',
-            icon: Upload,
-            path: '/admin/document-management',
-            anchor: '#upload-zip',
-            description: 'Upload file ZIP'
-          },
-          {
-            name: 'Download ZIP',
-            icon: Download,
-            path: '/admin/document-management',
-            anchor: '#download-zip',
-            description: 'Download semua dokumen'
-          },
-          {
-            name: 'Reset Data',
-            icon: RotateCcw,
-            path: '/admin/document-management',
-            anchor: '#reset-data',
-            description: 'Reset semua data'
-          }
-        ]
+        badgeIcon: Lock
       },
       {
         name: 'Kelola Akun',
         icon: UserCog,
         path: '/admin/kelola-akun',
-        badge: 'Super Admin',
-        subItems: [
-          {
-            name: 'Daftar Akun',
-            icon: Users,
-            path: '/admin/kelola-akun',
-            anchor: '#accounts-list',
-            description: 'Kelola akun admin dan user'
-          },
-          {
-            name: 'Tambah Akun',
-            icon: Plus,
-            path: '/admin/kelola-akun',
-            anchor: '#add-account',
-            description: 'Tambah akun baru'
-          },
-          {
-            name: 'Edit Password',
-            icon: Shield,
-            path: '/admin/kelola-akun',
-            anchor: '#edit-password',
-            description: 'Edit password Super Admin'
-          }
-        ]
+        badgeIcon: Lock
       },
       {
         name: 'Struktur Perusahaan',
         icon: Building2,
         path: '/admin/struktur-perusahaan',
-        badge: 'Super Admin',
-        subItems: [
-          {
-            name: 'Daftar Direksi',
-            icon: Users,
-            path: '/admin/struktur-perusahaan',
-            anchor: '#direksi-list',
-            description: 'Kelola data direksi'
-          },
-          {
-            name: 'Tambah Direksi',
-            icon: Plus,
-            path: '/admin/struktur-perusahaan',
-            anchor: '#add-direksi',
-            description: 'Tambah direksi baru'
-          },
-          {
-            name: 'Daftar Divisi',
-            icon: Building2,
-            path: '/admin/struktur-perusahaan',
-            anchor: '#divisi-list',
-            description: 'Kelola data divisi'
-          },
-          {
-            name: 'Tambah Divisi',
-            icon: Plus,
-            path: '/admin/struktur-perusahaan',
-            anchor: '#add-divisi',
-            description: 'Tambah divisi baru'
-          }
-        ]
+        badgeIcon: Lock
       },
       {
         name: 'Checklist GCG',
         icon: ListTodo,
         path: '/admin/checklist-gcg',
-        badge: 'Super Admin',
-        subItems: [
-          {
-            name: 'Pilih Tahun',
-            icon: Calendar,
-            path: '/admin/checklist-gcg',
-            anchor: '#year-selection',
-            description: 'Pilih tahun checklist'
-          },
-          {
-            name: 'Overview',
-            icon: BarChart3,
-            path: '/admin/checklist-gcg',
-            anchor: '#overview-tab',
-            description: 'Overview checklist'
-          },
-          {
-            name: 'Kelola Aspek',
-            icon: Target,
-            path: '/admin/checklist-gcg',
-            anchor: '#aspek-tab',
-            description: 'Kelola aspek checklist'
-          },
-          {
-            name: 'Kelola Checklist',
-            icon: ListTodo,
-            path: '/admin/checklist-gcg',
-            anchor: '#checklist-tab',
-            description: 'Kelola item checklist'
-          }
-        ]
+        badgeIcon: Lock
       }
     );
   }
@@ -405,6 +294,9 @@ const Sidebar = () => {
                         <span className="font-medium">{item.name}</span>
                       </div>
                       <div className="flex items-center space-x-2">
+                        {item.badgeIcon && (
+                          <item.badgeIcon className="w-4 h-4 text-blue-400" />
+                        )}
                         {item.badge && (
                           <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full">
                             {item.badge}
