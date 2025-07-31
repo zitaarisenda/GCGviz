@@ -18,13 +18,12 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-# Add parent directory to path to import the core processing system
-sys.path.append(str(Path(__file__).parent.parent))
+# Add project root to path to import the core processing system
+project_root = str(Path(__file__).parent.parent.parent)
+sys.path.append(project_root)
 
-# Import the production-ready processing system
-from main_new import main as process_document
-from extractors.excel_extractor import ExcelExtractor
-from core.manual_output_generator import ManualOutputGenerator
+# Import the production-ready processing system from project root
+from main_new import POSDataCleaner
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
@@ -80,60 +79,119 @@ def upload_file():
     - aspect: (optional) GCG aspect
     """
     try:
+        print(f"🔧 DEBUG: Upload request received")
+        print(f"🔧 DEBUG: Request files: {list(request.files.keys())}")
+        
         # Check if file is present
         if 'file' not in request.files:
+            print(f"🔧 DEBUG: No file in request")
             return jsonify({'error': 'No file provided'}), 400
         
         file = request.files['file']
+        print(f"🔧 DEBUG: File received: {file.filename}")
+        
         if file.filename == '':
+            print(f"🔧 DEBUG: Empty filename")
             return jsonify({'error': 'No file selected'}), 400
         
         if not allowed_file(file.filename):
+            print(f"🔧 DEBUG: File type not allowed: {file.filename}")
             return jsonify({'error': 'File type not allowed'}), 400
         
-        # Generate unique filename
-        file_id = str(uuid.uuid4())
-        original_filename = secure_filename(file.filename)
-        filename_parts = original_filename.rsplit('.', 1)
-        unique_filename = f"{file_id}_{filename_parts[0]}.{filename_parts[1]}"
-        
-        # Save uploaded file
-        input_path = UPLOAD_FOLDER / unique_filename
-        file.save(str(input_path))
-        
-        # Generate output filename
-        output_filename = f"processed_{file_id}_{filename_parts[0]}.xlsx"
-        output_path = OUTPUT_FOLDER / output_filename
-        
-        # Get metadata from form
-        checklist_id = request.form.get('checklistId')
-        year = request.form.get('year')
-        aspect = request.form.get('aspect')
-        
-        # Process the document using production system
-        file_type = get_file_type(original_filename)
+        print(f"🔧 DEBUG: File validation passed")
         
         try:
+            print(f"🔧 DEBUG: Starting file processing...")
+            # Generate unique filename
+            file_id = str(uuid.uuid4())
+            print(f"🔧 DEBUG: Generated file_id: {file_id}")
+            original_filename = secure_filename(file.filename)
+            filename_parts = original_filename.rsplit('.', 1)
+            unique_filename = f"{file_id}_{filename_parts[0]}.{filename_parts[1]}"
+            
+            # Save uploaded file
+            input_path = UPLOAD_FOLDER / unique_filename
+            file.save(str(input_path))
+            
+            # Generate output filename
+            output_filename = f"processed_{file_id}_{filename_parts[0]}.xlsx"
+            output_path = OUTPUT_FOLDER / output_filename
+            
+            # Get metadata from form
+            checklist_id = request.form.get('checklistId')
+            year = request.form.get('year')
+            aspect = request.form.get('aspect')
+            
+            # Process the document using production system
+            file_type = get_file_type(original_filename)
+            
             if file_type == 'excel':
-                # Use Excel extractor directly
-                extractor = ExcelExtractor()
-                result = extractor.extract(str(input_path), str(output_path), verbose=True)
+                print(f"🔧 DEBUG: Processing Excel file...")
+                # Use main processor for Excel files
+                args_dict = {
+                    'input': str(input_path),
+                    'output': str(output_path),
+                    'verbose': True,
+                    'batch': False
+                }
                 
-                if result['success']:
-                    processing_result = {
-                        'success': True,
-                        'extracted_count': result['extracted_count'],
-                        'output_rows': result['output_rows'],
-                        'year': result['year'],
-                        'penilai': result['penilai'],
-                        'method': 'excel_extraction'
-                    }
-                else:
-                    processing_result = {
-                        'success': False,
-                        'error': result.get('error', 'Unknown extraction error'),
-                        'method': 'excel_extraction'
-                    }
+                print(f"🔧 DEBUG: About to create Args class...")
+                # Create Args object dynamically
+                class Args:
+                    def __init__(self, **kwargs):
+                        for key, value in kwargs.items():
+                            setattr(self, key, value)
+                
+                print(f"🔧 DEBUG: Args class created, creating instance...")
+                args = Args(**args_dict)
+                print(f"🔧 DEBUG: Args instance created: {args}")
+                print(f"🔧 DEBUG: Calling process_document with args: {args_dict}")
+                
+                # Change to project root directory for processing
+                original_cwd = os.getcwd()
+                print(f"🔧 DEBUG: Current directory: {original_cwd}")
+                os.chdir(project_root)
+                print(f"🔧 DEBUG: Changed to project root: {project_root}")
+                
+                print(f"🔧 DEBUG: About to enter timeout try block...")
+                
+                try:
+                    print(f"🔧 DEBUG: About to create POSDataCleaner and call process_file()...")
+                    import time
+                    
+                    # Create POSDataCleaner instance
+                    cleaner = POSDataCleaner()
+                    print(f"🔧 DEBUG: POSDataCleaner created successfully")
+                    
+                    # Call process_file with the correct arguments
+                    start_time = time.time()
+                    main_result = cleaner.process_file(
+                        input_path=str(input_path),
+                        output_path=str(output_path), 
+                        verbose=True
+                    )
+                    end_time = time.time()
+                    print(f"🔧 DEBUG: process_file() completed in {end_time - start_time:.2f} seconds")
+                    
+                except Exception as e:
+                    print(f"🔧 DEBUG: EXCEPTION in process_document(): {e}")
+                    import traceback
+                    print(f"🔧 DEBUG: Full traceback: {traceback.format_exc()}")
+                    main_result = {"success": False, "error": str(e), "message": "File processing failed"}
+                finally:
+                    # Always change back to original directory
+                    os.chdir(original_cwd)
+                    print(f"🔧 DEBUG: Restored directory: {original_cwd}")
+                print(f"🔧 DEBUG: process_document returned: {main_result}")
+                print(f"🔧 DEBUG: Output file exists: {output_path.exists()}")
+                if output_path.exists():
+                    print(f"🔧 DEBUG: Output file size: {output_path.stat().st_size} bytes")
+                
+                processing_result = {
+                    'success': main_result.get('success', False),
+                    'method': f'{file_type}_processing',
+                    'message': main_result.get('message', 'Processing completed')
+                }
             
             elif file_type in ['pdf', 'image']:
                 # Use main orchestrator for PDF/Image processing
@@ -144,14 +202,13 @@ def upload_file():
                     'batch': False
                 }
                 
-                # Mock args object for main function
-                class Args:
-                    def __init__(self, **kwargs):
-                        for key, value in kwargs.items():
-                            setattr(self, key, value)
-                
                 args = Args(**args_dict)
+                print(f"🔧 DEBUG: Calling process_document with args: {args_dict}")
                 main_result = process_document(args)
+                print(f"🔧 DEBUG: process_document returned: {main_result}")
+                print(f"🔧 DEBUG: Output file exists: {output_path.exists()}")
+                if output_path.exists():
+                    print(f"🔧 DEBUG: Output file size: {output_path.stat().st_size} bytes")
                 
                 processing_result = {
                     'success': main_result.get('success', False),
@@ -179,35 +236,42 @@ def upload_file():
             try:
                 # Read the processed Excel file
                 df = pd.read_excel(str(output_path))
+                print(f"🔧 DEBUG: Loaded DataFrame with {len(df)} rows")
+                print(f"🔧 DEBUG: DataFrame columns: {list(df.columns)}")
+                print(f"🔧 DEBUG: DataFrame head:\n{df.head()}")
                 
                 # Extract key metrics
-                indicator_rows = df[df['Type'] == 'indicator']
-                subtotal_rows = df[df['Type'] == 'subtotal'] 
-                total_rows = df[df['Type'] == 'total']
+                indicator_rows = df[df['Type'] == 'indicator'] if 'Type' in df.columns else df
+                subtotal_rows = df[df['Type'] == 'subtotal'] if 'Type' in df.columns else pd.DataFrame()
+                total_rows = df[df['Type'] == 'total'] if 'Type' in df.columns else pd.DataFrame()
+                print(f"🔧 DEBUG: Found {len(indicator_rows)} indicator rows")
                 
                 extracted_data = {
-                    'total_rows': len(df),
-                    'indicators': len(indicator_rows),
-                    'subtotals': len(subtotal_rows),
-                    'totals': len(total_rows),
-                    'year': df['Tahun'].iloc[0] if len(df) > 0 else None,
-                    'penilai': df['Penilai'].iloc[0] if len(df) > 0 else None,
+                    'total_rows': int(len(df)),
+                    'indicators': int(len(indicator_rows)),
+                    'subtotals': int(len(subtotal_rows)),
+                    'totals': int(len(total_rows)),
+                    'year': str(df['Tahun'].iloc[0]) if len(df) > 0 and pd.notna(df['Tahun'].iloc[0]) else None,
+                    'penilai': str(df['Penilai'].iloc[0]) if len(df) > 0 and pd.notna(df['Penilai'].iloc[0]) else None,
                     'format_type': 'DETAILED' if len(df) > 20 else 'BRIEF',
                     'accuracy_estimated': '98.9%' if file_type == 'excel' else '85%+'
                 }
                 
-                # Extract sample data (first few indicators)
+                # Extract ALL indicator data (not just samples)
                 if len(indicator_rows) > 0:
-                    sample_indicators = []
-                    for _, row in indicator_rows.head(5).iterrows():
-                        sample_indicators.append({
-                            'no': int(row['No']) if pd.notna(row['No']) else None,
-                            'section': row['Section'] if pd.notna(row['Section']) else None,
-                            'description': row['Deskripsi'] if pd.notna(row['Deskripsi']) else None,
-                            'skor': float(row['Skor']) if pd.notna(row['Skor']) else None,
-                            'capaian': float(row['Capaian']) if pd.notna(row['Capaian']) else None
+                    all_indicators = []
+                    for _, row in indicator_rows.iterrows():
+                        all_indicators.append({
+                            'no': int(row['No']) if pd.notna(row['No']) else 0,
+                            'section': str(row['Section']) if pd.notna(row['Section']) else '',
+                            'description': str(row['Deskripsi']) if pd.notna(row['Deskripsi']) else '',
+                            'jumlah_parameter': int(row['Jumlah_Parameter']) if pd.notna(row['Jumlah_Parameter']) else 0,
+                            'bobot': float(row['Bobot']) if pd.notna(row['Bobot']) else 100.0,
+                            'skor': float(row['Skor']) if pd.notna(row['Skor']) else 0.0,
+                            'capaian': float(row['Capaian']) if pd.notna(row['Capaian']) else 0.0,
+                            'penjelasan': str(row['Penjelasan']) if pd.notna(row['Penjelasan']) else 'Tidak ada data'
                         })
-                    extracted_data['sample_indicators'] = sample_indicators
+                    extracted_data['sample_indicators'] = all_indicators
                 
             except Exception as read_error:
                 extracted_data = {
@@ -234,6 +298,9 @@ def upload_file():
         return jsonify(response_data), 200
         
     except Exception as e:
+        print(f"🔧 DEBUG: Exception occurred: {str(e)}")
+        import traceback
+        print(f"🔧 DEBUG: Full traceback: {traceback.format_exc()}")
         return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
 @app.route('/api/download/<file_id>', methods=['GET'])

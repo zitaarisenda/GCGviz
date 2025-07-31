@@ -154,7 +154,7 @@ const PenilaianGCG = () => {
       const outputFileName = `output_${Date.now()}.xlsx`;
       
       // Note: This is a temporary solution. In production, implement proper file upload API
-      const response = await fetch('/api/process-gcg', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData
       });
@@ -165,16 +165,18 @@ const PenilaianGCG = () => {
 
       const result = await response.json();
       
-      // Convert result to PenilaianRow format
-      const processedData: PenilaianRow[] = result.data.map((row: any, index: number) => ({
-        id: (index + 1).toString(),
-        aspek: row.Section || row.aspek || '',
-        deskripsi: row.Deskripsi || row.deskripsi || '',
-        jumlah_parameter: row.Jumlah_Parameter || row.jumlah_parameter || 0,
-        bobot: row.Bobot || row.bobot || 0,
-        skor: row.Skor || row.skor || 0,
-        capaian: row.Capaian || row.capaian || 0,
-        penjelasan: row.Penjelasan || row.penjelasan || ''
+      // Convert result to PenilaianRow format  
+      const extractedData = result.extractedData || {};
+      const sampleData = extractedData.sample_indicators || [];
+      const processedData: PenilaianRow[] = sampleData.map((row: any, index: number) => ({
+        id: row.no?.toString() || (index + 1).toString(),
+        aspek: row.section || '',
+        deskripsi: row.description || '',
+        jumlah_parameter: row.jumlah_parameter || 0,
+        bobot: row.bobot || 100,
+        skor: row.skor || 0,
+        capaian: row.capaian || 0,
+        penjelasan: row.penjelasan || 'Tidak ada data'
       }));
       
       setTableData(processedData);
