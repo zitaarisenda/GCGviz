@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -333,14 +333,38 @@ const DocumentList: React.FC<DocumentListProps> = ({
     setEditFormData({});
   };
 
-  // Simplified input handlers to reduce lag
-  const handleEditInputChange = (field: string, value: string) => {
+  // Optimized event handlers
+  const handleEditInputChange = useCallback((field: string, value: string) => {
     setEditFormData(prev => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handleEditSelectChange = (field: string, value: string) => {
+  const handleEditSelectChange = useCallback((field: string, value: string) => {
     setEditFormData(prev => ({ ...prev, [field]: value }));
-  };
+  }, []);
+
+  const handleCloseEditDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setEditingDocument(null);
+    setEditFormData({});
+  }, []);
+
+  const handleOpenEditDialog = useCallback((doc: any) => {
+    setEditingDocument(doc);
+    setEditFormData({
+      title: doc.title || '',
+      documentNumber: doc.documentNumber || '',
+      documentDate: doc.documentDate || '',
+      description: doc.description || '',
+      gcgPrinciple: doc.gcgPrinciple || '',
+      documentType: doc.documentType || '',
+      documentCategory: doc.documentCategory || '',
+      direksi: doc.direksi || '',
+      division: doc.division || '',
+      status: doc.status || 'draft',
+      confidentiality: doc.confidentiality || 'public'
+    });
+    setIsEditDialogOpen(true);
+  }, []);
 
   if (!targetYear) {
     return (
@@ -873,7 +897,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
 
         {/* Edit Document Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <Edit className="w-5 h-5 text-blue-600" />
@@ -885,7 +909,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
             </DialogHeader>
             
             {editingDocument && (
-              <div className="flex-1 overflow-y-auto pr-2" style={{ willChange: 'scroll-position' }}>
+              <div className="flex-1 overflow-y-auto pr-2">
                 <div className="space-y-6">
                   {/* Tahun Buku (Read Only) */}
                   <div className="space-y-2">
