@@ -8,9 +8,10 @@ import { FileUploadProvider } from './contexts/FileUploadContext';
 import { DocumentMetadataProvider } from './contexts/DocumentMetadataContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { YearProvider } from './contexts/YearContext';
+import { KlasifikasiProvider } from './contexts/KlasifikasiContext';
 import { Toaster } from './components/ui/toaster';
 import ProtectedRoute from './components/ProtectedRoute';
-import Login from './pages/Login';
+import Login from './pages/auth/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/dashboard/Dashboard';
 import ListGCG from './pages/ListGCG';
@@ -157,12 +158,14 @@ const App = () => {
           <FileUploadProvider>
             <DocumentMetadataProvider>
               <YearProvider>
-            <Router>
-                  <SidebarProvider>
-              <AppRoutes />
-                    <Toaster />
-                  </SidebarProvider>
-            </Router>
+                <KlasifikasiProvider>
+                  <Router>
+                    <SidebarProvider>
+                      <AppRoutes />
+                      <Toaster />
+                    </SidebarProvider>
+                  </Router>
+                </KlasifikasiProvider>
               </YearProvider>
             </DocumentMetadataProvider>
           </FileUploadProvider>

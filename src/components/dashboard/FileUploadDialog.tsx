@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { useYear } from '@/contexts/YearContext';
+import { useKlasifikasi } from '@/contexts/KlasifikasiContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Upload, 
@@ -84,6 +85,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
   const { checklist } = useChecklist();
   const { documents, addDocument } = useDocumentMetadata();
   const { toast } = useToast();
+  const { klasifikasiPrinsip: gcgPrinciples, klasifikasiJenis: documentTypes, klasifikasiKategori: documentCategories } = useKlasifikasi();
 
   // Form state
   const [formData, setFormData] = useState<UploadFormData>({
@@ -137,20 +139,43 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
   }, [selectedYear]);
 
   // Get available checklist items (not used in current year) with sorting
-  const getAvailableChecklistItems = useCallback(() => {
+  const getAvailableChecklistItems = useMemo(() => {
     if (!selectedYear) return [];
     
-    const usedChecklistIds = documents
-      .filter(doc => doc.year === selectedYear && doc.checklistId)
-      .map(doc => doc.checklistId);
+    // Get used checklist IDs for current year
+    const usedChecklistIds = new Set(
+      documents
+        .filter(doc => doc.year === selectedYear && doc.checklistId)
+        .map(doc => doc.checklistId)
+    );
     
-    const availableItems = checklist.filter(item => !usedChecklistIds.includes(item.id));
+    // Filter available items
+    const availableItems = checklist.filter(item => !usedChecklistIds.has(item.id));
     
-    // Sort by aspect (Komitmen, RUPS, etc.)
+    // Sort by aspect using the same logic as getUniqueAspects
+    const existingAspects = [
+      'Aspek Komitmen',
+      'Aspek RUPS', 
+      'Aspek Dewan Komisaris',
+      'Aspek Direksi',
+      'Aspek Pengungkapan'
+    ];
+    
     return availableItems.sort((a, b) => {
-      const aspectA = a.aspek.toLowerCase();
-      const aspectB = b.aspek.toLowerCase();
-      return aspectA.localeCompare(aspectB);
+      const aIndex = existingAspects.indexOf(a.aspek);
+      const bIndex = existingAspects.indexOf(b.aspek);
+      
+      // If both are existing aspects, sort by priority
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      
+      // If only one is existing, put it first
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      
+      // If neither is existing, sort alphabetically
+      return a.aspek.localeCompare(b.aspek);
     });
   }, [documents, checklist, selectedYear]);
 
@@ -162,53 +187,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     }
   }, [user]);
 
-  // Constants for dropdowns
-  const gcgPrinciples = [
-    'Transparansi',
-    'Akuntabilitas', 
-    'Responsibilitas',
-    'Independensi',
-    'Kesetaraan'
-  ];
 
-  const documentTypes = [
-    'Kebijakan',
-    'Laporan',
-    'Risalah',
-    'Dokumentasi',
-    'Sosialisasi',
-    'Peraturan',
-    'SOP',
-    'Pedoman',
-    'Manual',
-    'Piagam',
-    'Surat Keputusan',
-    'Surat Edaran',
-    'Nota Dinas',
-    'Lainnya'
-  ];
-
-  const documentCategories = [
-    'Laporan Keuangan',
-    'Laporan Manajemen',
-    'Laporan Audit',
-    'Laporan Triwulan',
-    'Laporan Tahunan',
-    'Risalah Rapat Direksi',
-    'Risalah Rapat Komisaris',
-    'Risalah Rapat Komite',
-    'Code of Conduct',
-    'Board Manual',
-    'Pedoman Tata Kelola',
-    'Kebijakan Manajemen Risiko',
-    'Kebijakan Pengendalian Intern',
-    'LHKPN',
-    'WBS',
-    'CV Dewan',
-    'Surat Pernyataan',
-    'Pakta Integritas',
-    'Lainnya'
-  ];
 
   const confidentialityLevels = [
     { value: 'public', label: 'Publik' },
@@ -223,48 +202,75 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     { value: 'archived', label: 'Diarsipkan' }
   ];
 
-  // Ambil saran divisi dari localStorage sesuai tahun buku
-  const getDivisionSuggestionsByYear = (year: number): string[] => {
+  // Ambil saran divisi dari localStorage sesuai tahun buku - memoized
+  const getDivisionSuggestionsByYear = useMemo(() => {
     const divisiData = localStorage.getItem('divisi');
     if (!divisiData) return [];
     const divisiList = JSON.parse(divisiData);
-    const filtered = divisiList.filter((d: any) => d.tahun === year);
+    const filtered = divisiList.filter((d: any) => d.tahun === selectedYear);
     return Array.from(new Set(filtered.map((d: any) => String(d.nama)))).sort() as string[];
-  };
+  }, [selectedYear]);
 
-  // Ambil saran direksi dari localStorage sesuai tahun buku
-  const getDireksiSuggestionsByYear = (year: number): string[] => {
+  // Ambil saran direksi dari localStorage sesuai tahun buku - memoized
+  const getDireksiSuggestionsByYear = useMemo(() => {
     const direksiData = localStorage.getItem('direksi');
     if (!direksiData) return [];
     const direksiList = JSON.parse(direksiData);
-    const filtered = direksiList.filter((d: any) => d.tahun === year);
+    const filtered = direksiList.filter((d: any) => d.tahun === selectedYear);
     return Array.from(new Set(filtered.map((d: any) => String(d.nama)))).sort() as string[];
-  };
+  }, [selectedYear]);
 
-  // Get unique aspects for sorting
-  const getUniqueAspects = useCallback(() => {
-    const aspects = getAvailableChecklistItems().map(item => item.aspek);
-    return [...new Set(aspects)].sort();
-  }, [getAvailableChecklistItems]);
+  // Get unique aspects for sorting - existing aspects first, new ones last
+  const getUniqueAspects = useMemo(() => {
+    // Get all aspects from all checklist items
+    const allAspects = checklist.map(item => item.aspek);
+    const uniqueAspects = [...new Set(allAspects)];
+    
+    // Define existing aspects in order
+    const existingAspects = [
+      'Aspek Komitmen',
+      'Aspek RUPS', 
+      'Aspek Dewan Komisaris',
+      'Aspek Direksi',
+      'Aspek Pengungkapan'
+    ];
+    
+    // Separate existing and new aspects
+    const existing = uniqueAspects.filter(aspect => existingAspects.includes(aspect));
+    const newAspects = uniqueAspects.filter(aspect => !existingAspects.includes(aspect));
+    
+    // Sort existing aspects by priority order
+    const sortedExisting = existing.sort((a, b) => {
+      const aIndex = existingAspects.indexOf(a);
+      const bIndex = existingAspects.indexOf(b);
+      return aIndex - bIndex;
+    });
+    
+    // Sort new aspects alphabetically
+    const sortedNew = newAspects.sort((a, b) => a.localeCompare(b));
+    
+    // Return existing first, then new
+    return [...sortedExisting, ...sortedNew];
+  }, [checklist]);
 
-  // Helper functions
-  const getPrincipleFromAspect = (aspect: string): string => {
+  // Helper functions - memoized to prevent re-creation
+  const getPrincipleFromAspect = useCallback((aspect: string): string => {
     if (aspect.includes('Komitmen')) return 'Transparansi';
     if (aspect.includes('RUPS')) return 'Akuntabilitas';
     if (aspect.includes('Dewan Komisaris')) return 'Independensi';
     if (aspect.includes('Direksi')) return 'Responsibilitas';
     if (aspect.includes('Pengungkapan')) return 'Kesetaraan';
     return 'Transparansi';
-  };
+  }, []);
 
-  const getCategoryFromAspect = (aspect: string): string => {
+  const getCategoryFromAspect = useCallback((aspect: string): string => {
     if (aspect.includes('Komitmen')) return 'Code of Conduct';
     if (aspect.includes('RUPS')) return 'Risalah Rapat';
     if (aspect.includes('Dewan Komisaris')) return 'Risalah Rapat Komisaris';
     if (aspect.includes('Direksi')) return 'Laporan Manajemen';
     if (aspect.includes('Pengungkapan')) return 'Laporan Tahunan';
     return 'Lainnya';
-  };
+  }, []);
 
   const validateAndSetFile = (file: File) => {
     // Validate file size (10MB limit)
@@ -299,24 +305,24 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     return true;
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       validateAndSetFile(file);
     }
-  };
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
-  };
+  }, []);
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     
@@ -324,7 +330,49 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     if (files.length > 0) {
       validateAndSetFile(files[0]);
     }
-  };
+  }, []);
+
+  // Optimized input handlers to reduce lag - using direct state updates
+  const handleInputChange = useCallback((field: keyof UploadFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleSelectChange = useCallback((field: keyof UploadFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  // Memoized input components to prevent unnecessary re-renders
+  const MemoizedInput = useCallback(({ id, value, onChange, placeholder, required = false }: {
+    id: string;
+    value: string;
+    onChange: (value: string) => void;
+    placeholder: string;
+    required?: boolean;
+  }) => (
+    <Input
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      required={required}
+    />
+  ), []);
+
+  const MemoizedTextarea = useCallback(({ id, value, onChange, placeholder, rows = 3 }: {
+    id: string;
+    value: string;
+    onChange: (value: string) => void;
+    placeholder: string;
+    rows?: number;
+  }) => (
+    <Textarea
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+    />
+  ), []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -448,8 +496,8 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const divisionSuggestions = getDivisionSuggestionsByYear(selectedYear);
-  const direksiSuggestions = getDireksiSuggestionsByYear(selectedYear);
+  const divisionSuggestions = getDivisionSuggestionsByYear;
+  const direksiSuggestions = getDireksiSuggestionsByYear;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -557,10 +605,10 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                 <Label htmlFor="title">
                   Judul Dokumen <span className="text-red-500">*</span>
                 </Label>
-                <Input
+                <MemoizedInput
                   id="title"
                   value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(value) => handleInputChange('title', value)}
                   placeholder="Masukkan judul dokumen"
                   required
                 />
@@ -568,10 +616,10 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
               
               <div className="space-y-2">
                 <Label htmlFor="documentNumber">Nomor Dokumen</Label>
-                <Input
+                <MemoizedInput
                   id="documentNumber"
                   value={formData.documentNumber}
-                  onChange={(e) => setFormData(prev => ({ ...prev, documentNumber: e.target.value }))}
+                  onChange={(value) => handleInputChange('documentNumber', value)}
                   placeholder="Contoh: AI/RPT/2024/001"
                 />
               </div>
@@ -579,10 +627,10 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="description">Deskripsi/Catatan</Label>
-              <Textarea
+              <MemoizedTextarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(value) => handleInputChange('description', value)}
                 placeholder="Deskripsi singkat tentang dokumen ini"
                 rows={3}
               />
@@ -600,7 +648,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                 <Label htmlFor="gcgPrinciple">
                   Prinsip GCG <span className="text-red-500">*</span>
                 </Label>
-                <Select value={formData.gcgPrinciple} onValueChange={(value) => setFormData(prev => ({ ...prev, gcgPrinciple: value }))}>
+                <Select value={formData.gcgPrinciple} onValueChange={(value) => handleSelectChange('gcgPrinciple', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih prinsip GCG" />
                   </SelectTrigger>
@@ -616,7 +664,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                 <Label htmlFor="documentType">
                   Jenis Dokumen <span className="text-red-500">*</span>
                 </Label>
-                <Select value={formData.documentType} onValueChange={(value) => setFormData(prev => ({ ...prev, documentType: value }))}>
+                <Select value={formData.documentType} onValueChange={(value) => handleSelectChange('documentType', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih jenis dokumen" />
                   </SelectTrigger>
@@ -767,7 +815,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                   >
                     Semua
                   </Badge>
-                  {getUniqueAspects().map((aspect) => (
+                  {getUniqueAspects.map((aspect) => (
                     <Badge
                       key={aspect}
                       variant={selectedAspectFilter === aspect ? "default" : "secondary"}
@@ -781,7 +829,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
               </div>
               
               <div className="max-h-60 overflow-y-auto border rounded-lg p-4 space-y-2">
-                {getAvailableChecklistItems()
+                {getAvailableChecklistItems
                   .filter(item => !selectedAspectFilter || item.aspek === selectedAspectFilter)
                   .map((item) => (
                     <div key={item.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
@@ -818,7 +866,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                       </Label>
                     </div>
                   ))}
-                {getAvailableChecklistItems().filter(item => !selectedAspectFilter || item.aspek === selectedAspectFilter).length === 0 && (
+                {getAvailableChecklistItems.filter(item => !selectedAspectFilter || item.aspek === selectedAspectFilter).length === 0 && (
                   <p className="text-center text-gray-500 py-4">
                     {selectedAspectFilter 
                       ? `Tidak ada checklist tersedia untuk ${selectedAspectFilter.replace(/^Aspek\s+/i, '')}`
@@ -830,7 +878,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
               
               {/* Selected Checklist Info */}
               {formData.selectedChecklistId && (() => {
-                const selectedItem = getAvailableChecklistItems().find(item => item.id === formData.selectedChecklistId);
+                const selectedItem = getAvailableChecklistItems.find(item => item.id === formData.selectedChecklistId);
                 return selectedItem ? (
                   <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                     <div className="flex items-center space-x-2 mb-2">

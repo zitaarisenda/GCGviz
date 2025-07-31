@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useUser } from '@/contexts/UserContext';
+import { useYear } from '@/contexts/YearContext';
 import { 
   UserCog, 
   Plus, 
@@ -40,6 +41,7 @@ interface Account {
 const KelolaAkun = () => {
   const { isSidebarOpen } = useSidebar();
   const { user: currentUser } = useUser();
+  const { availableYears } = useYear();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -397,14 +399,11 @@ const KelolaAkun = () => {
     }
   };
 
-  // Helper untuk tahun terkini
+  // Helper untuk tahun terkini - menggunakan availableYears dari context
   const getLatestYear = (dataKey: string): number | null => {
-    const data = localStorage.getItem(dataKey);
-    if (!data) return null;
-    const list = JSON.parse(data);
-    const years = list.map((d: any) => d.tahun).filter(Boolean);
-    if (years.length === 0) return null;
-    return Math.max(...years);
+    // Use the most recent year from availableYears
+    if (availableYears.length === 0) return null;
+    return Math.max(...availableYears);
   };
   const getDireksiByYear = (year: number): string[] => {
     const data = localStorage.getItem('direksi');

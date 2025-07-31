@@ -1,8 +1,12 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 
 interface YearContextType {
-  selectedYear: number;
+  selectedYear: number | null;
   setSelectedYear: (year: number) => void;
+  availableYears: number[];
+  addYear: (year: number) => void;
+  removeYear: (year: number) => void;
+  getAvailableYears: () => number[];
 }
 
 const YearContext = createContext<YearContextType | undefined>(undefined);
@@ -16,17 +20,75 @@ export const useYear = () => {
 };
 
 interface YearProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export const YearProvider: React.FC<YearProviderProps> = ({ children }) => {
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+
+  // Initialize available years from localStorage or generate default
+  useEffect(() => {
+    const storedYears = localStorage.getItem('availableYears');
+    if (storedYears) {
+      setAvailableYears(JSON.parse(storedYears));
+    } else {
+      // Generate default years from 2014 to current year
+      const currentYear = new Date().getFullYear();
+      const defaultYears = [];
+      for (let year = currentYear; year >= 2014; year--) {
+        defaultYears.push(year);
+      }
+      setAvailableYears(defaultYears);
+      localStorage.setItem('availableYears', JSON.stringify(defaultYears));
+    }
+
+    // Set selected year to current year if not set
+    if (!selectedYear) {
+      const currentYear = new Date().getFullYear();
+      setSelectedYear(currentYear);
+    }
+  }, []);
+
+  // Save available years to localStorage whenever it changes
+  useEffect(() => {
+    if (availableYears.length > 0) {
+      localStorage.setItem('availableYears', JSON.stringify(availableYears));
+    }
+  }, [availableYears]);
+
+  const addYear = (year: number) => {
+    if (!availableYears.includes(year)) {
+      const updatedYears = [...availableYears, year].sort((a, b) => b - a); // Sort descending
+      setAvailableYears(updatedYears);
+    }
+  };
+
+  const removeYear = (year: number) => {
+    const updatedYears = availableYears.filter(y => y !== year);
+    setAvailableYears(updatedYears);
+    
+    // If the removed year was selected, select the most recent year
+    if (selectedYear === year && updatedYears.length > 0) {
+      setSelectedYear(updatedYears[0]);
+    }
+  };
+
+  const getAvailableYears = () => {
+    return availableYears;
+  };
+
+  const value = {
+    selectedYear,
+    setSelectedYear,
+    availableYears,
+    addYear,
+    removeYear,
+    getAvailableYears,
+  };
 
   return (
-    <YearContext.Provider value={{
-      selectedYear,
-      setSelectedYear
-    }}>
+    <YearContext.Provider value={value}>
       {children}
     </YearContext.Provider>
   );

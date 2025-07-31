@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { seedChecklistGCG } from "@/lib/seed/seedChecklistGCG";
 
 export interface ChecklistGCG {
@@ -18,6 +18,7 @@ interface ChecklistContextType {
   editAspek: (oldAspek: string, newAspek: string, year: number) => void;
   deleteAspek: (aspek: string, year: number) => void;
   initializeYearData: (year: number) => void;
+  ensureAllYearsHaveData: () => void;
 }
 
 const ChecklistContext = createContext<ChecklistContextType | undefined>(undefined);
@@ -25,18 +26,58 @@ const ChecklistContext = createContext<ChecklistContextType | undefined>(undefin
 export const ChecklistProvider = ({ children }: { children: ReactNode }) => {
   const [checklist, setChecklist] = useState<ChecklistGCG[]>([]);
 
+  // Function to ensure all years have checklist data
+  const ensureAllYearsHaveData = useCallback(() => {
+    const currentYear = new Date().getFullYear();
+    const allYears = [];
+    for (let year = currentYear; year >= 2014; year--) {
+      allYears.push(year);
+    }
+    
+    let hasChanges = false;
+    const updatedChecklist = [...checklist];
+    
+    allYears.forEach(year => {
+      const existingData = checklist.filter(item => item.tahun === year);
+      if (existingData.length === 0) {
+        const yearData = seedChecklistGCG.map(item => ({ ...item, tahun: year }));
+        updatedChecklist.push(...yearData);
+        hasChanges = true;
+      }
+    });
+    
+    if (hasChanges) {
+      setChecklist(updatedChecklist);
+      localStorage.setItem("checklistGCG", JSON.stringify(updatedChecklist));
+    }
+  }, [checklist]);
+
   useEffect(() => {
     const data = JSON.parse(localStorage.getItem("checklistGCG") || "null");
     if (!data) {
-      // Initialize with default data for current year
+      // Initialize with default data for all available years (2014 to current year)
       const currentYear = new Date().getFullYear();
-      const defaultData = seedChecklistGCG.map(item => ({ ...item, tahun: currentYear }));
+      const allYears = [];
+      for (let year = currentYear; year >= 2014; year--) {
+        allYears.push(year);
+      }
+      
+      const defaultData = [];
+      allYears.forEach(year => {
+        const yearData = seedChecklistGCG.map(item => ({ ...item, tahun: year }));
+        defaultData.push(...yearData);
+      });
+      
       localStorage.setItem("checklistGCG", JSON.stringify(defaultData));
       setChecklist(defaultData);
     } else {
       setChecklist(data);
+      // Ensure all years have data even if some are missing
+      setTimeout(() => {
+        ensureAllYearsHaveData();
+      }, 100);
     }
-  }, []);
+  }, [ensureAllYearsHaveData]);
 
   const getChecklistByYear = (year: number): ChecklistGCG[] => {
     return checklist.filter(item => item.tahun === year);
@@ -110,7 +151,8 @@ export const ChecklistProvider = ({ children }: { children: ReactNode }) => {
       addAspek,
       editAspek,
       deleteAspek,
-      initializeYearData
+      initializeYearData,
+      ensureAllYearsHaveData
     }}>
       {children}
     </ChecklistContext.Provider>

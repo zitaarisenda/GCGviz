@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useYear } from '@/contexts/YearContext';
 import { Plus, Edit, Trash2, ListTodo, Calendar, FileText, CheckCircle, Target, Filter } from 'lucide-react';
 
 interface ChecklistItem {
@@ -53,15 +54,9 @@ const ChecklistGCG = () => {
   // State untuk filter aspek
   const [selectedAspek, setSelectedAspek] = useState('all');
   
-  // Generate tahun dari 2014 sampai sekarang
-  const years = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const yearsArray = [];
-    for (let year = currentYear; year >= 2014; year--) {
-      yearsArray.push(year);
-    }
-    return yearsArray;
-  }, []);
+  // Use years from global context
+  const { availableYears } = useYear();
+  const years = availableYears;
 
   // Initialize year data when year changes
   useEffect(() => {

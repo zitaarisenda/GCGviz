@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
+import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useYear } from '@/contexts/YearContext';
 import FileUploadDialog from '@/components/dashboard/FileUploadDialog';
 import { 
@@ -35,8 +36,9 @@ import {
 const ListGCG = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { checklist } = useChecklist();
+  const { checklist, ensureAllYearsHaveData } = useChecklist();
   const { documents } = useDocumentMetadata();
+  const { getYearStats, getFilesByYear } = useFileUpload();
   const { isSidebarOpen } = useSidebar();
   const { selectedYear, setSelectedYear } = useYear();
   const [selectedAspek, setSelectedAspek] = useState<string>('all');
@@ -49,10 +51,16 @@ const ListGCG = () => {
     deskripsi: string;
   } | null>(null);
 
+  // Ensure all years have checklist data when component mounts
+  useEffect(() => {
+    ensureAllYearsHaveData();
+  }, [ensureAllYearsHaveData]);
+
   // Auto-set filters from URL parameters
   useEffect(() => {
     const yearParam = searchParams.get('year');
     const aspectParam = searchParams.get('aspect');
+    const scrollParam = searchParams.get('scroll');
     
     if (yearParam) {
       setSelectedYear(parseInt(yearParam));
@@ -61,17 +69,24 @@ const ListGCG = () => {
     if (aspectParam) {
       setSelectedAspek(aspectParam);
     }
+
+    // Auto-scroll to checklist table if scroll parameter is present
+    if (scrollParam === 'checklist') {
+      setTimeout(() => {
+        const checklistElement = document.getElementById('checklist-table');
+        if (checklistElement) {
+          checklistElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }
+      }, 500); // Delay to ensure filters are applied first
+    }
   }, [searchParams, setSelectedYear]);
 
-  // Generate tahun dari 2014 sampai sekarang
-  const years = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const yearsArray = [];
-    for (let year = currentYear; year >= 2014; year--) {
-      yearsArray.push(year);
-    }
-    return yearsArray;
-  }, []);
+  // Use years from global context
+  const { availableYears } = useYear();
+  const years = availableYears;
 
   // Get unique aspects for selected year
   const aspects = useMemo(() => {
@@ -79,17 +94,19 @@ const ListGCG = () => {
     return [...new Set(yearChecklist.map(item => item.aspek))];
   }, [checklist, selectedYear]);
 
-  // Check if checklist item is uploaded
+  // Check if checklist item is uploaded - menggunakan data yang sama dengan DashboardStats
   const isChecklistUploaded = (checklistId: number) => {
-    return documents.some(doc => doc.checklistId === checklistId && doc.year === selectedYear);
+    const yearFiles = getFilesByYear(selectedYear);
+    return yearFiles.some(file => file.checklistId === checklistId);
   };
 
-  // Get uploaded document for checklist
+  // Get uploaded document for checklist - menggunakan data yang sama dengan DashboardStats
   const getUploadedDocument = (checklistId: number) => {
-    return documents.find(doc => doc.checklistId === checklistId && doc.year === selectedYear);
+    const yearFiles = getFilesByYear(selectedYear);
+    return yearFiles.find(file => file.checklistId === checklistId);
   };
 
-  // Filter checklist berdasarkan aspek dan status
+  // Filter checklist berdasarkan aspek dan status - menggunakan data yang sama dengan DashboardStats
   const filteredChecklist = useMemo(() => {
     const yearChecklist = checklist.filter(item => item.tahun === selectedYear);
     let filtered = yearChecklist.map(item => ({
@@ -112,30 +129,45 @@ const ListGCG = () => {
     }
 
     return filtered;
-  }, [checklist, selectedAspek, selectedStatus, documents, selectedYear, searchTerm]);
+  }, [checklist, selectedAspek, selectedStatus, selectedYear, searchTerm, isChecklistUploaded]);
 
-  // Hitung progress overall untuk tahun yang dipilih
+  // Hitung progress overall untuk tahun yang dipilih - menggunakan data yang sama dengan DashboardStats
   const overallProgress = useMemo(() => {
+    if (!selectedYear) return 0;
+    
     const yearChecklist = checklist.filter(item => item.tahun === selectedYear);
     const total = yearChecklist.length;
     const uploaded = yearChecklist.filter(item => isChecklistUploaded(item.id)).length;
-    return Math.round((uploaded / total) * 100);
-  }, [checklist, documents, selectedYear]);
+    return total > 0 ? Math.round((uploaded / total) * 100) : 0;
+  }, [checklist, selectedYear, isChecklistUploaded]);
 
-  // Hitung progress per aspek
+  // Hitung progress per aspek - menggunakan data yang sama dengan DashboardStats
   const getAspekProgress = (aspek: string) => {
+    if (!selectedYear) return 0;
+    
     const yearChecklist = checklist.filter(item => item.tahun === selectedYear);
     const aspekItems = yearChecklist.filter(item => item.aspek === aspek);
     const total = aspekItems.length;
     const uploaded = aspekItems.filter(item => isChecklistUploaded(item.id)).length;
-    return Math.round((uploaded / total) * 100);
+    return total > 0 ? Math.round((uploaded / total) * 100) : 0;
   };
 
   // Navigate to dashboard with document highlight
   const handleViewDocument = (checklistId: number) => {
-    const document = getUploadedDocument(checklistId);
-    if (document) {
-      navigate(`/dashboard?highlight=${document.id}&year=${selectedYear}&filter=year`);
+    const uploadedFile = getUploadedDocument(checklistId);
+    if (uploadedFile) {
+      // Find the corresponding document in DocumentMetadata using fileName
+      const documentMetadata = documents.find(doc => 
+        doc.fileName === uploadedFile.fileName && 
+        doc.year === selectedYear
+      );
+      
+      if (documentMetadata) {
+        navigate(`/dashboard?highlight=${documentMetadata.id}&year=${selectedYear}&filter=year`);
+      } else {
+        // Fallback: navigate without highlight if document not found in metadata
+        navigate(`/dashboard?year=${selectedYear}&filter=year`);
+      }
     }
   };
 
@@ -290,7 +322,9 @@ const ListGCG = () => {
                       <div className="p-3 bg-blue-500 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
                         <FileText className="w-6 h-6 text-white" />
                       </div>
-                      <div className="text-3xl font-bold text-blue-600 mb-1">{checklist.length}</div>
+                      <div className="text-3xl font-bold text-blue-600 mb-1">
+                        {checklist.filter(item => item.tahun === selectedYear).length}
+                      </div>
                       <div className="text-sm text-blue-700 font-medium">Total Checklist</div>
                     </div>
                     <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 shadow-sm">
@@ -298,7 +332,7 @@ const ListGCG = () => {
                         <CheckCircle className="w-6 h-6 text-white" />
                       </div>
                       <div className="text-3xl font-bold text-green-600 mb-1">
-                        {checklist.filter(item => isChecklistUploaded(item.id)).length}
+                        {checklist.filter(item => item.tahun === selectedYear && isChecklistUploaded(item.id)).length}
                       </div>
                       <div className="text-sm text-green-700 font-medium">Sudah Selesai</div>
                     </div>
@@ -307,7 +341,7 @@ const ListGCG = () => {
                         <Clock className="w-6 h-6 text-white" />
                       </div>
                       <div className="text-3xl font-bold text-yellow-600 mb-1">
-                        {checklist.filter(item => !isChecklistUploaded(item.id)).length}
+                        {checklist.filter(item => item.tahun === selectedYear && !isChecklistUploaded(item.id)).length}
                   </div>
                       <div className="text-sm text-yellow-700 font-medium">Belum Selesai</div>
                   </div>
@@ -334,7 +368,7 @@ const ListGCG = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {aspects.map((aspek) => {
                   const progress = getAspekProgress(aspek);
-                  const aspekItems = checklist.filter(item => item.aspek === aspek);
+                  const aspekItems = checklist.filter(item => item.tahun === selectedYear && item.aspek === aspek);
                     const uploadedCount = aspekItems.filter(item => isChecklistUploaded(item.id)).length;
                     const pendingCount = aspekItems.length - uploadedCount;
                     const aspectInfo = getAspectIcon(aspek);
@@ -554,7 +588,7 @@ const ListGCG = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-hidden rounded-lg border border-indigo-100">
+              <div id="checklist-table" className="overflow-hidden rounded-lg border border-indigo-100">
               <Table>
                 <TableHeader>
                     <TableRow className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100">
@@ -610,12 +644,12 @@ const ListGCG = () => {
                               <div className="space-y-1">
                                 <div className="flex items-center space-x-2">
                                   <FileText className="w-4 h-4 text-blue-600" />
-                                  <span className="text-sm font-medium text-gray-900 truncate" title={uploadedDocument.title}>
-                                    {uploadedDocument.title}
+                                  <span className="text-sm font-medium text-gray-900 truncate" title={uploadedDocument.fileName}>
+                                    {uploadedDocument.fileName}
                                   </span>
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                  Upload oleh: {uploadedDocument.uploadedBy}
+                                  File: {uploadedDocument.fileName}
                                 </div>
                                 <div className="text-xs text-gray-500">
                                   Upload: {new Date(uploadedDocument.uploadDate).toLocaleDateString('id-ID')}

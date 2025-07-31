@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useYear } from '@/contexts/YearContext';
 import { Users, Briefcase, Plus, Edit, Trash2, Calendar } from 'lucide-react';
 
 interface Direksi {
@@ -30,14 +31,7 @@ interface Divisi {
   isActive: boolean;
 }
 
-const getAvailableYears = () => {
-  const currentYear = new Date().getFullYear();
-  const years = [];
-  for (let y = 2014; y <= currentYear + 1; y++) {
-    years.push(y);
-  }
-  return years.reverse(); // agar tahun terbaru di depan
-};
+// Use years from global context instead of local function
 
 const DEFAULT_DIVISI = [
   // Anak Usaha
@@ -63,6 +57,7 @@ const DEFAULT_DIVISI = [
 
 const StrukturPerusahaan = () => {
   const { isSidebarOpen } = useSidebar();
+  const { availableYears } = useYear();
   const [direksi, setDireksi] = useState<Direksi[]>([]);
   const [divisi, setDivisi] = useState<Divisi[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -285,7 +280,7 @@ const StrukturPerusahaan = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {getAvailableYears().map((year) => (
+                  {availableYears.map((year) => (
                     <Button
                       key={year}
                       variant={selectedYear === year ? 'default' : 'outline'}
