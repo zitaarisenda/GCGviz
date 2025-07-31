@@ -131,15 +131,7 @@ const ListGCG = () => {
     return filtered;
   }, [checklist, selectedAspek, selectedStatus, selectedYear, searchTerm, isChecklistUploaded]);
 
-  // Hitung progress overall untuk tahun yang dipilih - menggunakan data yang sama dengan DashboardStats
-  const overallProgress = useMemo(() => {
-    if (!selectedYear) return 0;
-    
-    const yearChecklist = checklist.filter(item => item.tahun === selectedYear);
-    const total = yearChecklist.length;
-    const uploaded = yearChecklist.filter(item => isChecklistUploaded(item.id)).length;
-    return total > 0 ? Math.round((uploaded / total) * 100) : 0;
-  }, [checklist, selectedYear, isChecklistUploaded]);
+
 
   // Hitung progress per aspek - menggunakan data yang sama dengan DashboardStats
   const getAspekProgress = (aspek: string) => {
@@ -150,6 +142,29 @@ const ListGCG = () => {
     const total = aspekItems.length;
     const uploaded = aspekItems.filter(item => isChecklistUploaded(item.id)).length;
     return total > 0 ? Math.round((uploaded / total) * 100) : 0;
+  };
+
+  // Hitung progress berdasarkan filter aspek yang dipilih
+  const getFilteredProgress = () => {
+    if (!selectedYear) return { progress: 0, total: 0, uploaded: 0, pending: 0 };
+    
+    const yearChecklist = checklist.filter(item => item.tahun === selectedYear);
+    let filteredItems;
+    
+    if (selectedAspek === 'all') {
+      // Progress keseluruhan
+      filteredItems = yearChecklist;
+    } else {
+      // Progress per aspek tertentu
+      filteredItems = yearChecklist.filter(item => item.aspek === selectedAspek);
+    }
+    
+    const total = filteredItems.length;
+    const uploaded = filteredItems.filter(item => isChecklistUploaded(item.id)).length;
+    const pending = total - uploaded;
+    const progress = total > 0 ? Math.round((uploaded / total) * 100) : 0;
+    
+    return { progress, total, uploaded, pending };
   };
 
   // Navigate to dashboard with document highlight
@@ -286,144 +301,7 @@ const ListGCG = () => {
           </Card>
           </div>
 
-          {/* Enhanced Overall Progress Card */}
-          <div id="overall-progress">
-            <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-green-50">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center space-x-2 text-green-900">
-                  <BarChart3 className="w-5 h-5 text-green-600" />
-                <span>Progress Keseluruhan - Tahun {selectedYear}</span>
-              </CardTitle>
-                <CardDescription className="text-green-700">
-                Progress upload dokumen GCG secara keseluruhan untuk tahun {selectedYear}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                  {/* Enhanced Progress Bar */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                      <span className="text-sm font-semibold text-gray-700">Progress Upload</span>
-                      <span className="text-lg font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                        {overallProgress}%
-                      </span>
-                  </div>
-                    <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
-                    <div 
-                        className="bg-gradient-to-r from-green-500 to-blue-500 h-4 rounded-full transition-all duration-500 shadow-lg"
-                      style={{ width: `${overallProgress}%` }}
-                    ></div>
-                  </div>
-                </div>
 
-                  {/* Enhanced Statistics */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm">
-                      <div className="p-3 bg-blue-500 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                        <FileText className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-3xl font-bold text-blue-600 mb-1">
-                        {checklist.filter(item => item.tahun === selectedYear).length}
-                      </div>
-                      <div className="text-sm text-blue-700 font-medium">Total Checklist</div>
-                    </div>
-                    <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 shadow-sm">
-                      <div className="p-3 bg-green-500 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                        <CheckCircle className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-3xl font-bold text-green-600 mb-1">
-                        {checklist.filter(item => item.tahun === selectedYear && isChecklistUploaded(item.id)).length}
-                      </div>
-                      <div className="text-sm text-green-700 font-medium">Sudah Selesai</div>
-                    </div>
-                    <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border border-yellow-200 shadow-sm">
-                      <div className="p-3 bg-yellow-500 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                        <Clock className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-3xl font-bold text-yellow-600 mb-1">
-                        {checklist.filter(item => item.tahun === selectedYear && !isChecklistUploaded(item.id)).length}
-                  </div>
-                      <div className="text-sm text-yellow-700 font-medium">Belum Selesai</div>
-                  </div>
-                </div>
-
-              </div>
-            </CardContent>
-          </Card>
-          </div>
-
-          {/* Enhanced Progress per Aspek */}
-          <div id="aspect-progress">
-            <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-purple-50">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center space-x-2 text-purple-900">
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
-                  <span>Progress per Aspek - Tahun {selectedYear}</span>
-                </CardTitle>
-                <CardDescription className="text-purple-700">
-                Progress upload dokumen berdasarkan aspek GCG untuk tahun {selectedYear}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {aspects.map((aspek) => {
-                  const progress = getAspekProgress(aspek);
-                  const aspekItems = checklist.filter(item => item.tahun === selectedYear && item.aspek === aspek);
-                    const uploadedCount = aspekItems.filter(item => isChecklistUploaded(item.id)).length;
-                    const pendingCount = aspekItems.length - uploadedCount;
-                    const aspectInfo = getAspectIcon(aspek);
-                    const IconComponent = aspectInfo.icon;
-                  
-                  return (
-                      <div key={aspek} className="p-6 border-0 rounded-xl shadow-md bg-white hover:shadow-lg transition-all duration-300 hover:scale-105">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className={`p-3 rounded-lg ${aspectInfo.bgColor}`}>
-                              <IconComponent className={`w-6 h-6 ${aspectInfo.color}`} />
-                            </div>
-                            <h4 className="font-semibold text-gray-900 truncate">{aspek}</h4>
-                          </div>
-                          <Badge 
-                            variant={progress === 100 ? "default" : progress > 50 ? "secondary" : "destructive"}
-                            className={`${
-                              progress === 100 ? 'bg-green-100 text-green-800 border-green-200' :
-                              progress > 50 ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                              'bg-red-100 text-red-800 border-red-200'
-                            }`}
-                          >
-                          {progress}%
-                        </Badge>
-                      </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3 mb-4 shadow-inner">
-                        <div 
-                            className={`h-3 rounded-full transition-all duration-500 shadow-sm ${
-                              progress === 100 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
-                              progress > 50 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 
-                              'bg-gradient-to-r from-red-500 to-pink-500'
-                          }`}
-                          style={{ width: `${progress}%` }}
-                        ></div>
-                      </div>
-                        <div className="flex justify-between text-sm mb-3">
-                          <span className="flex items-center bg-green-100 text-green-700 px-2 py-1 rounded-md">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                          {uploadedCount}
-                        </span>
-                          <span className="flex items-center bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md">
-                            <Clock className="w-3 h-3 mr-1" />
-                          {pendingCount}
-                        </span>
-                      </div>
-                        <div className="text-xs text-gray-500 font-medium">
-                        Total: {aspekItems.length} item
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-          </div>
 
           {/* Enhanced Checklist Table */}
           <div id="checklist-table">
@@ -434,7 +312,7 @@ const ListGCG = () => {
                     <CardTitle className="flex items-center space-x-2 text-indigo-900">
                       <FileText className="w-5 h-5 text-indigo-600" />
                       <span>Daftar Checklist GCG - Tahun {selectedYear}</span>
-              </CardTitle>
+                    </CardTitle>
                     <CardDescription className="text-indigo-700 mt-2">
                       {searchTerm ? (
                         <span>
@@ -448,6 +326,51 @@ const ListGCG = () => {
                     </CardDescription>
                   </div>
                 </div>
+
+                {/* Dynamic Progress Bar based on Aspect Filter - Only show when status filter is 'all' */}
+                {selectedYear && selectedStatus === 'all' && (
+                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <BarChart3 className="w-5 h-5 text-blue-600" />
+                        <span className="font-semibold text-blue-900">
+                          {selectedAspek === 'all' ? 'Progress Keseluruhan' : `Progress ${selectedAspek}`}
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="text-sm font-medium text-blue-700 border-blue-300">
+                        {getFilteredProgress().progress}%
+                      </Badge>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner mb-3">
+                      <div 
+                        className={`h-3 rounded-full transition-all duration-500 shadow-sm ${
+                          getFilteredProgress().progress === 100 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                          getFilteredProgress().progress > 50 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 
+                          'bg-gradient-to-r from-red-500 to-pink-500'
+                        }`}
+                        style={{ width: `${getFilteredProgress().progress}%` }}
+                      ></div>
+                    </div>
+                    
+                    {/* Statistics */}
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="p-2 bg-blue-100 rounded-md">
+                        <div className="text-lg font-bold text-blue-700">{getFilteredProgress().total}</div>
+                        <div className="text-xs text-blue-600">Total</div>
+                      </div>
+                      <div className="p-2 bg-green-100 rounded-md">
+                        <div className="text-lg font-bold text-green-700">{getFilteredProgress().uploaded}</div>
+                        <div className="text-xs text-green-600">Selesai</div>
+                      </div>
+                      <div className="p-2 bg-yellow-100 rounded-md">
+                        <div className="text-lg font-bold text-yellow-700">{getFilteredProgress().pending}</div>
+                        <div className="text-xs text-yellow-600">Pending</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               {/* All Filters Integrated */}
               <div className="space-y-4">

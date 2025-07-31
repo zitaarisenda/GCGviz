@@ -70,7 +70,7 @@ interface UploadFormData {
   year: number;
 }
 
-const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
+const FileUploadDialog: React.FC<FileUploadDialogProps> = React.memo(({
   isOpen,
   onOpenChange,
   checklistId,
@@ -185,7 +185,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       // TODO: Get user's direksi and division from user profile
       // For now, we'll leave it empty
     }
-  }, [user]);
+  }, [user?.role]);
 
 
 
@@ -202,22 +202,32 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     { value: 'archived', label: 'Diarsipkan' }
   ];
 
-  // Ambil saran divisi dari localStorage sesuai tahun buku - memoized
+  // Ambil saran divisi dari localStorage sesuai tahun buku - memoized dengan caching
   const getDivisionSuggestionsByYear = useMemo(() => {
-    const divisiData = localStorage.getItem('divisi');
-    if (!divisiData) return [];
-    const divisiList = JSON.parse(divisiData);
-    const filtered = divisiList.filter((d: any) => d.tahun === selectedYear);
-    return Array.from(new Set(filtered.map((d: any) => String(d.nama)))).sort() as string[];
+    try {
+      const divisiData = localStorage.getItem('divisi');
+      if (!divisiData) return [];
+      const divisiList = JSON.parse(divisiData);
+      const filtered = divisiList.filter((d: any) => d.tahun === selectedYear);
+      return Array.from(new Set(filtered.map((d: any) => String(d.nama)))).sort() as string[];
+    } catch (error) {
+      console.warn('Error reading divisi data from localStorage:', error);
+      return [];
+    }
   }, [selectedYear]);
 
-  // Ambil saran direksi dari localStorage sesuai tahun buku - memoized
+  // Ambil saran direksi dari localStorage sesuai tahun buku - memoized dengan caching
   const getDireksiSuggestionsByYear = useMemo(() => {
-    const direksiData = localStorage.getItem('direksi');
-    if (!direksiData) return [];
-    const direksiList = JSON.parse(direksiData);
-    const filtered = direksiList.filter((d: any) => d.tahun === selectedYear);
-    return Array.from(new Set(filtered.map((d: any) => String(d.nama)))).sort() as string[];
+    try {
+      const direksiData = localStorage.getItem('direksi');
+      if (!direksiData) return [];
+      const direksiList = JSON.parse(direksiData);
+      const filtered = direksiList.filter((d: any) => d.tahun === selectedYear);
+      return Array.from(new Set(filtered.map((d: any) => String(d.nama)))).sort() as string[];
+    } catch (error) {
+      console.warn('Error reading direksi data from localStorage:', error);
+      return [];
+    }
   }, [selectedYear]);
 
   // Get unique aspects for sorting - existing aspects first, new ones last
@@ -253,24 +263,24 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     return [...sortedExisting, ...sortedNew];
   }, [checklist]);
 
-  // Helper functions - memoized to prevent re-creation
-  const getPrincipleFromAspect = useCallback((aspect: string): string => {
+  // Helper functions - simplified to reduce overhead
+  const getPrincipleFromAspect = (aspect: string): string => {
     if (aspect.includes('Komitmen')) return 'Transparansi';
     if (aspect.includes('RUPS')) return 'Akuntabilitas';
     if (aspect.includes('Dewan Komisaris')) return 'Independensi';
     if (aspect.includes('Direksi')) return 'Responsibilitas';
     if (aspect.includes('Pengungkapan')) return 'Kesetaraan';
     return 'Transparansi';
-  }, []);
+  };
 
-  const getCategoryFromAspect = useCallback((aspect: string): string => {
+  const getCategoryFromAspect = (aspect: string): string => {
     if (aspect.includes('Komitmen')) return 'Code of Conduct';
     if (aspect.includes('RUPS')) return 'Risalah Rapat';
     if (aspect.includes('Dewan Komisaris')) return 'Risalah Rapat Komisaris';
     if (aspect.includes('Direksi')) return 'Laporan Manajemen';
     if (aspect.includes('Pengungkapan')) return 'Laporan Tahunan';
     return 'Lainnya';
-  }, []);
+  };
 
   const validateAndSetFile = (file: File) => {
     // Validate file size (10MB limit)
@@ -305,24 +315,24 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     return true;
   };
 
-  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       validateAndSetFile(file);
     }
-  }, []);
+  };
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
-  }, []);
+  };
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-  }, []);
+  };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     
@@ -330,7 +340,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     if (files.length > 0) {
       validateAndSetFile(files[0]);
     }
-  }, []);
+  };
 
   // Optimized input handlers to reduce lag - using direct state updates
   const handleInputChange = useCallback((field: keyof UploadFormData, value: string) => {
@@ -341,38 +351,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  // Memoized input components to prevent unnecessary re-renders
-  const MemoizedInput = useCallback(({ id, value, onChange, placeholder, required = false }: {
-    id: string;
-    value: string;
-    onChange: (value: string) => void;
-    placeholder: string;
-    required?: boolean;
-  }) => (
-    <Input
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      required={required}
-    />
-  ), []);
 
-  const MemoizedTextarea = useCallback(({ id, value, onChange, placeholder, rows = 3 }: {
-    id: string;
-    value: string;
-    onChange: (value: string) => void;
-    placeholder: string;
-    rows?: number;
-  }) => (
-    <Textarea
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-    />
-  ), []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -502,7 +481,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Upload className="w-5 h-5 text-blue-600" />
@@ -513,7 +492,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto pr-2">
+        <div className="flex-1 overflow-y-auto pr-2" style={{ willChange: 'scroll-position' }}>
           <form onSubmit={handleSubmit} className="space-y-6">
           {/* File Upload Section - Moved to top */}
           <div className="space-y-4">
@@ -605,10 +584,10 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                 <Label htmlFor="title">
                   Judul Dokumen <span className="text-red-500">*</span>
                 </Label>
-                <MemoizedInput
+                <Input
                   id="title"
                   value={formData.title}
-                  onChange={(value) => handleInputChange('title', value)}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
                   placeholder="Masukkan judul dokumen"
                   required
                 />
@@ -616,10 +595,10 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
               
               <div className="space-y-2">
                 <Label htmlFor="documentNumber">Nomor Dokumen</Label>
-                <MemoizedInput
+                <Input
                   id="documentNumber"
                   value={formData.documentNumber}
-                  onChange={(value) => handleInputChange('documentNumber', value)}
+                  onChange={(e) => handleInputChange('documentNumber', e.target.value)}
                   placeholder="Contoh: AI/RPT/2024/001"
                 />
               </div>
@@ -627,10 +606,10 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="description">Deskripsi/Catatan</Label>
-              <MemoizedTextarea
+              <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(value) => handleInputChange('description', value)}
+                onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Deskripsi singkat tentang dokumen ini"
                 rows={3}
               />
@@ -930,6 +909,8 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
-};
+});
+
+FileUploadDialog.displayName = 'FileUploadDialog';
 
 export default FileUploadDialog; 

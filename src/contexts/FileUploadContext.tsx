@@ -16,6 +16,8 @@ interface FileUploadContextType {
   uploadedFiles: UploadedFile[];
   uploadFile: (file: File, year: number, checklistId?: number, checklistDescription?: string, aspect?: string) => void;
   deleteFile: (fileId: string) => void;
+  deleteFileByFileName: (fileName: string) => void;
+  refreshFiles: () => void;
   getFilesByYear: (year: number) => UploadedFile[];
   getYearStats: (year: number) => {
     totalFiles: number;
@@ -68,6 +70,21 @@ export const FileUploadProvider: React.FC<{ children: ReactNode }> = ({ children
     setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
   };
 
+  const deleteFileByFileName = (fileName: string) => {
+    setUploadedFiles(prev => prev.filter(file => file.fileName !== fileName));
+  };
+
+  const refreshFiles = () => {
+    const savedFiles = localStorage.getItem('uploadedFiles');
+    if (savedFiles) {
+      const parsedFiles = JSON.parse(savedFiles).map((file: any) => ({
+        ...file,
+        uploadDate: new Date(file.uploadDate)
+      }));
+      setUploadedFiles(parsedFiles);
+    }
+  };
+
   const getFilesByYear = (year: number) => {
     return uploadedFiles.filter(file => file.year === year);
   };
@@ -91,6 +108,8 @@ export const FileUploadProvider: React.FC<{ children: ReactNode }> = ({ children
       uploadedFiles,
       uploadFile,
       deleteFile,
+      deleteFileByFileName,
+      refreshFiles,
       getFilesByYear,
       getYearStats
     }}>

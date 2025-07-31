@@ -51,6 +51,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   filterType
 }) => {
   const { documents, getDocumentsByYear, deleteDocument, updateDocument, refreshDocuments } = useDocumentMetadata();
+  const { deleteFileByFileName, refreshFiles } = useFileUpload();
   const { selectedYear } = useYear();
   const { checklist } = useChecklist();
   const { direksi } = useDireksi();
@@ -275,7 +276,27 @@ const DocumentList: React.FC<DocumentListProps> = ({
 
   const handleDeleteDocument = (id: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus dokumen ini?')) {
-      deleteDocument(id);
+      // Find the document to get its fileName for FileUploadContext deletion
+      const documentToDelete = documents.find(doc => doc.id === id);
+      
+      if (documentToDelete) {
+        // Delete from DocumentMetadataContext
+        deleteDocument(id);
+        
+        // Delete from FileUploadContext using fileName
+        deleteFileByFileName(documentToDelete.fileName);
+        
+        // Also manually remove from localStorage to ensure consistency
+        const savedFiles = JSON.parse(localStorage.getItem('uploadedFiles') || '[]');
+        const updatedFiles = savedFiles.filter((file: any) => file.fileName !== documentToDelete.fileName);
+        localStorage.setItem('uploadedFiles', JSON.stringify(updatedFiles));
+        
+        // Force refresh both contexts to ensure data is synchronized
+        setTimeout(() => {
+          refreshDocuments();
+          refreshFiles();
+        }, 100);
+      }
     }
   };
 
@@ -312,47 +333,14 @@ const DocumentList: React.FC<DocumentListProps> = ({
     setEditFormData({});
   };
 
-  // Optimized input handlers to reduce lag - using direct state updates
-  const handleEditInputChange = useCallback((field: string, value: string) => {
+  // Simplified input handlers to reduce lag
+  const handleEditInputChange = (field: string, value: string) => {
     setEditFormData(prev => ({ ...prev, [field]: value }));
-  }, []);
+  };
 
-  const handleEditSelectChange = useCallback((field: string, value: string) => {
+  const handleEditSelectChange = (field: string, value: string) => {
     setEditFormData(prev => ({ ...prev, [field]: value }));
-  }, []);
-
-  // Memoized input components to prevent unnecessary re-renders
-  const MemoizedEditInput = useCallback(({ id, value, onChange, placeholder, required = false }: {
-    id: string;
-    value: string;
-    onChange: (value: string) => void;
-    placeholder: string;
-    required?: boolean;
-  }) => (
-    <Input
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      required={required}
-    />
-  ), []);
-
-  const MemoizedEditTextarea = useCallback(({ id, value, onChange, placeholder, rows = 3 }: {
-    id: string;
-    value: string;
-    onChange: (value: string) => void;
-    placeholder: string;
-    rows?: number;
-  }) => (
-    <Textarea
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-    />
-  ), []);
+  };
 
   if (!targetYear) {
     return (
@@ -885,7 +873,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
 
         {/* Edit Document Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <Edit className="w-5 h-5 text-blue-600" />
@@ -897,7 +885,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
             </DialogHeader>
             
             {editingDocument && (
-              <div className="flex-1 overflow-y-auto pr-2">
+              <div className="flex-1 overflow-y-auto pr-2" style={{ willChange: 'scroll-position' }}>
                 <div className="space-y-6">
                   {/* Tahun Buku (Read Only) */}
                   <div className="space-y-2">
@@ -927,10 +915,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Label htmlFor="editTitle">
                           Judul Dokumen <span className="text-red-500">*</span>
                         </Label>
-                        <MemoizedEditInput
+                        <Input
                           id="editTitle"
                           value={editFormData.title || ''}
-                          onChange={(value) => handleEditInputChange('title', value)}
+                          onChange={(e) => handleEditInputChange('title', e.target.value)}
                           placeholder="Masukkan judul dokumen"
                         />
                       </div>
@@ -938,10 +926,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Label htmlFor="editDocumentNumber">
                           Nomor Dokumen
                         </Label>
-                        <MemoizedEditInput
+                        <Input
                           id="editDocumentNumber"
                           value={editFormData.documentNumber || ''}
-                          onChange={(value) => handleEditInputChange('documentNumber', value)}
+                          onChange={(e) => handleEditInputChange('documentNumber', e.target.value)}
                           placeholder="Masukkan nomor dokumen"
                         />
                       </div>
@@ -949,10 +937,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Label htmlFor="editDescription">
                           Deskripsi
                         </Label>
-                        <MemoizedEditTextarea
+                        <Textarea
                           id="editDescription"
                           value={editFormData.description || ''}
-                          onChange={(value) => handleEditInputChange('description', value)}
+                          onChange={(e) => handleEditInputChange('description', e.target.value)}
                           placeholder="Masukkan deskripsi dokumen"
                           rows={3}
                         />
