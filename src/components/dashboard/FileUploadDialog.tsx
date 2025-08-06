@@ -14,6 +14,7 @@ import { useChecklist } from '@/contexts/ChecklistContext';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { useYear } from '@/contexts/YearContext';
 import { useKlasifikasi } from '@/contexts/KlasifikasiContext';
+import { useStrukturPerusahaan } from '@/contexts/StrukturPerusahaanContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Upload, 
@@ -1124,10 +1125,8 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
 
   // Ultra-optimized memoized values with lazy loading
   const divisionSuggestions = useMemo(() => getDivisionSuggestionsByYear, [getDivisionSuggestionsByYear]);
-  const direktoratSuggestions = useMemo(() => direktorat.map(d => d.nama), [direktorat]);
-  const subdirektoratSuggestions = useMemo(() => {
-    return getAllSubdirektorat().map(s => s.nama);
-  }, [getAllSubdirektorat]);
+  // Get data from context
+  const { direktorat: direktoratSuggestions, subdirektorat: subdirektoratSuggestions } = useStrukturPerusahaan();
 
   // Lazy load heavy computations only when needed
   const memoizedChecklistItems = useMemo(() => {

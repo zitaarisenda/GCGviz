@@ -4,6 +4,7 @@ import Topbar from '@/components/layout/Topbar';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
+import { useStrukturPerusahaan } from '@/contexts/StrukturPerusahaanContext';
 import { YearSelectorPanel, PageHeaderPanel } from '@/components/panels';
 import DocumentList from '@/components/dashboard/DocumentList';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +30,7 @@ const DocumentManagement = () => {
   const { isSidebarOpen } = useSidebar();
   const { documents } = useDocumentMetadata();
   const { checklist } = useChecklist();
+  const { direktorat: direktorats, subdirektorat: subDirektorats } = useStrukturPerusahaan();
   const [selectedYear, setSelectedYear] = useState<number>(2024);
   const [downloadType, setDownloadType] = useState<'all' | 'aspect' | 'direktorat' | 'subdirektorat'>('all');
   const [selectedAspect, setSelectedAspect] = useState<string>('');
@@ -47,13 +49,7 @@ const DocumentManagement = () => {
     return Array.from(new Set(checklist.map(item => item.aspek).filter(Boolean)));
   }, [checklist]);
 
-  const direktorats = useMemo(() => {
-    return Array.from(new Set(yearDocuments.map(doc => doc.direktorat).filter(Boolean)));
-  }, [yearDocuments]);
-
-  const subDirektorats = useMemo(() => {
-    return Array.from(new Set(yearDocuments.map(doc => doc.subdirektorat).filter(Boolean)));
-  }, [yearDocuments]);
+  // Data direktorat dan subdirektorat sudah didapat dari context
 
   // Filter documents based on download type and selection
   const getFilteredDocumentsForDownload = () => {

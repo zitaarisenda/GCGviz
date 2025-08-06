@@ -14,7 +14,10 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useYear } from '@/contexts/YearContext';
 import { Users, Briefcase, Plus, Edit, Trash2, Calendar } from 'lucide-react';
 import { seedSubdirektorat } from '@/lib/seed/seedDirektorat';
+import { triggerStrukturPerusahaanUpdate } from '@/lib/strukturPerusahaan';
 import { YearSelectorPanel, ConfirmDialog, FormDialog, ActionButton, IconButton } from '@/components/panels';
+import { useToast } from '@/hooks/use-toast';
+import { Toaster } from '@/components/ui/toaster';
 
 interface Direktorat {
   id: number;
@@ -67,6 +70,7 @@ const DEFAULT_DIVISI = [
 const StrukturPerusahaan = () => {
   const { isSidebarOpen } = useSidebar();
   const { availableYears } = useYear();
+  const { toast } = useToast();
   const [direktorat, setDirektorat] = useState<Direktorat[]>([]);
   const [subdirektorat, setSubdirektorat] = useState<Subdirektorat[]>([]);
   const [divisi, setDivisi] = useState<Divisi[]>([]);
@@ -92,6 +96,20 @@ const StrukturPerusahaan = () => {
 
   // Tambahkan state untuk trigger reload data per tahun
   const [reloadFlag, setReloadFlag] = useState(0);
+
+  // Helper function untuk toast notification
+  const showUpdateToast = (type: 'direktorat' | 'subdirektorat' | 'divisi') => {
+    const labels = {
+      direktorat: 'Direktorat',
+      subdirektorat: 'Sub Direktorat',
+      divisi: 'Divisi'
+    };
+    
+    toast({
+      title: "Data terupdate",
+      description: `Data ${labels[type]} telah diperbarui di semua komponen`,
+    });
+  };
 
   // Load data dari localStorage setiap kali tahun berubah atau reloadFlag berubah
   useEffect(() => {
@@ -148,6 +166,8 @@ const StrukturPerusahaan = () => {
       localStorage.setItem('direktorat', JSON.stringify(updatedDirektoratList));
       setEditingDirektorat(null);
       alert('Direktorat berhasil diupdate!');
+      triggerStrukturPerusahaanUpdate(); // Trigger update
+      showUpdateToast('direktorat');
     } else {
       const newDirektorat: Direktorat = {
         id: Date.now(),
@@ -160,6 +180,8 @@ const StrukturPerusahaan = () => {
       setDirektorat(updatedDirektoratList);
       localStorage.setItem('direktorat', JSON.stringify(updatedDirektoratList));
       alert('Direktorat berhasil ditambahkan!');
+      triggerStrukturPerusahaanUpdate(); // Trigger update
+      showUpdateToast('direktorat');
     }
     setDirektoratForm({ nama: '' });
     setIsDirektoratDialogOpen(false);
@@ -171,6 +193,8 @@ const StrukturPerusahaan = () => {
     localStorage.setItem('direktorat', JSON.stringify(updatedDirektoratList));
     setDirektoratToDelete(null);
     alert('Direktorat berhasil dihapus!');
+    triggerStrukturPerusahaanUpdate(); // Trigger update
+    showUpdateToast('direktorat');
   };
   const openEditDirektorat = (direktorat: Direktorat) => {
     setEditingDirektorat(direktorat);
@@ -201,6 +225,8 @@ const StrukturPerusahaan = () => {
       localStorage.setItem('subdirektorat', JSON.stringify(updatedSubdirektoratList));
       setEditingSubdirektorat(null);
       alert('Subdirektorat berhasil diupdate!');
+      triggerStrukturPerusahaanUpdate(); // Trigger update
+      showUpdateToast('subdirektorat');
     } else {
       const newSubdirektorat: Subdirektorat = {
         id: Date.now(),
@@ -213,6 +239,8 @@ const StrukturPerusahaan = () => {
       setSubdirektorat(updatedSubdirektoratList);
       localStorage.setItem('subdirektorat', JSON.stringify(updatedSubdirektoratList));
       alert('Subdirektorat berhasil ditambahkan!');
+      triggerStrukturPerusahaanUpdate(); // Trigger update
+      showUpdateToast('subdirektorat');
     }
     setSubdirektoratForm({ nama: '' });
     setIsSubdirektoratDialogOpen(false);
@@ -224,6 +252,8 @@ const StrukturPerusahaan = () => {
     localStorage.setItem('subdirektorat', JSON.stringify(updatedSubdirektoratList));
     setSubdirektoratToDelete(null);
     alert('Subdirektorat berhasil dihapus!');
+    triggerStrukturPerusahaanUpdate(); // Trigger update
+    showUpdateToast('subdirektorat');
   };
   const openEditSubdirektorat = (subdirektorat: Subdirektorat) => {
     setEditingSubdirektorat(subdirektorat);
@@ -254,6 +284,8 @@ const StrukturPerusahaan = () => {
       localStorage.setItem('divisi', JSON.stringify(updatedDivisiList));
       setEditingDivisi(null);
       alert('Divisi berhasil diupdate!');
+      triggerStrukturPerusahaanUpdate(); // Trigger update
+      showUpdateToast('divisi');
     } else {
       const newDivisi: Divisi = {
         id: Date.now(),
@@ -266,6 +298,8 @@ const StrukturPerusahaan = () => {
       setDivisi(updatedDivisiList);
       localStorage.setItem('divisi', JSON.stringify(updatedDivisiList));
       alert('Divisi berhasil ditambahkan!');
+      triggerStrukturPerusahaanUpdate(); // Trigger update
+      showUpdateToast('divisi');
     }
     setDivisiForm({ nama: '' });
     setIsDivisiDialogOpen(false);
@@ -277,6 +311,8 @@ const StrukturPerusahaan = () => {
     localStorage.setItem('divisi', JSON.stringify(updatedDivisiList));
     setDivisiToDelete(null);
     alert('Divisi berhasil dihapus!');
+    triggerStrukturPerusahaanUpdate(); // Trigger update
+    showUpdateToast('divisi');
   };
   const openEditDivisi = (divisi: Divisi) => {
     setEditingDivisi(divisi);
@@ -326,6 +362,8 @@ const StrukturPerusahaan = () => {
     const updatedDirektoratList = [...direktoratList, ...newDirektorat];
     localStorage.setItem('direktorat', JSON.stringify(updatedDirektoratList));
     setReloadFlag(f => f + 1);
+    triggerStrukturPerusahaanUpdate(); // Trigger update
+    showUpdateToast('direktorat');
   };
 
   // Handler untuk data default subdirektorat
@@ -343,6 +381,8 @@ const StrukturPerusahaan = () => {
     const updatedSubdirektoratList = [...subdirektoratList, ...newSubdirektorat];
     localStorage.setItem('subdirektorat', JSON.stringify(updatedSubdirektoratList));
     setReloadFlag(f => f + 1);
+    triggerStrukturPerusahaanUpdate(); // Trigger update
+    showUpdateToast('subdirektorat');
   };
 
   // Handler untuk data default divisi
@@ -360,6 +400,8 @@ const StrukturPerusahaan = () => {
     const updatedDivisiList = [...divisiList, ...newDivisi];
     localStorage.setItem('divisi', JSON.stringify(updatedDivisiList));
     setReloadFlag(f => f + 1);
+    triggerStrukturPerusahaanUpdate(); // Trigger update
+    showUpdateToast('divisi');
   };
 
   return (
@@ -732,6 +774,7 @@ const StrukturPerusahaan = () => {
          variant="danger"
          confirmText="Hapus"
        />
+      <Toaster />
     </div>
   );
 };

@@ -14,6 +14,7 @@ import { useChecklist } from '@/contexts/ChecklistContext';
 import { useDirektorat } from '@/contexts/DireksiContext';
 import { useYear } from '@/contexts/YearContext';
 import { useKlasifikasi } from '@/contexts/KlasifikasiContext';
+import { useStrukturPerusahaan } from '@/contexts/StrukturPerusahaanContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
   FileText, 
@@ -61,6 +62,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const { checklist } = useChecklist();
   const { direktorat } = useDirektorat();
   const { klasifikasiPrinsip, klasifikasiJenis, klasifikasiKategori, klasifikasiData } = useKlasifikasi();
+  const { direktorat: direktorats, subdirektorat: subDirektorats } = useStrukturPerusahaan();
   const { toast } = useToast();
   
   // Filter state
@@ -196,8 +198,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   // Get unique values for filters
   const principles = useMemo(() => [...new Set(yearDocuments.map(doc => doc.gcgPrinciple))], [yearDocuments]);
   const types = useMemo(() => [...new Set(yearDocuments.map(doc => doc.documentType))], [yearDocuments]);
-  const direktorats = useMemo(() => [...new Set(yearDocuments.map(doc => doc.direktorat))], [yearDocuments]);
-  const subDirektorats = useMemo(() => [...new Set(yearDocuments.map(doc => doc.subdirektorat))], [yearDocuments]);
+  // Data direktorat dan subdirektorat sudah didapat dari context
   const statuses = useMemo(() => [...new Set(yearDocuments.map(doc => doc.status))], [yearDocuments]);
 
   const formatFileSize = (bytes: number) => {

@@ -21,6 +21,7 @@ import {
   Lock
 } from 'lucide-react';
 import { useYear } from '@/contexts/YearContext';
+import { useStrukturPerusahaan } from '@/contexts/StrukturPerusahaanContext';
 
 interface EditAccountDialogProps {
   isOpen: boolean;
@@ -59,6 +60,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   isLoading = false
 }) => {
   const { availableYears } = useYear();
+  const { direktorat: direktoratOptions, subdirektorat: subDirektoratOptions } = useStrukturPerusahaan();
   
   const [formData, setFormData] = useState<AccountFormData>({
     id: 0,
@@ -77,30 +79,6 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     label: '',
     color: ''
   });
-
-  // Helper functions untuk mendapatkan data dari localStorage
-  const getLatestYear = (): number | null => {
-    if (availableYears.length === 0) return null;
-    return Math.max(...availableYears);
-  };
-
-  const getDirektoratByYear = (year: number): string[] => {
-    const data = localStorage.getItem('direktorat');
-    if (!data) return [];
-    const list = JSON.parse(data) as any[];
-    return Array.from(new Set(list.filter((d: any) => d.tahun === year).map((d: any) => String(d.nama)))).sort();
-  };
-
-  const getSubDirektoratByYear = (year: number): string[] => {
-    const data = localStorage.getItem('subdirektorat');
-    if (!data) return [];
-    const list = JSON.parse(data) as any[];
-    return Array.from(new Set(list.filter((d: any) => d.tahun === year).map((d: any) => String(d.nama)))).sort();
-  };
-
-  const latestYear = getLatestYear();
-  const direktoratOptions = latestYear ? getDirektoratByYear(latestYear) : [];
-  const subDirektoratOptions = latestYear ? getSubDirektoratByYear(latestYear) : [];
 
   // Reset form when dialog opens/closes or account changes
   useEffect(() => {

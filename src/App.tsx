@@ -9,6 +9,7 @@ import { DocumentMetadataProvider } from './contexts/DocumentMetadataContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { YearProvider } from './contexts/YearContext';
 import { KlasifikasiProvider } from './contexts/KlasifikasiContext';
+import { StrukturPerusahaanProvider } from './contexts/StrukturPerusahaanContext';
 import { Toaster } from './components/ui/toaster';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/auth/Login';
@@ -154,10 +155,12 @@ const App = () => {
               <DocumentMetadataProvider>
                 <YearProvider>
                   <KlasifikasiProvider>
-                    <SidebarProvider>
-                      <AppRoutes />
-                      <Toaster />
-                    </SidebarProvider>
+                    <StrukturPerusahaanProvider>
+                      <SidebarProvider>
+                        <AppRoutes />
+                        <Toaster />
+                      </SidebarProvider>
+                    </StrukturPerusahaanProvider>
                   </KlasifikasiProvider>
                 </YearProvider>
               </DocumentMetadataProvider>
