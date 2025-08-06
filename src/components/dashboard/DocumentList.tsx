@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,9 +11,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
-import { useDireksi } from '@/contexts/DireksiContext';
+import { useDirektorat } from '@/contexts/DireksiContext';
 import { useYear } from '@/contexts/YearContext';
 import { useKlasifikasi } from '@/contexts/KlasifikasiContext';
+import { useToast } from '@/hooks/use-toast';
 import { 
   FileText, 
   Search, 
@@ -29,9 +30,12 @@ import {
   Edit,
   CheckCircle,
   Circle,
-  Lock
+  Lock,
+  Mail,
+  Save
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { IconButton, TableActions, ActionButton } from '@/components/panels';
 
 interface DocumentListProps {
   year?: number;
@@ -54,14 +58,15 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const { deleteFileByFileName, refreshFiles } = useFileUpload();
   const { selectedYear } = useYear();
   const { checklist } = useChecklist();
-  const { direksi } = useDireksi();
+  const { direktorat } = useDirektorat();
   const { klasifikasiPrinsip, klasifikasiJenis, klasifikasiKategori, klasifikasiData } = useKlasifikasi();
+  const { toast } = useToast();
   
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPrinciple, setSelectedPrinciple] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
-  const [selectedDireksi, setSelectedDireksi] = useState('all');
+  const [selectedDirektorat, setSelectedDirektorat] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [aspectFilter, setAspectFilter] = useState<string | null>(null);
   // Checklist GCG filter state
@@ -140,8 +145,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
       filtered = filtered.filter(doc => doc.documentType === selectedType);
     }
 
-    if (selectedDireksi !== 'all') {
-      filtered = filtered.filter(doc => doc.direksi === selectedDireksi);
+    if (selectedDirektorat !== 'all') {
+      filtered = filtered.filter(doc => doc.direktorat === selectedDirektorat);
     }
 
     if (selectedStatus !== 'all') {
@@ -165,7 +170,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
     }
 
     return maxItems ? filtered.slice(0, maxItems) : filtered;
-  }, [yearDocuments, searchTerm, selectedPrinciple, selectedType, selectedDireksi, selectedStatus, filterChecklistStatus, filterChecklistAspect, checklist, maxItems]);
+  }, [yearDocuments, searchTerm, selectedPrinciple, selectedType, selectedDirektorat, selectedStatus, filterChecklistStatus, filterChecklistAspect, checklist, maxItems]);
 
   // Scroll to highlighted document
   React.useEffect(() => {
@@ -185,7 +190,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   // Get unique values for filters
   const principles = useMemo(() => [...new Set(yearDocuments.map(doc => doc.gcgPrinciple))], [yearDocuments]);
   const types = useMemo(() => [...new Set(yearDocuments.map(doc => doc.documentType))], [yearDocuments]);
-  const direksis = useMemo(() => [...new Set(yearDocuments.map(doc => doc.direksi))], [yearDocuments]);
+  const direktorats = useMemo(() => [...new Set(yearDocuments.map(doc => doc.direktorat))], [yearDocuments]);
   const statuses = useMemo(() => [...new Set(yearDocuments.map(doc => doc.status))], [yearDocuments]);
 
   const formatFileSize = (bytes: number) => {
@@ -309,7 +314,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
       gcgPrinciple: doc.gcgPrinciple,
       documentType: doc.documentType,
       documentCategory: doc.documentCategory || '',
-      direksi: doc.direksi,
+              direktorat: doc.direktorat,
+        subdirektorat: doc.subdirektorat,
       division: doc.division || '',
       status: doc.status,
       confidentiality: doc.confidentiality,
@@ -333,13 +339,119 @@ const DocumentList: React.FC<DocumentListProps> = ({
     setEditFormData({});
   };
 
-  // Optimized event handlers
+  // Email revision functionality
+  const handleRevisionEmail = (doc: any) => {
+    try {
+      // Get current user info for sender
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const senderEmail = currentUser.email || 'user@example.com';
+      const senderName = currentUser.name || 'User';
+      
+      // Helper function to format empty values
+      const formatValue = (value: any) => {
+        return value && value.trim() !== '' ? value : '-';
+      };
+      
+      // Prepare email content with better formatting
+      const subject = encodeURIComponent(`Revisi Dokumen: ${doc.title}`);
+      const body = encodeURIComponent(`Halo,
+
+Saya ingin mengajukan revisi untuk dokumen berikut:
+
+**INFORMASI DOKUMEN:**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• **Judul Dokumen:** ${formatValue(doc.title)}
+• **Nomor Dokumen:** ${formatValue(doc.documentNumber)}
+• **Direktorat:** ${formatValue(doc.direktorat)}
+• **Subdirektorat:** ${formatValue(doc.subdirektorat)}
+• **Divisi:** ${formatValue(doc.division)}
+• **Prinsip GCG:** ${formatValue(doc.gcgPrinciple)}
+• **Jenis Dokumen:** ${formatValue(doc.documentType)}
+• **Kategori:** ${formatValue(doc.documentCategory)}
+• **Status:** ${formatValue(doc.status)}
+• **Tanggal Upload:** ${new Date(doc.uploadDate).toLocaleDateString('id-ID')}
+
+**ALASAN REVISI:**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Silakan isi alasan revisi di sini]
+
+**PERMINTAAN:**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Silakan isi permintaan revisi di sini]
+
+Terima kasih atas perhatiannya.
+
+Salam,
+${senderName}
+${senderEmail}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dikirim dari GCG Document Hub
+Tahun: ${doc.year || new Date().getFullYear()}`);
+
+      // Open default email client
+      const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
+      window.open(mailtoLink, '_blank');
+      
+      // Show success toast
+      toast({
+        title: "Email revisi dibuka",
+        description: `Draft email revisi untuk "${doc.title}" telah dibuka di aplikasi email Anda`,
+      });
+    } catch (error) {
+      console.error('Email revision error:', error);
+      toast({
+        title: "Gagal membuka email",
+        description: "Terjadi kesalahan saat membuka aplikasi email",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Download functionality
+  const handleDownloadDocument = useCallback((doc: any) => {
+    try {
+      // Create a blob from the file data (simulated for now)
+      const blob = new Blob(['Document content'], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.fileName || `${doc.title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      // Show success toast
+      toast({
+        title: "Download berhasil",
+        description: `File ${doc.fileName} berhasil diunduh`,
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download gagal",
+        description: "Terjadi kesalahan saat mengunduh file",
+        variant: "destructive"
+      });
+    }
+  }, [toast]);
+
+  // Ultra-optimized event handlers with debouncing
   const handleEditInputChange = useCallback((field: string, value: string) => {
-    setEditFormData(prev => ({ ...prev, [field]: value }));
+    setEditFormData(prev => {
+      // Only update if value actually changed
+      if (prev[field] === value) return prev;
+      return { ...prev, [field]: value };
+    });
   }, []);
 
   const handleEditSelectChange = useCallback((field: string, value: string) => {
-    setEditFormData(prev => ({ ...prev, [field]: value }));
+    setEditFormData(prev => {
+      // Only update if value actually changed
+      if (prev[field] === value) return prev;
+      return { ...prev, [field]: value };
+    });
   }, []);
 
   const handleCloseEditDialog = useCallback(() => {
@@ -358,7 +470,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
       gcgPrinciple: doc.gcgPrinciple || '',
       documentType: doc.documentType || '',
       documentCategory: doc.documentCategory || '',
-      direksi: doc.direksi || '',
+              direktorat: doc.direktorat || '',
+        subdirektorat: doc.subdirektorat || '',
       division: doc.division || '',
       status: doc.status || 'draft',
       confidentiality: doc.confidentiality || 'public'
@@ -444,16 +557,16 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            {/* Filter Direksi */}
+            {/* Filter Direktorat */}
             <div>
-              <Select value={selectedDireksi} onValueChange={setSelectedDireksi}>
+              <Select value={selectedDirektorat} onValueChange={setSelectedDirektorat}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Direksi" />
+                  <SelectValue placeholder="Direktorat" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Semua Direksi</SelectItem>
-                  {direksis.filter(Boolean).map(direksi => (
-                    <SelectItem key={direksi} value={direksi}>{direksi}</SelectItem>
+                  <SelectItem value="all">Semua Direktorat</SelectItem>
+                  {direktorats.filter(Boolean).map(direktorat => (
+                    <SelectItem key={direktorat} value={direktorat}>{direktorat}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -571,7 +684,12 @@ const DocumentList: React.FC<DocumentListProps> = ({
                     </Button>
                   </DialogTrigger>
                   
-                  <Button variant="outline" size="sm" className="hover:bg-green-50 hover:border-green-200">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleDownloadDocument(doc)}
+                    className="hover:bg-green-50 hover:border-green-200"
+                  >
                     <Download className="w-4 h-4 mr-1" />
                     Unduh
                   </Button>
@@ -579,11 +697,21 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => handleEditDocument(doc)}
+                    onClick={() => handleOpenEditDialog(doc)}
                     className="hover:bg-yellow-50 hover:border-yellow-200"
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     Edit
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleRevisionEmail(doc)}
+                    className="hover:bg-purple-50 hover:border-purple-200"
+                  >
+                    <Mail className="w-4 h-4 mr-1" />
+                    Revisi
                   </Button>
                   
                   <Button 
@@ -623,7 +751,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 <div className="space-y-1">
                   <div className="text-sm font-medium text-gray-900">
                     <Building2 className="w-3 h-3 inline mr-1" />
-                    {doc.direksi}
+                    {doc.direktorat}
                   </div>
                   <div className="text-xs text-gray-600">
                     <User className="w-3 h-3 inline mr-1" />
@@ -814,8 +942,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">Direksi</Label>
-                      <p className="text-sm text-gray-900">{selectedDocument.direksi}</p>
+                                      <Label className="text-sm font-medium text-gray-700">Direktorat</Label>
+                <p className="text-sm text-gray-900">{selectedDocument.direktorat}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Divisi</Label>
@@ -889,6 +1017,14 @@ const DocumentList: React.FC<DocumentListProps> = ({
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
                   </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => handleRevisionEmail(selectedDocument)}
+                    className="hover:bg-purple-50 hover:border-purple-200"
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Revisi
+                  </Button>
                 </div>
               </div>
             )}
@@ -942,7 +1078,11 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Input
                           id="editTitle"
                           value={editFormData.title || ''}
-                          onChange={(e) => handleEditInputChange('title', e.target.value)}
+                          onChange={(e) => {
+                            // Debounce the input change
+                            const value = e.target.value;
+                            setTimeout(() => handleEditInputChange('title', value), 100);
+                          }}
                           placeholder="Masukkan judul dokumen"
                         />
                       </div>
@@ -953,7 +1093,11 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Input
                           id="editDocumentNumber"
                           value={editFormData.documentNumber || ''}
-                          onChange={(e) => handleEditInputChange('documentNumber', e.target.value)}
+                          onChange={(e) => {
+                            // Debounce the input change
+                            const value = e.target.value;
+                            setTimeout(() => handleEditInputChange('documentNumber', value), 100);
+                          }}
                           placeholder="Masukkan nomor dokumen"
                         />
                       </div>
@@ -964,7 +1108,11 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Textarea
                           id="editDescription"
                           value={editFormData.description || ''}
-                          onChange={(e) => handleEditInputChange('description', e.target.value)}
+                          onChange={(e) => {
+                            // Debounce the textarea change
+                            const value = e.target.value;
+                            setTimeout(() => handleEditInputChange('description', value), 150);
+                          }}
                           placeholder="Masukkan deskripsi dokumen"
                           rows={3}
                         />
@@ -1033,23 +1181,23 @@ const DocumentList: React.FC<DocumentListProps> = ({
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="editDireksi">
-                          Direksi <span className="text-red-500">*</span>
+                        <Label htmlFor="editDirektorat">
+                          Direktorat <span className="text-red-500">*</span>
                         </Label>
-                        <Select value={editFormData.direksi || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, direksi: value }))}>
+                        <Select value={editFormData.direktorat || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, direktorat: value }))}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Pilih direksi" />
+                            <SelectValue placeholder="Pilih direktorat" />
                           </SelectTrigger>
                           <SelectContent>
-                            {direksi && direksi.length > 0 ? (
-                              direksi.map((dir) => (
+                            {direktorat && direktorat.length > 0 ? (
+                              direktorat.map((dir) => (
                                 <SelectItem key={dir.id} value={dir.nama}>
                                   {dir.nama}
                                 </SelectItem>
                               ))
                             ) : (
                               <SelectItem value="no-data" disabled>
-                                Tidak ada data direksi
+                                Tidak ada data direktorat
                               </SelectItem>
                             )}
                           </SelectContent>
@@ -1168,7 +1316,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                             return !isUsed;
                           }).sort((a, b) => a.aspek.localeCompare(b.aspek));
                           return availableItems.length > 0 ? (
-                            availableItems.map((item) => (
+                            availableItems.slice(0, 50).map((item) => (
                               <div key={item.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
                                 <Checkbox
                                   id={`edit-checklist-${item.id}`}
@@ -1236,12 +1384,19 @@ const DocumentList: React.FC<DocumentListProps> = ({
 
             {/* Dialog Actions */}
             <div className="flex justify-end space-x-2 pt-4 border-t mt-4">
-              <Button variant="outline" onClick={handleCancelEdit}>
+              <ActionButton
+                onClick={handleCancelEdit}
+                variant="outline"
+              >
                 Batal
-              </Button>
-              <Button onClick={handleSaveEdit} className="bg-blue-600 hover:bg-blue-700">
+              </ActionButton>
+              <ActionButton
+                onClick={handleSaveEdit}
+                variant="default"
+                icon={<Save className="w-4 h-4" />}
+              >
                 Simpan Perubahan
-              </Button>
+              </ActionButton>
             </div>
           </DialogContent>
         </Dialog>

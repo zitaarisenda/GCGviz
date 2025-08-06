@@ -14,6 +14,7 @@ import { useYear } from '@/contexts/YearContext';
 import { useKlasifikasi } from '@/contexts/KlasifikasiContext';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { Plus, Calendar, Trash2, Edit, Target, FileText, Tag } from 'lucide-react';
+import { ConfirmDialog, FormDialog, ActionButton, IconButton } from '@/components/panels';
 
 // Import interface from context
 interface KlasifikasiItem {
@@ -203,45 +204,36 @@ const MetaData = () => {
                     <div className="text-sm text-gray-600">
                       {years.length} tahun tersedia
                     </div>
-                    <Dialog open={isYearDialogOpen} onOpenChange={setIsYearDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="bg-blue-600 hover:bg-blue-700">
-                          <Plus className="w-4 h-4 mr-2" />
-                          Tambah Tahun
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-md">
-                        <DialogHeader>
-                          <DialogTitle>Tambah Tahun Baru</DialogTitle>
-                          <DialogDescription>
-                            Tambahkan tahun baru untuk sistem
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleAddYear} className="space-y-4">
-                          <div>
-                            <Label htmlFor="year">Tahun *</Label>
-                            <Input
-                              id="year"
-                              type="number"
-                              value={newYear}
-                              onChange={(e) => setNewYear(e.target.value)}
-                              placeholder="Masukkan tahun (contoh: 2025)"
-                              min="2014"
-                              max="2100"
-                              required
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-2">
-                            <Button type="button" variant="outline" onClick={() => setIsYearDialogOpen(false)}>
-                              Batal
-                            </Button>
-                            <Button type="submit">
-                              Tambah Tahun
-                            </Button>
-                          </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
+                    <ActionButton
+                      onClick={() => setIsYearDialogOpen(true)}
+                      variant="default"
+                      icon={<Plus className="w-4 h-4" />}
+                    >
+                      Tambah Tahun
+                    </ActionButton>
+                    <FormDialog
+                      isOpen={isYearDialogOpen}
+                      onClose={() => setIsYearDialogOpen(false)}
+                      onSubmit={handleAddYear}
+                      title="Tambah Tahun Baru"
+                      description="Tambahkan tahun baru untuk sistem"
+                      variant="add"
+                      submitText="Tambah Tahun"
+                    >
+                      <div>
+                        <Label htmlFor="year">Tahun *</Label>
+                        <Input
+                          id="year"
+                          type="number"
+                          value={newYear}
+                          onChange={(e) => setNewYear(e.target.value)}
+                          placeholder="Masukkan tahun (contoh: 2025)"
+                          min="2014"
+                          max="2100"
+                          required
+                        />
+                      </div>
+                    </FormDialog>
                   </div>
                   
                   <Table>
@@ -310,50 +302,17 @@ const MetaData = () => {
                           Kelola prinsip Good Corporate Governance
                         </CardDescription>
                       </div>
-                      <Dialog open={isKlasifikasiDialogOpen} onOpenChange={setIsKlasifikasiDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button 
-                            className="bg-red-600 hover:bg-red-700"
-                            onClick={() => {
-                              setEditingKlasifikasi(null);
-                              setKlasifikasiForm({ nama: '', tipe: 'prinsip' });
-                            }}
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Tambah Prinsip
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>
-                              {editingKlasifikasi ? 'Edit Prinsip' : 'Tambah Prinsip Baru'}
-                            </DialogTitle>
-                            <DialogDescription>
-                              {editingKlasifikasi ? 'Edit prinsip GCG' : 'Tambahkan prinsip baru untuk GCG'}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <form onSubmit={handleKlasifikasiSubmit} className="space-y-4">
-                            <div>
-                              <Label htmlFor="nama">Nama Prinsip</Label>
-                              <Input
-                                id="nama"
-                                value={klasifikasiForm.nama}
-                                onChange={(e) => setKlasifikasiForm({ ...klasifikasiForm, nama: e.target.value })}
-                                placeholder="Contoh: Transparansi"
-                                required
-                              />
-                            </div>
-                            <div className="flex justify-end space-x-2">
-                              <Button type="button" variant="outline" onClick={() => setIsKlasifikasiDialogOpen(false)}>
-                                Batal
-                              </Button>
-                              <Button type="submit">
-                                {editingKlasifikasi ? 'Update' : 'Simpan'}
-                              </Button>
-                            </div>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
+                      <ActionButton
+                        onClick={() => {
+                          setEditingKlasifikasi(null);
+                          setKlasifikasiForm({ nama: '', tipe: 'prinsip' });
+                          setIsKlasifikasiDialogOpen(true);
+                        }}
+                        variant="default"
+                        icon={<Plus className="w-4 h-4" />}
+                      >
+                        Tambah Prinsip
+                      </ActionButton>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -411,50 +370,17 @@ const MetaData = () => {
                           Kelola jenis-jenis dokumen
                         </CardDescription>
                       </div>
-                      <Dialog open={isKlasifikasiDialogOpen} onOpenChange={setIsKlasifikasiDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button 
-                            className="bg-blue-600 hover:bg-blue-700"
-                            onClick={() => {
-                              setEditingKlasifikasi(null);
-                              setKlasifikasiForm({ nama: '', tipe: 'jenis' });
-                            }}
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Tambah Jenis
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>
-                              {editingKlasifikasi ? 'Edit Jenis' : 'Tambah Jenis Baru'}
-                            </DialogTitle>
-                            <DialogDescription>
-                              {editingKlasifikasi ? 'Edit jenis dokumen' : 'Tambahkan jenis dokumen baru'}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <form onSubmit={handleKlasifikasiSubmit} className="space-y-4">
-                            <div>
-                              <Label htmlFor="nama">Nama Jenis</Label>
-                              <Input
-                                id="nama"
-                                value={klasifikasiForm.nama}
-                                onChange={(e) => setKlasifikasiForm({ ...klasifikasiForm, nama: e.target.value })}
-                                placeholder="Contoh: Kebijakan"
-                                required
-                              />
-                            </div>
-                            <div className="flex justify-end space-x-2">
-                              <Button type="button" variant="outline" onClick={() => setIsKlasifikasiDialogOpen(false)}>
-                                Batal
-                              </Button>
-                              <Button type="submit">
-                                {editingKlasifikasi ? 'Update' : 'Simpan'}
-                              </Button>
-                            </div>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
+                      <ActionButton
+                        onClick={() => {
+                          setEditingKlasifikasi(null);
+                          setKlasifikasiForm({ nama: '', tipe: 'jenis' });
+                          setIsKlasifikasiDialogOpen(true);
+                        }}
+                        variant="default"
+                        icon={<Plus className="w-4 h-4" />}
+                      >
+                        Tambah Jenis
+                      </ActionButton>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -512,50 +438,17 @@ const MetaData = () => {
                           Kelola kategori-kategori dokumen
                         </CardDescription>
                       </div>
-                      <Dialog open={isKlasifikasiDialogOpen} onOpenChange={setIsKlasifikasiDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button 
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => {
-                              setEditingKlasifikasi(null);
-                              setKlasifikasiForm({ nama: '', tipe: 'kategori' });
-                            }}
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Tambah Kategori
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>
-                              {editingKlasifikasi ? 'Edit Kategori' : 'Tambah Kategori Baru'}
-                            </DialogTitle>
-                            <DialogDescription>
-                              {editingKlasifikasi ? 'Edit kategori dokumen' : 'Tambahkan kategori dokumen baru'}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <form onSubmit={handleKlasifikasiSubmit} className="space-y-4">
-                            <div>
-                              <Label htmlFor="nama">Nama Kategori</Label>
-                              <Input
-                                id="nama"
-                                value={klasifikasiForm.nama}
-                                onChange={(e) => setKlasifikasiForm({ ...klasifikasiForm, nama: e.target.value })}
-                                placeholder="Contoh: Kategori Umum"
-                                required
-                              />
-                            </div>
-                            <div className="flex justify-end space-x-2">
-                              <Button type="button" variant="outline" onClick={() => setIsKlasifikasiDialogOpen(false)}>
-                                Batal
-                              </Button>
-                              <Button type="submit">
-                                {editingKlasifikasi ? 'Update' : 'Simpan'}
-                              </Button>
-                            </div>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
+                      <ActionButton
+                        onClick={() => {
+                          setEditingKlasifikasi(null);
+                          setKlasifikasiForm({ nama: '', tipe: 'kategori' });
+                          setIsKlasifikasiDialogOpen(true);
+                        }}
+                        variant="default"
+                        icon={<Plus className="w-4 h-4" />}
+                      >
+                        Tambah Kategori
+                      </ActionButton>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -604,6 +497,28 @@ const MetaData = () => {
           </Tabs>
         </div>
       </div>
+
+      {/* FormDialog untuk Klasifikasi */}
+      <FormDialog
+        isOpen={isKlasifikasiDialogOpen}
+        onClose={() => setIsKlasifikasiDialogOpen(false)}
+        onSubmit={handleKlasifikasiSubmit}
+        title={editingKlasifikasi ? `Edit ${klasifikasiForm.tipe === 'prinsip' ? 'Prinsip' : klasifikasiForm.tipe === 'jenis' ? 'Jenis' : 'Kategori'}` : `Tambah ${klasifikasiForm.tipe === 'prinsip' ? 'Prinsip' : klasifikasiForm.tipe === 'jenis' ? 'Jenis' : 'Kategori'} Baru`}
+        description={editingKlasifikasi ? `Edit ${klasifikasiForm.tipe === 'prinsip' ? 'prinsip GCG' : klasifikasiForm.tipe === 'jenis' ? 'jenis dokumen' : 'kategori dokumen'}` : `Tambahkan ${klasifikasiForm.tipe === 'prinsip' ? 'prinsip baru untuk GCG' : klasifikasiForm.tipe === 'jenis' ? 'jenis dokumen baru' : 'kategori dokumen baru'}`}
+        variant={editingKlasifikasi ? 'edit' : 'add'}
+        submitText={editingKlasifikasi ? 'Update' : 'Simpan'}
+      >
+        <div>
+          <Label htmlFor="nama">Nama {klasifikasiForm.tipe === 'prinsip' ? 'Prinsip' : klasifikasiForm.tipe === 'jenis' ? 'Jenis' : 'Kategori'}</Label>
+          <Input
+            id="nama"
+            value={klasifikasiForm.nama}
+            onChange={(e) => setKlasifikasiForm({ ...klasifikasiForm, nama: e.target.value })}
+            placeholder={`Contoh: ${klasifikasiForm.tipe === 'prinsip' ? 'Transparansi' : klasifikasiForm.tipe === 'jenis' ? 'Kebijakan' : 'Internal'}`}
+            required
+          />
+        </div>
+      </FormDialog>
     </div>
   );
 };

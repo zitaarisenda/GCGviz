@@ -8,9 +8,10 @@ import FileUploadDialog from './FileUploadDialog';
 
 interface YearSelectorProps {
   initialYear?: number;
+  showUploadButton?: boolean;
 }
 
-const YearSelector: React.FC<YearSelectorProps> = ({ initialYear }) => {
+const YearSelector: React.FC<YearSelectorProps> = ({ initialYear, showUploadButton = true }) => {
   const { selectedYear, setSelectedYear, availableYears } = useYear();
   const { getFilesByYear } = useFileUpload();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -49,13 +50,13 @@ const YearSelector: React.FC<YearSelectorProps> = ({ initialYear }) => {
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Tahun Buku</h2>
             <p className="text-sm text-gray-600">
-              Pilih tahun buku untuk mengakses data dan upload dokumen
+              Pilih tahun buku untuk mengakses data{showUploadButton ? ' dan upload dokumen' : ''}
             </p>
           </div>
         </div>
         
         <div className="flex items-center space-x-2">
-          {selectedYear && (
+          {selectedYear && showUploadButton && (
             <Button
               onClick={() => setIsUploadDialogOpen(true)}
               className="bg-blue-600 hover:bg-blue-700"
@@ -100,11 +101,13 @@ const YearSelector: React.FC<YearSelectorProps> = ({ initialYear }) => {
 
       </div>
 
-      {/* File Upload Dialog */}
-      <FileUploadDialog
-        isOpen={isUploadDialogOpen}
-        onOpenChange={setIsUploadDialogOpen}
-      />
+      {/* File Upload Dialog - Only show if showUploadButton is true */}
+      {showUploadButton && (
+        <FileUploadDialog
+          isOpen={isUploadDialogOpen}
+          onOpenChange={setIsUploadDialogOpen}
+        />
+      )}
     </div>
   );
 };

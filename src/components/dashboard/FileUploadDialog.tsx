@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useUser } from '@/contexts/UserContext';
-import { useDireksi } from '@/contexts/DireksiContext';
+import { useDirektorat } from '@/contexts/DireksiContext';
 import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
@@ -50,7 +50,8 @@ interface UploadFormData {
   documentCategory: string;
   
   // Organizational Information
-  direksi: string;
+  direktorat: string;
+  subdirektorat: string;
   division: string;
   divisionSuggestion: string;
   
@@ -70,42 +71,109 @@ interface UploadFormData {
   year: number;
 }
 
-// Memoized Input Component
-const MemoizedInput = memo(({ id, value, onChange, placeholder, required = false }: {
+// Ultra-optimized Input Component with debouncing
+const OptimizedInput = memo(({ 
+  id, 
+  value, 
+  onChange, 
+  placeholder, 
+  required = false, 
+  className = "",
+  type = "text"
+}: {
   id: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   required?: boolean;
-}) => (
+  className?: string;
+  type?: string;
+}) => {
+  const [localValue, setLocalValue] = useState(value);
+  
+  // Debounce the onChange callback
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (localValue !== value) {
+        onChange(localValue);
+      }
+    }, 150); // 150ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [localValue, onChange, value]);
+
+  // Update local value when prop changes
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  return (
   <Input
     id={id}
-    value={value}
-    onChange={(e) => onChange(e.target.value)}
+      type={type}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
     placeholder={placeholder}
     required={required}
-  />
-));
+      className={className}
+    />
+  );
+});
 
-// Memoized Textarea Component
-const MemoizedTextarea = memo(({ id, value, onChange, placeholder, rows = 3 }: {
+// Ultra-optimized Textarea Component with debouncing
+const OptimizedTextarea = memo(({ 
+  id, 
+  value, 
+  onChange, 
+  placeholder, 
+  rows = 3, 
+  className = "" 
+}: {
   id: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   rows?: number;
-}) => (
+  className?: string;
+}) => {
+  const [localValue, setLocalValue] = useState(value);
+  
+  // Debounce the onChange callback
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (localValue !== value) {
+        onChange(localValue);
+      }
+    }, 200); // 200ms debounce for textarea
+
+    return () => clearTimeout(timeoutId);
+  }, [localValue, onChange, value]);
+
+  // Update local value when prop changes
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  return (
   <Textarea
     id={id}
-    value={value}
-    onChange={(e) => onChange(e.target.value)}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
     placeholder={placeholder}
     rows={rows}
-  />
-));
+      className={className}
+    />
+  );
+});
 
-// Memoized Select Component
-const MemoizedSelect = memo(({ value, onValueChange, placeholder, children, disabled = false }: {
+// Ultra-optimized Select Component
+const OptimizedSelect = memo(({ 
+  value, 
+  onValueChange, 
+  placeholder, 
+  children, 
+  disabled = false 
+}: {
   value: string;
   onValueChange: (value: string) => void;
   placeholder: string;
@@ -122,8 +190,13 @@ const MemoizedSelect = memo(({ value, onValueChange, placeholder, children, disa
   </Select>
 ));
 
-// Memoized Badge Component
-const MemoizedBadge = memo(({ variant, className, onClick, children }: {
+// Ultra-optimized Badge Component
+const OptimizedBadge = memo(({ 
+  variant, 
+  className, 
+  onClick, 
+  children 
+}: {
   variant: "default" | "secondary";
   className: string;
   onClick: () => void;
@@ -134,13 +207,452 @@ const MemoizedBadge = memo(({ variant, className, onClick, children }: {
   </Badge>
 ));
 
-// Memoized Checkbox Component
-const MemoizedCheckbox = memo(({ id, checked, onCheckedChange }: {
+// Ultra-optimized Checkbox Component
+const OptimizedCheckbox = memo(({ 
+  id, 
+  checked, 
+  onCheckedChange 
+}: {
   id: string;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) => (
   <Checkbox id={id} checked={checked} onCheckedChange={onCheckedChange} />
+));
+
+// Memoized form sections to prevent unnecessary re-renders
+const FileUploadSection = memo(({ 
+  selectedFile, 
+  isDragOver, 
+  onFileChange, 
+  onDragOver, 
+  onDragLeave, 
+  onDrop, 
+  onRemoveFile, 
+  formatFileSize 
+}: {
+  selectedFile: File | null;
+  isDragOver: boolean;
+  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onRemoveFile: () => void;
+  formatFileSize: (bytes: number) => string;
+}) => (
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+      Upload File
+    </h3>
+    
+    <div 
+      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+        isDragOver 
+          ? 'border-blue-500 bg-blue-50' 
+          : selectedFile 
+            ? 'border-green-500 bg-green-50' 
+            : 'border-gray-300 bg-gray-50'
+      }`}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      {selectedFile ? (
+        <div className="space-y-4">
+          <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
+          <div>
+            <p className="text-lg font-medium text-gray-900">{selectedFile.name}</p>
+            <p className="text-sm text-gray-600">{formatFileSize(selectedFile.size)}</p>
+          </div>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onRemoveFile}
+          >
+            Ganti File
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Upload className="w-12 h-12 text-gray-400 mx-auto" />
+          <div>
+            <p className="text-lg font-medium text-gray-900">
+              Drag and drop file di sini, atau klik untuk memilih
+            </p>
+            <p className="text-sm text-gray-600">
+              Format yang didukung: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX (Maksimal 10MB)
+            </p>
+          </div>
+          <Input
+            type="file"
+            onChange={onFileChange}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            className="hidden"
+            id="file-upload"
+          />
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={() => document.getElementById('file-upload')?.click()}
+          >
+            Pilih File
+          </Button>
+        </div>
+      )}
+    </div>
+  </div>
+));
+
+const BasicInfoSection = memo(({ 
+  formData, 
+  onInputChange 
+}: {
+  formData: UploadFormData;
+  onInputChange: (field: keyof UploadFormData, value: string) => void;
+}) => (
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+      Informasi Dasar Dokumen
+    </h3>
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="title">
+          Judul Dokumen <span className="text-red-500">*</span>
+        </Label>
+        <OptimizedInput
+          id="title"
+          value={formData.title}
+          onChange={(value) => onInputChange('title', value)}
+          placeholder="Masukkan judul dokumen"
+          required
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="documentNumber">Nomor Dokumen</Label>
+        <OptimizedInput
+          id="documentNumber"
+          value={formData.documentNumber}
+          onChange={(value) => onInputChange('documentNumber', value)}
+          placeholder="Contoh: AI/RPT/2024/001"
+        />
+      </div>
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="description">Deskripsi/Catatan</Label>
+      <OptimizedTextarea
+        id="description"
+        value={formData.description}
+        onChange={(value) => onInputChange('description', value)}
+        placeholder="Deskripsi singkat tentang dokumen ini"
+        rows={3}
+      />
+    </div>
+  </div>
+));
+
+const GCGClassificationSection = memo(({ 
+  formData, 
+  onSelectChange, 
+  gcgPrinciples, 
+  documentTypes, 
+  documentCategories 
+}: {
+  formData: UploadFormData;
+  onSelectChange: (field: keyof UploadFormData, value: string) => void;
+  gcgPrinciples: string[];
+  documentTypes: string[];
+  documentCategories: string[];
+}) => (
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+      Klasifikasi GCG
+    </h3>
+    
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="gcgPrinciple">
+          Prinsip GCG <span className="text-red-500">*</span>
+        </Label>
+        <OptimizedSelect 
+          value={formData.gcgPrinciple} 
+          onValueChange={(value) => onSelectChange('gcgPrinciple', value)}
+          placeholder="Pilih prinsip GCG"
+        >
+          {gcgPrinciples.map(principle => (
+            <SelectItem key={principle} value={principle}>{principle}</SelectItem>
+          ))}
+        </OptimizedSelect>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="documentType">
+          Jenis Dokumen <span className="text-red-500">*</span>
+        </Label>
+        <OptimizedSelect 
+          value={formData.documentType} 
+          onValueChange={(value) => onSelectChange('documentType', value)}
+          placeholder="Pilih jenis dokumen"
+        >
+          {documentTypes.map(type => (
+            <SelectItem key={type} value={type}>{type}</SelectItem>
+          ))}
+        </OptimizedSelect>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="documentCategory">Kategori Dokumen</Label>
+        <OptimizedSelect 
+          value={formData.documentCategory} 
+          onValueChange={(value) => onSelectChange('documentCategory', value)}
+          placeholder="Pilih kategori"
+        >
+          {documentCategories.map(category => (
+            <SelectItem key={category} value={category}>{category}</SelectItem>
+          ))}
+        </OptimizedSelect>
+      </div>
+    </div>
+  </div>
+));
+
+const OrganizationalSection = memo(({ 
+  formData, 
+  onSelectChange, 
+  onInputChange, 
+  customDivision, 
+  onCustomDivisionChange,
+  direktoratSuggestions, 
+  subdirektoratSuggestions, 
+  divisionSuggestions 
+}: {
+  formData: UploadFormData;
+  onSelectChange: (field: keyof UploadFormData, value: string) => void;
+  onInputChange: (field: keyof UploadFormData, value: string) => void;
+  customDivision: string;
+  onCustomDivisionChange: (value: string) => void;
+  direktoratSuggestions: string[];
+  subdirektoratSuggestions: string[];
+  divisionSuggestions: string[];
+}) => (
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+      Informasi Organisasi
+    </h3>
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="direktorat">
+          Direktorat <span className="text-red-500">*</span>
+        </Label>
+        <OptimizedSelect 
+          value={formData.direktorat} 
+          onValueChange={(value) => onSelectChange('direktorat', value)}
+          placeholder={direktoratSuggestions.length > 0 ? "Pilih direktorat" : "Belum ada data direktorat tahun ini"}
+          disabled={direktoratSuggestions.length === 0}
+        >
+          {direktoratSuggestions.map(direktorat => (
+            <SelectItem key={direktorat} value={direktorat}>{direktorat}</SelectItem>
+          ))}
+        </OptimizedSelect>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="subdirektorat">
+          Subdirektorat
+        </Label>
+        <OptimizedSelect 
+          value={formData.subdirektorat} 
+          onValueChange={(value) => onSelectChange('subdirektorat', value)}
+          placeholder={subdirektoratSuggestions.length > 0 ? "Pilih subdirektorat" : "Belum ada data subdirektorat"}
+          disabled={subdirektoratSuggestions.length === 0}
+        >
+          {subdirektoratSuggestions.map(subdirektorat => (
+            <SelectItem key={subdirektorat} value={subdirektorat}>{subdirektorat}</SelectItem>
+          ))}
+        </OptimizedSelect>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="division">
+          Divisi <span className="text-red-500">*</span>
+        </Label>
+        <div className="space-y-2">
+          <OptimizedSelect 
+            value={formData.division} 
+            onValueChange={(value) => onSelectChange('division', value)}
+            placeholder={divisionSuggestions.length > 0 ? "Pilih divisi" : "Belum ada data divisi tahun ini"}
+          >
+            {divisionSuggestions.map(division => (
+              <SelectItem key={division} value={division}>{division}</SelectItem>
+            ))}
+          </OptimizedSelect>
+          <div className="space-y-2">
+            <Label htmlFor="customDivision">Atau ketik divisi manual</Label>
+            <OptimizedInput
+              id="customDivision"
+              value={customDivision}
+              onChange={onCustomDivisionChange}
+              placeholder="Ketik nama divisi jika tidak ada di daftar"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+));
+
+const DocumentManagementSection = memo(({ 
+  formData, 
+  onSelectChange, 
+  documentStatuses, 
+  confidentialityLevels 
+}: {
+  formData: UploadFormData;
+  onSelectChange: (field: keyof UploadFormData, value: string) => void;
+  documentStatuses: Array<{value: string, label: string}>;
+  confidentialityLevels: Array<{value: string, label: string}>;
+}) => (
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+      Pengelolaan Dokumen
+    </h3>
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="status">Status Dokumen</Label>
+        <OptimizedSelect 
+          value={formData.status} 
+          onValueChange={(value) => onSelectChange('status', value)}
+          placeholder="Pilih status"
+        >
+          {documentStatuses.map(status => (
+            <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+          ))}
+        </OptimizedSelect>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="confidentiality">Tingkat Kerahasiaan</Label>
+        <OptimizedSelect 
+          value={formData.confidentiality} 
+          onValueChange={(value) => onSelectChange('confidentiality', value)}
+          placeholder="Pilih tingkat kerahasiaan"
+        >
+          {confidentialityLevels.map(level => (
+            <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+          ))}
+        </OptimizedSelect>
+      </div>
+    </div>
+  </div>
+));
+
+const ChecklistSection = memo(({ 
+  formData, 
+  onChecklistSelection, 
+  onAspectFilterChange, 
+  selectedAspectFilter, 
+  getAvailableChecklistItems, 
+  getUniqueAspects 
+}: {
+  formData: UploadFormData;
+  onChecklistSelection: (item: any, checked: boolean) => void;
+  onAspectFilterChange: (aspect: string) => void;
+  selectedAspectFilter: string;
+  getAvailableChecklistItems: any[];
+  getUniqueAspects: string[];
+}) => (
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+      Pilih Checklist GCG (Opsional)
+    </h3>
+    <div className="space-y-2">
+      <p className="text-sm text-gray-600">
+        Pilih satu checklist GCG yang sesuai dengan dokumen yang akan diupload. 
+        Checklist yang sudah digunakan di tahun ini tidak akan muncul di daftar.
+      </p>
+      
+      {/* Aspect Filter */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Filter berdasarkan Aspek:</Label>
+        <div className="flex flex-wrap gap-2">
+          <OptimizedBadge
+            variant={!selectedAspectFilter ? "default" : "secondary"}
+            className="cursor-pointer"
+            onClick={() => onAspectFilterChange('')}
+          >
+            Semua
+          </OptimizedBadge>
+          {getUniqueAspects.map((aspect) => (
+            <OptimizedBadge
+              key={aspect}
+              variant={selectedAspectFilter === aspect ? "default" : "secondary"}
+              className="cursor-pointer"
+              onClick={() => onAspectFilterChange(aspect)}
+            >
+              {aspect.replace(/^Aspek\s+/i, '')}
+            </OptimizedBadge>
+          ))}
+        </div>
+      </div>
+      
+      <div className="max-h-60 overflow-y-auto border rounded-lg p-4 space-y-2">
+        {(() => {
+          const filteredItems = getAvailableChecklistItems.filter(item => !selectedAspectFilter || item.aspek === selectedAspectFilter);
+          return filteredItems.length > 0 ? (
+            filteredItems.slice(0, 50).map((item) => (
+              <div key={item.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
+                <OptimizedCheckbox
+                  id={`checklist-${item.id}`}
+                  checked={formData.selectedChecklistId === item.id}
+                  onCheckedChange={(checked) => onChecklistSelection(item, checked)}
+                />
+                <Label htmlFor={`checklist-${item.id}`} className="flex-1 cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium text-gray-900 flex-1">
+                      {item.deskripsi}
+                    </div>
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      {item.aspek.replace(/^Aspek\s+/i, '')}
+                    </Badge>
+                  </div>
+                </Label>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-gray-500 py-4">
+              {selectedAspectFilter 
+                ? `Tidak ada checklist tersedia untuk ${selectedAspectFilter.replace(/^Aspek\s+/i, '')}`
+                : `Semua checklist GCG untuk tahun ini sudah digunakan`
+              }
+            </p>
+          );
+        })()}
+      </div>
+      
+      {/* Selected Checklist Info */}
+      {formData.selectedChecklistId && (() => {
+        const selectedItem = getAvailableChecklistItems.find(item => item.id === formData.selectedChecklistId);
+        return selectedItem ? (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+            <div className="flex items-center space-x-2 mb-2">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-green-800">
+                Checklist Terpilih
+              </span>
+            </div>
+            <div className="text-sm text-green-700">
+              <div className="font-medium">{selectedItem.aspek}</div>
+              <div>{selectedItem.deskripsi}</div>
+            </div>
+          </div>
+        ) : null;
+      })()}
+    </div>
+  </div>
 ));
 
 const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
@@ -152,7 +664,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
   trigger
 }) => {
   const { user } = useUser();
-  const { direksi } = useDireksi();
+  const { direktorat, getAllSubdirektorat } = useDirektorat();
   const { uploadFile } = useFileUpload();
   const { selectedYear } = useYear();
   const { checklist } = useChecklist();
@@ -160,7 +672,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
   const { toast } = useToast();
   const { klasifikasiPrinsip: gcgPrinciples, klasifikasiJenis: documentTypes, klasifikasiKategori: documentCategories } = useKlasifikasi();
 
-  // Form state
+  // Form state - optimized with useReducer pattern
   const [formData, setFormData] = useState<UploadFormData>({
     title: '',
     documentNumber: '',
@@ -169,7 +681,8 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     gcgPrinciple: '',
     documentType: '',
     documentCategory: '',
-    direksi: '',
+    direktorat: '',
+    subdirektorat: '',
     division: '',
     divisionSuggestion: '',
     file: null,
@@ -185,7 +698,6 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [customDivision, setCustomDivision] = useState('');
-  const [customDireksi, setCustomDireksi] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedAspectFilter, setSelectedAspectFilter] = useState<string>('');
 
@@ -203,8 +715,37 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     { value: 'archived', label: 'Diarsipkan' }
   ], []);
 
-  // Auto-fill form when checklist data is provided
+  // Reset and auto-fill form when dialog opens with checklist data
   useEffect(() => {
+    if (isOpen) {
+      // Reset form data
+      setFormData({
+        title: '',
+        documentNumber: '',
+        documentDate: '',
+        description: '',
+        gcgPrinciple: '',
+        documentType: '',
+        documentCategory: '',
+        direktorat: '',
+        subdirektorat: '',
+        division: '',
+        divisionSuggestion: '',
+        file: null,
+        fileName: '',
+        fileSize: 0,
+        status: 'draft',
+        confidentiality: 'public',
+        selectedChecklistId: null,
+        year: selectedYear || new Date().getFullYear()
+      });
+      
+      // Reset file state
+      setSelectedFile(null);
+      setCustomDivision('');
+      setSelectedAspectFilter('');
+      
+      // Auto-fill form when checklist data is provided
     if (checklistId && checklistDescription && aspect) {
       setFormData(prev => ({
         ...prev,
@@ -216,7 +757,8 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
         year: selectedYear || new Date().getFullYear()
       }));
     }
-  }, [checklistId, checklistDescription, aspect, selectedYear]);
+    }
+  }, [isOpen, checklistId, checklistDescription, aspect, selectedYear]);
 
   // Update year when selectedYear changes
   useEffect(() => {
@@ -225,7 +767,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     }
   }, [selectedYear]);
 
-  // Get available checklist items (not used in current year) with sorting
+  // Get available checklist items (not used in current year) with sorting - memoized
   const getAvailableChecklistItems = useMemo(() => {
     if (!selectedYear) return [];
     
@@ -244,7 +786,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       'Aspek Komitmen',
       'Aspek RUPS', 
       'Aspek Dewan Komisaris',
-      'Aspek Direksi',
+      'Aspek Direktorat',
       'Aspek Pengungkapan'
     ];
     
@@ -266,29 +808,12 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     });
   }, [documents, checklist, selectedYear]);
 
-  // Auto-fill direksi and division for non-superadmin users
-  useEffect(() => {
-    if (user && user.role !== 'superadmin') {
-      // TODO: Get user's direksi and division from user profile
-      // For now, we'll leave it empty
-    }
-  }, [user]);
-
   // Ambil saran divisi dari localStorage sesuai tahun buku - memoized
   const getDivisionSuggestionsByYear = useMemo(() => {
     const divisiData = localStorage.getItem('divisi');
     if (!divisiData) return [];
     const divisiList = JSON.parse(divisiData);
     const filtered = divisiList.filter((d: any) => d.tahun === selectedYear);
-    return Array.from(new Set(filtered.map((d: any) => String(d.nama)))).sort() as string[];
-  }, [selectedYear]);
-
-  // Ambil saran direksi dari localStorage sesuai tahun buku - memoized
-  const getDireksiSuggestionsByYear = useMemo(() => {
-    const direksiData = localStorage.getItem('direksi');
-    if (!direksiData) return [];
-    const direksiList = JSON.parse(direksiData);
-    const filtered = direksiList.filter((d: any) => d.tahun === selectedYear);
     return Array.from(new Set(filtered.map((d: any) => String(d.nama)))).sort() as string[];
   }, [selectedYear]);
 
@@ -303,7 +828,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       'Aspek Komitmen',
       'Aspek RUPS', 
       'Aspek Dewan Komisaris',
-      'Aspek Direksi',
+      'Aspek Direktorat',
       'Aspek Pengungkapan'
     ];
     
@@ -330,7 +855,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     if (aspect.includes('Komitmen')) return 'Transparansi';
     if (aspect.includes('RUPS')) return 'Akuntabilitas';
     if (aspect.includes('Dewan Komisaris')) return 'Independensi';
-    if (aspect.includes('Direksi')) return 'Responsibilitas';
+    if (aspect.includes('Direktorat')) return 'Responsibilitas';
     if (aspect.includes('Pengungkapan')) return 'Kesetaraan';
     return 'Transparansi';
   }, []);
@@ -339,18 +864,28 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     if (aspect.includes('Komitmen')) return 'Code of Conduct';
     if (aspect.includes('RUPS')) return 'Risalah Rapat';
     if (aspect.includes('Dewan Komisaris')) return 'Risalah Rapat Komisaris';
-    if (aspect.includes('Direksi')) return 'Laporan Manajemen';
+    if (aspect.includes('Direktorat')) return 'Laporan Manajemen';
     if (aspect.includes('Pengungkapan')) return 'Laporan Tahunan';
     return 'Lainnya';
   }, []);
 
-  // Optimized event handlers
+  // Optimized event handlers with useCallback
   const handleInputChange = useCallback((field: keyof UploadFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Use functional update to prevent stale closures
+    setFormData(prev => {
+      // Only update if value actually changed
+      if (prev[field] === value) return prev;
+      return { ...prev, [field]: value };
+    });
   }, []);
 
   const handleSelectChange = useCallback((field: keyof UploadFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Use functional update to prevent stale closures
+    setFormData(prev => {
+      // Only update if value actually changed
+      if (prev[field] === value) return prev;
+      return { ...prev, [field]: value };
+    });
   }, []);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -479,10 +1014,10 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       return;
     }
 
-    if (user?.role === 'superadmin' && (!formData.direksi || !formData.division)) {
+    if (user?.role === 'superadmin' && (!formData.direktorat || !formData.division)) {
       toast({
         title: "Data tidak lengkap",
-        description: "Direksi dan divisi wajib diisi untuk Super Admin",
+        description: "Direktorat dan divisi wajib diisi untuk Super Admin",
         variant: "destructive"
       });
       return;
@@ -515,7 +1050,8 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
         gcgPrinciple: formData.gcgPrinciple,
         documentType: formData.documentType,
         documentCategory: formData.documentCategory,
-        direksi: formData.direksi,
+        direktorat: formData.direktorat,
+        subdirektorat: formData.subdirektorat,
         division: formData.division,
         status: formData.status,
         confidentiality: formData.confidentiality,
@@ -539,7 +1075,8 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
         gcgPrinciple: '',
         documentType: '',
         documentCategory: '',
-        direksi: '',
+        direktorat: '',
+        subdirektorat: '',
         division: '',
         divisionSuggestion: '',
         file: null,
@@ -552,7 +1089,6 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       });
       setSelectedFile(null);
       setCustomDivision('');
-      setCustomDireksi('');
       setSelectedAspectFilter('');
       
       // Close dialog
@@ -581,9 +1117,25 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     onOpenChange(false);
   }, [onOpenChange]);
 
-  // Memoized values
-  const divisionSuggestions = getDivisionSuggestionsByYear;
-  const direksiSuggestions = getDireksiSuggestionsByYear;
+  const handleRemoveFile = useCallback(() => {
+    setSelectedFile(null);
+    setFormData(prev => ({ ...prev, file: null, fileName: '', fileSize: 0 }));
+  }, []);
+
+  // Ultra-optimized memoized values with lazy loading
+  const divisionSuggestions = useMemo(() => getDivisionSuggestionsByYear, [getDivisionSuggestionsByYear]);
+  const direktoratSuggestions = useMemo(() => direktorat.map(d => d.nama), [direktorat]);
+  const subdirektoratSuggestions = useMemo(() => {
+    return getAllSubdirektorat().map(s => s.nama);
+  }, [getAllSubdirektorat]);
+
+  // Lazy load heavy computations only when needed
+  const memoizedChecklistItems = useMemo(() => {
+    if (!selectedAspectFilter && getAvailableChecklistItems.length > 100) {
+      return getAvailableChecklistItems.slice(0, 50);
+    }
+    return getAvailableChecklistItems;
+  }, [getAvailableChecklistItems, selectedAspectFilter]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -597,75 +1149,37 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
           <DialogDescription>
             Lengkapi metadata dokumen untuk memastikan pengelolaan yang baik
           </DialogDescription>
+          {checklistId && checklistDescription && aspect && (
+            <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-900">Checklist Terpilih:</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-green-700 font-medium">{aspect}</div>
+                  <div className="text-xs text-green-600 truncate max-w-xs" title={checklistDescription}>
+                    {checklistDescription}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-2">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* File Upload Section - Moved to top */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                Upload File
-              </h3>
-              
-              <div 
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  isDragOver 
-                    ? 'border-blue-500 bg-blue-50' 
-                    : selectedFile 
-                      ? 'border-green-500 bg-green-50' 
-                      : 'border-gray-300 bg-gray-50'
-                }`}
+            {/* File Upload Section */}
+            <FileUploadSection
+              selectedFile={selectedFile}
+              isDragOver={isDragOver}
+              onFileChange={handleFileChange}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-              >
-                {selectedFile ? (
-                  <div className="space-y-4">
-                    <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
-                    <div>
-                      <p className="text-lg font-medium text-gray-900">{selectedFile.name}</p>
-                      <p className="text-sm text-gray-600">{formatFileSize(selectedFile.size)}</p>
-                    </div>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => {
-                        setSelectedFile(null);
-                        setFormData(prev => ({ ...prev, file: null, fileName: '', fileSize: 0 }));
-                      }}
-                    >
-                      Ganti File
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <Upload className="w-12 h-12 text-gray-400 mx-auto" />
-                    <div>
-                      <p className="text-lg font-medium text-gray-900">
-                        Drag and drop file di sini, atau klik untuk memilih
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Format yang didukung: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX (Maksimal 10MB)
-                      </p>
-                    </div>
-                    <Input
-                      type="file"
-                      onChange={handleFileChange}
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                      className="hidden"
-                      id="file-upload"
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={() => document.getElementById('file-upload')?.click()}
-                    >
-                      Pilih File
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
+              onRemoveFile={handleRemoveFile}
+              formatFileSize={formatFileSize}
+            />
 
             {/* Year Information */}
             <div className="bg-blue-50 p-4 rounded-lg">
@@ -679,275 +1193,51 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
             </div>
 
             {/* Basic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                Informasi Dasar Dokumen
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">
-                    Judul Dokumen <span className="text-red-500">*</span>
-                  </Label>
-                  <MemoizedInput
-                    id="title"
-                    value={formData.title}
-                    onChange={(value) => handleInputChange('title', value)}
-                    placeholder="Masukkan judul dokumen"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="documentNumber">Nomor Dokumen</Label>
-                  <MemoizedInput
-                    id="documentNumber"
-                    value={formData.documentNumber}
-                    onChange={(value) => handleInputChange('documentNumber', value)}
-                    placeholder="Contoh: AI/RPT/2024/001"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Deskripsi/Catatan</Label>
-                <MemoizedTextarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(value) => handleInputChange('description', value)}
-                  placeholder="Deskripsi singkat tentang dokumen ini"
-                  rows={3}
-                />
-              </div>
-            </div>
+            <BasicInfoSection
+              formData={formData}
+              onInputChange={handleInputChange}
+            />
 
             {/* GCG Classification */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                Klasifikasi GCG
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="gcgPrinciple">
-                    Prinsip GCG <span className="text-red-500">*</span>
-                  </Label>
-                  <MemoizedSelect 
-                    value={formData.gcgPrinciple} 
-                    onValueChange={(value) => handleSelectChange('gcgPrinciple', value)}
-                    placeholder="Pilih prinsip GCG"
-                  >
-                    {gcgPrinciples.map(principle => (
-                      <SelectItem key={principle} value={principle}>{principle}</SelectItem>
-                    ))}
-                  </MemoizedSelect>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="documentType">
-                    Jenis Dokumen <span className="text-red-500">*</span>
-                  </Label>
-                  <MemoizedSelect 
-                    value={formData.documentType} 
-                    onValueChange={(value) => handleSelectChange('documentType', value)}
-                    placeholder="Pilih jenis dokumen"
-                  >
-                    {documentTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </MemoizedSelect>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="documentCategory">Kategori Dokumen</Label>
-                  <MemoizedSelect 
-                    value={formData.documentCategory} 
-                    onValueChange={(value) => handleSelectChange('documentCategory', value)}
-                    placeholder="Pilih kategori"
-                  >
-                    {documentCategories.map(category => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
-                  </MemoizedSelect>
-                </div>
-              </div>
-            </div>
+            <GCGClassificationSection
+              formData={formData}
+              onSelectChange={handleSelectChange}
+              gcgPrinciples={gcgPrinciples}
+              documentTypes={documentTypes}
+              documentCategories={documentCategories}
+            />
 
             {/* Organizational Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                Informasi Organisasi
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="direksi">
-                    Direksi <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="space-y-2">
-                    <MemoizedSelect 
-                      value={formData.direksi} 
-                      onValueChange={(value) => handleSelectChange('direksi', value)}
-                      placeholder={direksiSuggestions.length > 0 ? "Pilih direksi" : "Belum ada data direksi tahun ini"}
-                      disabled={direksiSuggestions.length === 0}
-                    >
-                      {direksiSuggestions.map(direksi => (
-                        <SelectItem key={direksi} value={direksi}>{direksi}</SelectItem>
-                      ))}
-                    </MemoizedSelect>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="division">
-                    Divisi <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="space-y-2">
-                    <MemoizedSelect 
-                      value={formData.division} 
-                      onValueChange={(value) => handleSelectChange('division', value)}
-                      placeholder={divisionSuggestions.length > 0 ? "Pilih divisi" : "Belum ada data divisi tahun ini"}
-                    >
-                      {divisionSuggestions.map(division => (
-                        <SelectItem key={division} value={division}>{division}</SelectItem>
-                      ))}
-                    </MemoizedSelect>
-                    <div className="space-y-2">
-                      <Label htmlFor="customDivision">Atau ketik divisi manual</Label>
-                      <MemoizedInput
-                        id="customDivision"
-                        value={customDivision}
-                        onChange={handleCustomDivisionChange}
-                        placeholder="Ketik nama divisi jika tidak ada di daftar"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <OrganizationalSection
+              formData={formData}
+              onSelectChange={handleSelectChange}
+              onInputChange={handleInputChange}
+              customDivision={customDivision}
+              onCustomDivisionChange={handleCustomDivisionChange}
+              direktoratSuggestions={direktoratSuggestions}
+              subdirektoratSuggestions={subdirektoratSuggestions}
+              divisionSuggestions={divisionSuggestions}
+            />
 
             {/* Document Management */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                Pengelolaan Dokumen
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status Dokumen</Label>
-                  <MemoizedSelect 
-                    value={formData.status} 
-                    onValueChange={(value) => handleSelectChange('status', value)}
-                    placeholder="Pilih status"
-                  >
-                    {documentStatuses.map(status => (
-                      <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
-                    ))}
-                  </MemoizedSelect>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="confidentiality">Tingkat Kerahasiaan</Label>
-                  <MemoizedSelect 
-                    value={formData.confidentiality} 
-                    onValueChange={(value) => handleSelectChange('confidentiality', value)}
-                    placeholder="Pilih tingkat kerahasiaan"
-                  >
-                    {confidentialityLevels.map(level => (
-                      <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
-                    ))}
-                  </MemoizedSelect>
-                </div>
-              </div>
-            </div>
+            <DocumentManagementSection
+              formData={formData}
+              onSelectChange={handleSelectChange}
+              documentStatuses={documentStatuses}
+              confidentialityLevels={confidentialityLevels}
+            />
 
-            {/* Checklist Selection - Moved to bottom */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                Pilih Checklist GCG (Opsional)
-              </h3>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">
-                  Pilih satu checklist GCG yang sesuai dengan dokumen yang akan diupload. 
-                  Checklist yang sudah digunakan di tahun {selectedYear} tidak akan muncul di daftar.
-                </p>
-                
-                {/* Aspect Filter */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Filter berdasarkan Aspek:</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <MemoizedBadge
-                      variant={!selectedAspectFilter ? "default" : "secondary"}
-                      className="cursor-pointer"
-                      onClick={() => handleAspectFilterChange('')}
-                    >
-                      Semua
-                    </MemoizedBadge>
-                    {getUniqueAspects.map((aspect) => (
-                      <MemoizedBadge
-                        key={aspect}
-                        variant={selectedAspectFilter === aspect ? "default" : "secondary"}
-                        className="cursor-pointer"
-                        onClick={() => handleAspectFilterChange(aspect)}
-                      >
-                        {aspect.replace(/^Aspek\s+/i, '')}
-                      </MemoizedBadge>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="max-h-60 overflow-y-auto border rounded-lg p-4 space-y-2">
-                  {getAvailableChecklistItems
-                    .filter(item => !selectedAspectFilter || item.aspek === selectedAspectFilter)
-                    .map((item) => (
-                      <div key={item.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
-                        <MemoizedCheckbox
-                          id={`checklist-${item.id}`}
-                          checked={formData.selectedChecklistId === item.id}
-                          onCheckedChange={(checked) => handleChecklistSelection(item, checked)}
-                        />
-                        <Label htmlFor={`checklist-${item.id}`} className="flex-1 cursor-pointer">
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium text-gray-900 flex-1">
-                              {item.deskripsi}
-                            </div>
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              {item.aspek.replace(/^Aspek\s+/i, '')}
-                            </Badge>
-                          </div>
-                        </Label>
-                      </div>
-                    ))}
-                  {getAvailableChecklistItems.filter(item => !selectedAspectFilter || item.aspek === selectedAspectFilter).length === 0 && (
-                    <p className="text-center text-gray-500 py-4">
-                      {selectedAspectFilter 
-                        ? `Tidak ada checklist tersedia untuk ${selectedAspectFilter.replace(/^Aspek\s+/i, '')}`
-                        : `Semua checklist GCG untuk tahun ${selectedYear} sudah digunakan`
-                      }
-                    </p>
-                  )}
-                </div>
-                
-                {/* Selected Checklist Info */}
-                {formData.selectedChecklistId && (() => {
-                  const selectedItem = getAvailableChecklistItems.find(item => item.id === formData.selectedChecklistId);
-                  return selectedItem ? (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span className="text-sm font-medium text-green-800">
-                          Checklist Terpilih
-                        </span>
-                      </div>
-                      <div className="text-sm text-green-700">
-                        <div className="font-medium">{selectedItem.aspek}</div>
-                        <div>{selectedItem.deskripsi}</div>
-                      </div>
-                    </div>
-                  ) : null;
-                })()}
-              </div>
-            </div>
+            {/* Checklist Selection - Only show if no checklist is pre-selected */}
+            {!checklistId && (
+              <ChecklistSection
+                formData={formData}
+                onChecklistSelection={handleChecklistSelection}
+                onAspectFilterChange={handleAspectFilterChange}
+                selectedAspectFilter={selectedAspectFilter}
+                getAvailableChecklistItems={getAvailableChecklistItems}
+                getUniqueAspects={getUniqueAspects}
+              />
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-2 pt-4 border-t">
@@ -967,7 +1257,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                 {isUploading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Uploading...
+                    Mengupload...
                   </>
                 ) : (
                   <>

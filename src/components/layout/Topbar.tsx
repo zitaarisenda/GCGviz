@@ -40,7 +40,7 @@ const Topbar = () => {
       case '/documents':
         return { title: 'Manajemen Dokumen', breadcrumb: ['Dashboard', 'Manajemen Dokumen'] };
       case '/list-gcg':
-        return { title: 'List GCG', breadcrumb: ['Dashboard', 'List GCG'] };
+        return { title: 'List GCG', breadcrumb: ['Dashboard', 'Super Admin', 'List GCG'] };
       case '/penilaian-gcg':
         return { title: 'Penilaian GCG', breadcrumb: ['Dashboard', 'Penilaian GCG'] };
       case '/admin/kelola-akun':

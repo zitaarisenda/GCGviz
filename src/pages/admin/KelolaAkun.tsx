@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { ConfirmDialog, FormDialog, ActionButton, IconButton } from '@/components/panels';
 import { useUser } from '@/contexts/UserContext';
 import { useYear } from '@/contexts/YearContext';
 import { 
@@ -29,10 +30,11 @@ import {
 
 interface Account {
   id: number;
-  username: string;
+  email: string;
   name: string;
   role: 'admin' | 'user' | 'superadmin';
-  direksi?: string;
+  direktorat?: string;
+  subdirektorat?: string;
   divisi?: string;
   createdAt: Date;
   isActive: boolean;
@@ -54,11 +56,12 @@ const KelolaAkun = () => {
 
   // Form states
   const [accountForm, setAccountForm] = useState({
-    username: '',
+    email: '',
     password: '',
     name: '',
     role: 'user' as 'admin' | 'user' | 'superadmin',
-    direksi: '',
+    direktorat: '',
+    subdirektorat: '',
     divisi: ''
   });
 
@@ -75,6 +78,26 @@ const KelolaAkun = () => {
     label: '',
     color: ''
   });
+
+  // Load accounts from localStorage
+  useEffect(() => {
+    const usersData = localStorage.getItem('users');
+    if (usersData) {
+      const users = JSON.parse(usersData);
+      const accountsData = users.map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        direktorat: user.direktorat,
+        subdirektorat: user.subdirektorat,
+        divisi: user.divisi,
+        createdAt: new Date(user.createdAt || Date.now()),
+        isActive: user.isActive !== false
+      }));
+      setAccounts(accountsData);
+    }
+  }, []);
 
   // Generate strong password
   const generateStrongPassword = () => {
@@ -153,10 +176,11 @@ const KelolaAkun = () => {
       const users = JSON.parse(usersData);
       const accountsData = users.map((user: any) => ({
         id: user.id,
-        username: user.username,
+        email: user.email,
         name: user.name,
         role: user.role,
-        direksi: user.direksi || '',
+        direktorat: user.direktorat || '',
+        subdirektorat: user.subdirektorat || '',
         divisi: user.divisi || '',
         createdAt: new Date(user.createdAt || Date.now()),
         isActive: true
@@ -169,25 +193,26 @@ const KelolaAkun = () => {
     e.preventDefault();
     
     // Validate form
-    if (!accountForm.username || !accountForm.password || !accountForm.name) {
+    if (!accountForm.email || !accountForm.password || !accountForm.name) {
       alert('Semua field wajib diisi!');
       return;
     }
 
-    // Check if username already exists
-    const existingUser = accounts.find(acc => acc.username === accountForm.username);
+    // Check if email already exists
+    const existingUser = accounts.find(acc => acc.email === accountForm.email);
     if (existingUser) {
-      alert('Username sudah digunakan!');
+      alert('Email sudah digunakan!');
       return;
     }
 
     // Create new account
     const newAccount: Account = {
       id: Date.now(),
-      username: accountForm.username,
+      email: accountForm.email,
       name: accountForm.name,
       role: accountForm.role,
-      direksi: accountForm.direksi,
+      direktorat: accountForm.direktorat,
+      subdirektorat: accountForm.subdirektorat,
       divisi: accountForm.divisi,
       createdAt: new Date(),
       isActive: true
@@ -207,11 +232,12 @@ const KelolaAkun = () => {
     
     // Reset form and close dialog
     setAccountForm({
-      username: '',
+      email: '',
       password: '',
       name: '',
       role: 'user' as 'admin' | 'user' | 'superadmin',
-      direksi: '',
+      direktorat: '',
+      subdirektorat: '',
       divisi: ''
     });
     setIsAddDialogOpen(false);
@@ -225,27 +251,28 @@ const KelolaAkun = () => {
     if (!editingAccount) return;
 
     // Validate form
-    if (!accountForm.username || !accountForm.name) {
-      alert('Username dan nama wajib diisi!');
+    if (!accountForm.email || !accountForm.name) {
+      alert('Email dan nama wajib diisi!');
       return;
     }
 
-    // Check if username already exists (excluding current account)
+    // Check if email already exists (excluding current account)
     const existingUser = accounts.find(acc => 
-      acc.username === accountForm.username && acc.id !== editingAccount.id
+      acc.email === accountForm.email && acc.id !== editingAccount.id
     );
     if (existingUser) {
-      alert('Username sudah digunakan!');
+      alert('Email sudah digunakan!');
       return;
     }
 
     // Update account
     const updatedAccount: Account = {
       ...editingAccount,
-      username: accountForm.username,
+      email: accountForm.email,
       name: accountForm.name,
       role: accountForm.role,
-      direksi: accountForm.direksi,
+      direktorat: accountForm.direktorat,
+      subdirektorat: accountForm.subdirektorat,
       divisi: accountForm.divisi
     };
 
@@ -256,10 +283,11 @@ const KelolaAkun = () => {
     if (userIndex !== -1) {
       users[userIndex] = {
         ...users[userIndex],
-        username: accountForm.username,
+        email: accountForm.email,
         name: accountForm.name,
         role: accountForm.role,
-        direksi: accountForm.direksi,
+        direktorat: accountForm.direktorat,
+        subdirektorat: accountForm.subdirektorat,
         divisi: accountForm.divisi,
         // Only update password if provided
         ...(accountForm.password && { password: accountForm.password })
@@ -274,11 +302,12 @@ const KelolaAkun = () => {
     
     // Reset form and close dialog
     setAccountForm({
-      username: '',
+      email: '',
       password: '',
       name: '',
       role: 'user' as 'admin' | 'user' | 'superadmin',
-      direksi: '',
+      direktorat: '',
+      subdirektorat: '',
       divisi: ''
     });
     setEditingAccount(null);
@@ -361,11 +390,12 @@ const KelolaAkun = () => {
   const openEditDialog = (account: Account) => {
     setEditingAccount(account);
     setAccountForm({
-      username: account.username,
+      email: account.email,
       password: '',
       name: account.name,
       role: account.role,
-      direksi: account.direksi || '',
+      direktorat: account.direktorat || '',
+      subdirektorat: account.subdirektorat || '',
       divisi: account.divisi || ''
     });
     setEditPasswordStrength({ score: 0, label: '', color: '' });
@@ -405,8 +435,8 @@ const KelolaAkun = () => {
     if (availableYears.length === 0) return null;
     return Math.max(...availableYears);
   };
-  const getDireksiByYear = (year: number): string[] => {
-    const data = localStorage.getItem('direksi');
+  const getDirektoratByYear = (year: number): string[] => {
+    const data = localStorage.getItem('direktorat');
     if (!data) return [];
     const list = JSON.parse(data) as any[];
     return Array.from(new Set(list.filter((d: any) => d.tahun === year).map((d: any) => String(d.nama)))).sort();
@@ -417,9 +447,9 @@ const KelolaAkun = () => {
     const list = JSON.parse(data) as any[];
     return Array.from(new Set(list.filter((d: any) => d.tahun === year).map((d: any) => String(d.nama)))).sort();
   };
-  const latestDireksiYear = getLatestYear('direksi');
+  const latestDirektoratYear = getLatestYear('direktorat');
   const latestDivisiYear = getLatestYear('divisi');
-  const direksiOptions = latestDireksiYear ? getDireksiByYear(latestDireksiYear) : [];
+  const direktoratOptions = latestDirektoratYear ? getDirektoratByYear(latestDirektoratYear) : [];
   const divisiOptions = latestDivisiYear ? getDivisiByYear(latestDivisiYear) : [];
 
   return (
@@ -442,28 +472,22 @@ const KelolaAkun = () => {
                 </p>
                     </div>
               <div className="flex space-x-2">
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                      <DialogTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Tambah Akun
-                        </Button>
-                      </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                        <DialogHeader>
-                      <DialogTitle>Tambah Akun Baru</DialogTitle>
-                          <DialogDescription>
-                        Buat akun baru untuk admin atau user
-                          </DialogDescription>
-                        </DialogHeader>
-                    <form onSubmit={handleAddAccount} className="space-y-4">
+                <FormDialog
+                  isOpen={isAddDialogOpen}
+                  onClose={() => setIsAddDialogOpen(false)}
+                  onSubmit={handleAddAccount}
+                  title="Tambah Akun Baru"
+                  description="Buat akun baru untuk admin atau user"
+                  variant="add"
+                  submitText="Tambah Akun"
+                >
                           <div>
-                        <Label htmlFor="username">Username *</Label>
+                        <Label htmlFor="email">Email *</Label>
                             <Input
-                              id="username"
-                          value={accountForm.username}
-                          onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
-                              placeholder="Masukkan username"
+                              id="email"
+                          value={accountForm.email}
+                          onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+                              placeholder="Masukkan email"
                           required
                             />
                           </div>
@@ -549,19 +573,28 @@ const KelolaAkun = () => {
                         </select>
                       </div>
                       <div>
-                        <Label htmlFor="direksi">Direksi</Label>
+                        <Label htmlFor="direktorat">Direktorat</Label>
                         <select
-                          id="direksi"
-                          value={accountForm.direksi}
-                          onChange={(e) => setAccountForm({ ...accountForm, direksi: e.target.value })}
+                          id="direktorat"
+                          value={accountForm.direktorat}
+                          onChange={(e) => setAccountForm({ ...accountForm, direktorat: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={direksiOptions.length === 0}
+                          disabled={direktoratOptions.length === 0}
                         >
-                          <option value="">{direksiOptions.length > 0 ? 'Pilih direksi' : 'Belum ada data direksi tahun terkini'}</option>
-                          {direksiOptions.map((d) => (
+                          <option value="">{direktoratOptions.length > 0 ? 'Pilih direktorat' : 'Belum ada data direktorat tahun terkini'}</option>
+                          {direktoratOptions.map((d) => (
                             <option key={d} value={d}>{d}</option>
                           ))}
                         </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="subdirektorat">Subdirektorat</Label>
+                        <Input
+                          id="subdirektorat"
+                          value={accountForm.subdirektorat}
+                          onChange={(e) => setAccountForm({ ...accountForm, subdirektorat: e.target.value })}
+                          placeholder="Masukkan subdirektorat"
+                        />
                       </div>
                       <div>
                         <Label htmlFor="divisi">Divisi</Label>
@@ -579,32 +612,30 @@ const KelolaAkun = () => {
                         </datalist>
                           </div>
                           <div className="flex justify-end space-x-2">
-                        <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                              Batal
-                            </Button>
-                            <Button type="submit">
+                        <ActionButton
+                          onClick={() => setIsAddDialogOpen(false)}
+                          variant="outline"
+                        >
+                          Batal
+                        </ActionButton>
+                        <ActionButton
+                          type="submit"
+                          variant="default"
+                        >
                           Tambah Akun
-                            </Button>
+                        </ActionButton>
                           </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
+                        </FormDialog>
 
-                <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
-                      <DialogTrigger asChild>
-                    <Button variant="outline" className="text-orange-600 border-orange-600 hover:bg-orange-50">
-                      <Lock className="w-4 h-4 mr-2" />
-                      Edit Password
-                        </Button>
-                      </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                        <DialogHeader>
-                      <DialogTitle>Edit Password Super Admin</DialogTitle>
-                          <DialogDescription>
-                        Ubah password untuk akun Super Admin
-                          </DialogDescription>
-                        </DialogHeader>
-                    <form onSubmit={handleChangePassword} className="space-y-4">
+                <FormDialog
+                  isOpen={isPasswordDialogOpen}
+                  onClose={() => setIsPasswordDialogOpen(false)}
+                  onSubmit={handleChangePassword}
+                  title="Edit Password Super Admin"
+                  description="Ubah password untuk akun Super Admin"
+                  variant="custom"
+                  submitText="Ubah Password"
+                >
                       <div>
                         <Label htmlFor="currentPassword">Password Saat Ini *</Label>
                         <Input
@@ -650,16 +681,20 @@ const KelolaAkun = () => {
                             />
                           </div>
                           <div className="flex justify-end space-x-2">
-                        <Button type="button" variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
-                              Batal
-                            </Button>
-                            <Button type="submit">
+                        <ActionButton
+                          onClick={() => setIsPasswordDialogOpen(false)}
+                          variant="outline"
+                        >
+                          Batal
+                        </ActionButton>
+                        <ActionButton
+                          type="submit"
+                          variant="default"
+                        >
                           Ubah Password
-                            </Button>
+                        </ActionButton>
                           </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
+                        </FormDialog>
                   </div>
             </div>
           </div>
@@ -679,11 +714,12 @@ const KelolaAkun = () => {
                 <CardContent>
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                      <TableHead>Username</TableHead>
+                                              <TableRow>
+                        <TableHead>Email</TableHead>
                       <TableHead>Nama</TableHead>
                       <TableHead>Role</TableHead>
-                      <TableHead>Direksi</TableHead>
+                      <TableHead>Direktorat</TableHead>
+                      <TableHead>Subdirektorat</TableHead>
                       <TableHead>Divisi</TableHead>
                       <TableHead>Tanggal Dibuat</TableHead>
                         <TableHead>Aksi</TableHead>
@@ -692,10 +728,11 @@ const KelolaAkun = () => {
                     <TableBody>
                     {accounts.map((account) => (
                       <TableRow key={account.id}>
-                        <TableCell className="font-medium">{account.username}</TableCell>
+                        <TableCell className="font-medium">{account.email}</TableCell>
                         <TableCell>{account.name}</TableCell>
                         <TableCell>{getRoleBadge(account.role)}</TableCell>
-                        <TableCell>{account.direksi || '-'}</TableCell>
+                        <TableCell>{account.direktorat || '-'}</TableCell>
+                        <TableCell>{account.subdirektorat || '-'}</TableCell>
                         <TableCell>{account.divisi || '-'}</TableCell>
                         <TableCell>{account.createdAt.toLocaleDateString('id-ID')}</TableCell>
                           <TableCell>
@@ -729,22 +766,22 @@ const KelolaAkun = () => {
       </div>
 
       {/* Edit Account Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Akun</DialogTitle>
-            <DialogDescription>
-              Edit informasi akun
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleEditAccount} className="space-y-4">
+      <FormDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onSubmit={handleEditAccount}
+        title="Edit Akun"
+        description="Edit informasi akun"
+        variant="edit"
+        submitText="Update Akun"
+      >
             <div>
-              <Label htmlFor="edit-username">Username *</Label>
+              <Label htmlFor="edit-email">Email *</Label>
               <Input
-                id="edit-username"
-                value={accountForm.username}
-                onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
-                placeholder="Masukkan username"
+                id="edit-email"
+                value={accountForm.email}
+                onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+                placeholder="Masukkan email"
                 required
               />
             </div>
@@ -829,19 +866,28 @@ const KelolaAkun = () => {
               </select>
             </div>
             <div>
-              <Label htmlFor="edit-direksi">Direksi</Label>
+              <Label htmlFor="edit-direktorat">Direktorat</Label>
               <select
-                id="edit-direksi"
-                value={accountForm.direksi}
-                onChange={(e) => setAccountForm({ ...accountForm, direksi: e.target.value })}
+                id="edit-direktorat"
+                value={accountForm.direktorat}
+                onChange={(e) => setAccountForm({ ...accountForm, direktorat: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={direksiOptions.length === 0}
+                disabled={direktoratOptions.length === 0}
               >
-                <option value="">{direksiOptions.length > 0 ? 'Pilih direksi' : 'Belum ada data direksi tahun terkini'}</option>
-                {direksiOptions.map((d) => (
+                <option value="">{direktoratOptions.length > 0 ? 'Pilih direktorat' : 'Belum ada data direktorat tahun terkini'}</option>
+                {direktoratOptions.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <Label htmlFor="edit-subdirektorat">Subdirektorat</Label>
+              <Input
+                id="edit-subdirektorat"
+                value={accountForm.subdirektorat}
+                onChange={(e) => setAccountForm({ ...accountForm, subdirektorat: e.target.value })}
+                placeholder="Masukkan subdirektorat"
+              />
             </div>
             <div>
               <Label htmlFor="edit-divisi">Divisi</Label>
@@ -859,41 +905,34 @@ const KelolaAkun = () => {
               </datalist>
             </div>
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => {
-                setIsEditDialogOpen(false);
-                setEditPasswordStrength({ score: 0, label: '', color: '' });
-              }}>
+              <ActionButton
+                onClick={() => {
+                  setIsEditDialogOpen(false);
+                  setEditPasswordStrength({ score: 0, label: '', color: '' });
+                }}
+                variant="outline"
+              >
                 Batal
-              </Button>
-              <Button type="submit">
+              </ActionButton>
+              <ActionButton
+                type="submit"
+                variant="default"
+              >
                 Update Akun
-              </Button>
+              </ActionButton>
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </FormDialog>
 
       {/* Delete Account Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Akun</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus akun "{accountToDelete?.username}"? 
-              Tindakan ini tidak dapat dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteAccount}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Hapus
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDeleteAccount}
+        title="Hapus Akun"
+        description={`Apakah Anda yakin ingin menghapus akun "${accountToDelete?.email}"? Tindakan ini tidak dapat dibatalkan.`}
+        variant="danger"
+        confirmText="Hapus"
+      />
     </div>
   );
 };

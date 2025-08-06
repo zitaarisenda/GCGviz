@@ -3,6 +3,8 @@
  * 
  * File ini berisi utility functions dan constants untuk skema warna metadata
  * yang digunakan di seluruh aplikasi.
+ * 
+ * Menggunakan Uniqlo Soft Colors Scheme - Vibrant & Consistent
  */
 
 // ===== TYPES =====
@@ -18,51 +20,53 @@ export type MetadataType =
 
 export type MetadataState = 'normal' | 'hover' | 'focus' | 'disabled' | 'error' | 'success';
 
-// ===== COLOR CONSTANTS =====
+// ===== UNIQLO SOFT COLOR CONSTANTS - VIBRANT & CONSISTENT =====
 export const METADATA_COLORS = {
-  // Informasi Dasar
+  // Informasi Dasar - Warm Blue
   basic: {
-    label: 'text-gray-700 font-medium',
-    input: 'border-gray-200 focus:border-gray-500 focus:ring-gray-500',
-    badge: 'text-xs bg-gray-50 border-gray-200 text-gray-700',
-    hover: 'border-gray-300',
-    disabled: 'bg-gray-50 border-gray-200 text-gray-500',
-    error: 'border-red-300 focus:border-red-500 focus:ring-red-500',
-    success: 'border-green-300 focus:border-green-500 focus:ring-green-500'
-  },
-  
-  // Klasifikasi GCG
-  'gcg-principle': {
-    label: 'text-purple-700 font-medium',
-    input: 'border-purple-200 focus:border-purple-500 focus:ring-purple-500',
-    badge: 'text-xs bg-purple-50 border-purple-200 text-purple-700',
-    hover: 'border-purple-300',
-    disabled: 'bg-purple-50 border-purple-200 text-purple-500',
-    error: 'border-red-300 focus:border-red-500 focus:ring-red-500',
-    success: 'border-green-300 focus:border-green-500 focus:ring-green-500'
-  },
-  
-  'document-type': {
     label: 'text-blue-700 font-medium',
     input: 'border-blue-200 focus:border-blue-500 focus:ring-blue-500',
     badge: 'text-xs bg-blue-50 border-blue-200 text-blue-700',
     hover: 'border-blue-300',
     disabled: 'bg-blue-50 border-blue-200 text-blue-500',
     error: 'border-red-300 focus:border-red-500 focus:ring-red-500',
-    success: 'border-green-300 focus:border-green-500 focus:ring-green-500'
+    success: 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500'
   },
   
-  'document-category': {
-    label: 'text-green-700 font-medium',
-    input: 'border-green-200 focus:border-green-500 focus:ring-green-500',
-    badge: 'text-xs bg-green-50 border-green-200 text-green-700',
-    hover: 'border-green-300',
-    disabled: 'bg-green-50 border-green-200 text-green-500',
+  // Klasifikasi GCG - Vibrant Navy Blue
+  'gcg-principle': {
+    label: 'text-blue-700 font-medium',
+    input: 'border-blue-200 focus:border-blue-500 focus:ring-blue-500',
+    badge: 'text-xs bg-blue-50 border-blue-200 text-blue-700',
+    hover: 'border-blue-300',
+    disabled: 'bg-blue-50 border-blue-200 text-blue-500',
     error: 'border-red-300 focus:border-red-500 focus:ring-red-500',
-    success: 'border-green-300 focus:border-green-500 focus:ring-green-500'
+    success: 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500'
   },
   
-  // Informasi Organisasi
+  // Jenis Dokumen - Warm Amber
+  'document-type': {
+    label: 'text-amber-700 font-medium',
+    input: 'border-amber-200 focus:border-amber-500 focus:ring-amber-500',
+    badge: 'text-xs bg-amber-50 border-amber-200 text-amber-700',
+    hover: 'border-amber-300',
+    disabled: 'bg-amber-50 border-amber-200 text-amber-500',
+    error: 'border-red-300 focus:border-red-500 focus:ring-red-500',
+    success: 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500'
+  },
+  
+  // Kategori Dokumen - Fresh Emerald
+  'document-category': {
+    label: 'text-emerald-700 font-medium',
+    input: 'border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500',
+    badge: 'text-xs bg-emerald-50 border-emerald-200 text-emerald-700',
+    hover: 'border-emerald-300',
+    disabled: 'bg-emerald-50 border-emerald-200 text-emerald-500',
+    error: 'border-red-300 focus:border-red-500 focus:ring-red-500',
+    success: 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500'
+  },
+  
+  // Informasi Organisasi - Vibrant Indigo
   direksi: {
     label: 'text-indigo-700 font-medium',
     input: 'border-indigo-200 focus:border-indigo-500 focus:ring-indigo-500',
@@ -70,9 +74,10 @@ export const METADATA_COLORS = {
     hover: 'border-indigo-300',
     disabled: 'bg-indigo-50 border-indigo-200 text-indigo-500',
     error: 'border-red-300 focus:border-red-500 focus:ring-red-500',
-    success: 'border-green-300 focus:border-green-500 focus:ring-green-500'
+    success: 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500'
   },
   
+  // Divisi - Warm Orange
   division: {
     label: 'text-orange-700 font-medium',
     input: 'border-orange-200 focus:border-orange-500 focus:ring-orange-500',
@@ -80,10 +85,10 @@ export const METADATA_COLORS = {
     hover: 'border-orange-300',
     disabled: 'bg-orange-50 border-orange-200 text-orange-500',
     error: 'border-red-300 focus:border-red-500 focus:ring-red-500',
-    success: 'border-green-300 focus:border-green-500 focus:ring-green-500'
+    success: 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500'
   },
   
-  // Pengelolaan Dokumen
+  // Pengelolaan Dokumen - Fresh Teal
   status: {
     label: 'text-teal-700 font-medium',
     input: 'border-teal-200 focus:border-teal-500 focus:ring-teal-500',
@@ -91,17 +96,18 @@ export const METADATA_COLORS = {
     hover: 'border-teal-300',
     disabled: 'bg-teal-50 border-teal-200 text-teal-500',
     error: 'border-red-300 focus:border-red-500 focus:ring-red-500',
-    success: 'border-green-300 focus:border-green-500 focus:ring-green-500'
+    success: 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500'
   },
   
+  // Kerahasiaan - Soft Rose
   confidentiality: {
-    label: 'text-pink-700 font-medium',
-    input: 'border-pink-200 focus:border-pink-500 focus:ring-pink-500',
-    badge: 'text-xs bg-pink-50 border-pink-200 text-pink-700',
-    hover: 'border-pink-300',
-    disabled: 'bg-pink-50 border-pink-200 text-pink-500',
+    label: 'text-rose-700 font-medium',
+    input: 'border-rose-200 focus:border-rose-500 focus:ring-rose-500',
+    badge: 'text-xs bg-rose-50 border-rose-200 text-rose-700',
+    hover: 'border-rose-300',
+    disabled: 'bg-rose-50 border-rose-200 text-rose-500',
     error: 'border-red-300 focus:border-red-500 focus:ring-red-500',
-    success: 'border-green-300 focus:border-green-500 focus:ring-green-500'
+    success: 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500'
   }
 } as const;
 

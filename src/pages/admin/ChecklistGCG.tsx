@@ -13,7 +13,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useYear } from '@/contexts/YearContext';
+import { useUser } from '@/contexts/UserContext';
 import { Plus, Edit, Trash2, ListTodo, Calendar, FileText, CheckCircle, Target, Filter } from 'lucide-react';
+import { ConfirmDialog, FormDialog, ActionButton, IconButton } from '@/components/panels';
 
 interface ChecklistItem {
   id: number;
@@ -22,6 +24,19 @@ interface ChecklistItem {
   tahun?: number;
   status?: 'uploaded' | 'not_uploaded';
   file?: string;
+}
+
+interface ChecklistAssignment {
+  id: number;
+  checklistId: number;
+  subdirektorat: string;
+  aspek: string;
+  deskripsi: string;
+  tahun: number;
+  assignedBy: string;
+  assignedAt: Date;
+  status: 'assigned' | 'in_progress' | 'completed';
+  notes?: string;
 }
 
 const ChecklistGCG = () => {
@@ -37,6 +52,7 @@ const ChecklistGCG = () => {
     initializeYearData
   } = useChecklist();
   const { isSidebarOpen } = useSidebar();
+  const { user } = useUser();
   
   // State untuk tahun
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -53,6 +69,15 @@ const ChecklistGCG = () => {
   
   // State untuk filter aspek
   const [selectedAspek, setSelectedAspek] = useState('all');
+  
+  // State untuk assignment checklist
+  const [assignments, setAssignments] = useState<ChecklistAssignment[]>([]);
+  const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
+  const [selectedChecklistForAssignment, setSelectedChecklistForAssignment] = useState<ChecklistItem | null>(null);
+  const [assignmentForm, setAssignmentForm] = useState({
+    subdirektorat: '',
+    notes: ''
+  });
   
   // Use years from global context
   const { availableYears } = useYear();
@@ -251,35 +276,103 @@ const ChecklistGCG = () => {
               </TabsTrigger>
             </TabsList>
 
-            {/* Overview Tab */}
+            {/* Assignment Tab */}
             <TabsContent value="overview" id="overview-tab">
               <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center space-x-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                  <span className="font-semibold text-blue-900">Tahun {selectedYear}</span>
+                  <Target className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold text-blue-900">Assignment Checklist - Tahun {selectedYear}</span>
                 </div>
                 <p className="text-blue-700 text-sm mt-1">
-                  Menampilkan overview checklist GCG untuk tahun {selectedYear}
+                  Atur assignment checklist GCG untuk setiap subdirektorat pada tahun {selectedYear}
                 </p>
               </div>
+              
+              {/* Assignment Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm">Total Assignment</p>
+                        <p className="text-2xl font-bold">{assignments.length}</p>
+                      </div>
+                      <Target className="w-8 h-8 text-blue-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm">Completed</p>
+                        <p className="text-2xl font-bold">{assignments.filter(a => a.status === 'completed').length}</p>
+                      </div>
+                      <CheckCircle className="w-8 h-8 text-green-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-100 text-sm">In Progress</p>
+                        <p className="text-2xl font-bold">{assignments.filter(a => a.status === 'in_progress').length}</p>
+                      </div>
+                      <FileText className="w-8 h-8 text-orange-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-100 text-sm">Assigned</p>
+                        <p className="text-2xl font-bold">{assignments.filter(a => a.status === 'assigned').length}</p>
+                      </div>
+                      <Calendar className="w-8 h-8 text-purple-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Assignment by Aspect */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {aspects.map((aspek) => {
                   const items = groupedChecklist[aspek] || [];
-                  const progress = getProgressPercentage(items);
+                  const aspectAssignments = assignments.filter(a => a.aspek === aspek);
+                  const completedAssignments = aspectAssignments.filter(a => a.status === 'completed').length;
+                  const progress = aspectAssignments.length > 0 ? (completedAssignments / aspectAssignments.length) * 100 : 0;
                   
                   return (
-                    <Card key={aspek} className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <Card key={aspek} className="hover:shadow-lg transition-shadow">
                       <CardHeader>
-                        <CardTitle className="text-lg">{aspek}</CardTitle>
+                        <CardTitle className="text-lg flex items-center justify-between">
+                          <span>{aspek}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedAspek(aspek);
+                              // Scroll to checklist tab
+                              document.getElementById('checklist-tab')?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </CardTitle>
                         <CardDescription>
-                          {items.length} item checklist
+                          {aspectAssignments.length} assignment dari {items.length} checklist
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
                           <div className="flex justify-between text-sm">
-                            <span>Progress</span>
-                            <span className="font-medium">{progress}%</span>
+                            <span>Progress Assignment</span>
+                            <span className="font-medium">{Math.round(progress)}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div 
@@ -288,8 +381,32 @@ const ChecklistGCG = () => {
                             ></div>
                           </div>
                           <div className="flex justify-between text-xs text-gray-500">
-                            <span>{items.filter(item => item.status === 'uploaded').length} uploaded</span>
-                            <span>{items.filter(item => item.status === 'not_uploaded').length} pending</span>
+                            <span>{completedAssignments} sudah upload</span>
+                            <span>{aspectAssignments.length - completedAssignments} belum upload</span>
+                          </div>
+                          
+                          {/* Subdirektorat List */}
+                          <div className="mt-4">
+                            <p className="text-sm font-medium mb-2">Subdirektorat yang Ditugaskan:</p>
+                            <div className="space-y-1">
+                              {aspectAssignments.slice(0, 3).map((assignment) => (
+                                <div key={assignment.id} className="flex items-center justify-between text-xs bg-gray-50 p-2 rounded">
+                                  <span className="truncate">{assignment.subdirektorat}</span>
+                                  <span className={`px-2 py-1 rounded text-xs ${
+                                    assignment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                    assignment.status === 'in_progress' ? 'bg-orange-100 text-orange-800' :
+                                    'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {assignment.status}
+                                  </span>
+                                </div>
+                              ))}
+                              {aspectAssignments.length > 3 && (
+                                <div className="text-xs text-gray-500 text-center">
+                                  +{aspectAssignments.length - 3} subdirektorat lainnya
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -322,50 +439,17 @@ const ChecklistGCG = () => {
                         {aspects.length} aspek ditemukan untuk tahun {selectedYear}
                       </CardDescription>
                     </div>
-                    <Dialog open={isAspekDialogOpen} onOpenChange={setIsAspekDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          className="bg-green-600 hover:bg-green-700"
-                          onClick={() => {
-                            setEditingAspek(null);
-                            setAspekForm({ nama: '' });
-                          }}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Tambah Aspek
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>
-                            {editingAspek ? 'Edit Aspek' : 'Tambah Aspek Baru'} - Tahun {selectedYear}
-                          </DialogTitle>
-                          <DialogDescription>
-                            {editingAspek ? `Edit aspek checklist GCG untuk tahun ${selectedYear}` : `Tambahkan aspek baru untuk checklist GCG tahun ${selectedYear}`}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleAspekSubmit} className="space-y-4">
-                          <div>
-                            <Label htmlFor="aspek">Nama Aspek</Label>
-                            <Input
-                              id="aspek"
-                              value={aspekForm.nama}
-                              onChange={(e) => setAspekForm({ nama: e.target.value })}
-                              placeholder="Contoh: ASPEK I. Komitmen"
-                              required
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-2">
-                            <Button type="button" variant="outline" onClick={() => setIsAspekDialogOpen(false)}>
-                              Batal
-                            </Button>
-                            <Button type="submit">
-                              {editingAspek ? 'Update' : 'Simpan'}
-                            </Button>
-                          </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
+                    <ActionButton
+                      onClick={() => {
+                        setEditingAspek(null);
+                        setAspekForm({ nama: '' });
+                        setIsAspekDialogOpen(true);
+                      }}
+                      variant="default"
+                      icon={<Plus className="w-4 h-4" />}
+                    >
+                      Tambah Aspek
+                    </ActionButton>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -434,66 +518,17 @@ const ChecklistGCG = () => {
                         {filteredChecklist.length} item checklist ditemukan untuk tahun {selectedYear}
                       </CardDescription>
                     </div>
-                    <Dialog open={isChecklistDialogOpen} onOpenChange={setIsChecklistDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          className="bg-purple-600 hover:bg-purple-700"
-                          onClick={() => {
-                            setEditingChecklist(null);
-                            setChecklistForm({ aspek: '', deskripsi: '' });
-                          }}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Tambah Checklist
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>
-                            {editingChecklist ? 'Edit Checklist' : 'Tambah Checklist Baru'} - Tahun {selectedYear}
-                          </DialogTitle>
-                          <DialogDescription>
-                            {editingChecklist ? `Edit item checklist GCG untuk tahun ${selectedYear}` : `Tambahkan item baru untuk checklist GCG tahun ${selectedYear}`}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleChecklistSubmit} className="space-y-4">
-                          <div>
-                            <Label htmlFor="aspek">Aspek</Label>
-                            <Select value={checklistForm.aspek} onValueChange={(value) => setChecklistForm({ ...checklistForm, aspek: value })}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Pilih aspek" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {aspects.map(aspek => (
-                                  <SelectItem key={aspek} value={aspek}>
-                                    {aspek}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label htmlFor="deskripsi">Deskripsi Checklist</Label>
-                            <Textarea
-                              id="deskripsi"
-                              value={checklistForm.deskripsi}
-                              onChange={(e) => setChecklistForm({ ...checklistForm, deskripsi: e.target.value })}
-                              placeholder="Masukkan deskripsi checklist"
-                              rows={4}
-                              required
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-2">
-                            <Button type="button" variant="outline" onClick={() => setIsChecklistDialogOpen(false)}>
-                              Batal
-                            </Button>
-                            <Button type="submit">
-                              {editingChecklist ? 'Update' : 'Simpan'}
-                            </Button>
-                          </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
+                    <ActionButton
+                      onClick={() => {
+                        setEditingChecklist(null);
+                        setChecklistForm({ aspek: '', deskripsi: '' });
+                        setIsChecklistDialogOpen(true);
+                      }}
+                      variant="default"
+                      icon={<Plus className="w-4 h-4" />}
+                    >
+                      Tambah Checklist
+                    </ActionButton>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -567,7 +602,7 @@ const ChecklistGCG = () => {
                                       ? 'bg-green-100 text-green-800' 
                                       : 'bg-yellow-100 text-yellow-800'
                                   }`}>
-                                    {item.status === 'uploaded' ? 'Uploaded' : 'Pending'}
+                                    {item.status === 'uploaded' ? 'Sudah Upload' : 'Belum Upload'}
                                   </span>
                                 </TableCell>
                                 <TableCell>
@@ -614,7 +649,7 @@ const ChecklistGCG = () => {
                                       ? 'bg-green-100 text-green-800' 
                                       : 'bg-yellow-100 text-yellow-800'
                                   }`}>
-                                    {item.status === 'uploaded' ? 'Uploaded' : 'Pending'}
+                                    {item.status === 'uploaded' ? 'Sudah Upload' : 'Belum Upload'}
                                   </span>
                                 </TableCell>
                                 <TableCell>
@@ -649,6 +684,154 @@ const ChecklistGCG = () => {
           </Tabs>
         </div>
       </div>
+
+      {/* FormDialog untuk Aspek */}
+      <FormDialog
+        isOpen={isAspekDialogOpen}
+        onClose={() => setIsAspekDialogOpen(false)}
+        onSubmit={() => {
+          const event = { preventDefault: () => {} } as React.FormEvent;
+          handleAspekSubmit(event);
+        }}
+        title={`${editingAspek ? 'Edit Aspek' : 'Tambah Aspek Baru'} - Tahun ${selectedYear}`}
+        description={editingAspek ? `Edit aspek checklist GCG untuk tahun ${selectedYear}` : `Tambahkan aspek baru untuk checklist GCG tahun ${selectedYear}`}
+        variant={editingAspek ? 'edit' : 'add'}
+        submitText={editingAspek ? 'Update' : 'Simpan'}
+      >
+        <div>
+          <Label htmlFor="aspek">Nama Aspek</Label>
+          <Input
+            id="aspek"
+            value={aspekForm.nama}
+            onChange={(e) => setAspekForm({ nama: e.target.value })}
+            placeholder="Contoh: ASPEK I. Komitmen"
+            required
+          />
+        </div>
+      </FormDialog>
+
+      {/* FormDialog untuk Checklist */}
+      <FormDialog
+        isOpen={isChecklistDialogOpen}
+        onClose={() => setIsChecklistDialogOpen(false)}
+        onSubmit={() => {
+          const event = { preventDefault: () => {} } as React.FormEvent;
+          handleChecklistSubmit(event);
+        }}
+        title={`${editingChecklist ? 'Edit Checklist' : 'Tambah Checklist Baru'} - Tahun ${selectedYear}`}
+        description={editingChecklist ? `Edit item checklist GCG untuk tahun ${selectedYear}` : `Tambahkan item baru untuk checklist GCG tahun ${selectedYear}`}
+        variant={editingChecklist ? 'edit' : 'add'}
+        submitText={editingChecklist ? 'Update' : 'Simpan'}
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="aspek">Aspek</Label>
+            <Select value={checklistForm.aspek} onValueChange={(value) => setChecklistForm({ ...checklistForm, aspek: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih aspek" />
+              </SelectTrigger>
+              <SelectContent>
+                {aspects.map(aspek => (
+                  <SelectItem key={aspek} value={aspek}>
+                    {aspek}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="deskripsi">Deskripsi Checklist</Label>
+            <Textarea
+              id="deskripsi"
+              value={checklistForm.deskripsi}
+              onChange={(e) => setChecklistForm({ ...checklistForm, deskripsi: e.target.value })}
+              placeholder="Masukkan deskripsi checklist"
+              rows={4}
+              required
+            />
+          </div>
+        </div>
+      </FormDialog>
+
+      {/* FormDialog untuk Assignment */}
+      <FormDialog
+        isOpen={isAssignmentDialogOpen}
+        onClose={() => setIsAssignmentDialogOpen(false)}
+        onSubmit={() => {
+          if (!assignmentForm.subdirektorat.trim()) {
+            alert('Pilih subdirektorat!');
+            return;
+          }
+          
+          const newAssignment: ChecklistAssignment = {
+            id: Date.now(),
+            checklistId: selectedChecklistForAssignment?.id || 0,
+            subdirektorat: assignmentForm.subdirektorat,
+            aspek: selectedChecklistForAssignment?.aspek || '',
+            deskripsi: selectedChecklistForAssignment?.deskripsi || '',
+            tahun: selectedYear,
+            assignedBy: user?.name || 'Super Admin',
+            assignedAt: new Date(),
+            status: 'assigned',
+            notes: assignmentForm.notes
+          };
+          
+          setAssignments(prev => [...prev, newAssignment]);
+          setIsAssignmentDialogOpen(false);
+          setAssignmentForm({ subdirektorat: '', notes: '' });
+          alert('Assignment berhasil dibuat!');
+        }}
+        title="Assign Checklist"
+        description="Tugaskan checklist ini kepada subdirektorat tertentu"
+        variant="custom"
+        submitText="Assign Checklist"
+      >
+        {selectedChecklistForAssignment && (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="checklist-info">Checklist Info</Label>
+              <div className="p-3 bg-gray-50 rounded-lg text-sm">
+                <p><strong>Aspek:</strong> {selectedChecklistForAssignment.aspek}</p>
+                <p><strong>Deskripsi:</strong> {selectedChecklistForAssignment.deskripsi}</p>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="subdirektorat">Subdirektorat</Label>
+              <Select 
+                value={assignmentForm.subdirektorat} 
+                onValueChange={(value) => setAssignmentForm(prev => ({ ...prev, subdirektorat: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih subdirektorat" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Sub Direktorat Government and Corporate Business">Sub Direktorat Government and Corporate Business</SelectItem>
+                  <SelectItem value="Sub Direktorat Business Development">Sub Direktorat Business Development</SelectItem>
+                  <SelectItem value="Sub Direktorat Operations">Sub Direktorat Operations</SelectItem>
+                  <SelectItem value="Sub Direktorat Finance">Sub Direktorat Finance</SelectItem>
+                  <SelectItem value="Sub Direktorat Human Capital">Sub Direktorat Human Capital</SelectItem>
+                  <SelectItem value="Sub Direktorat Technology">Sub Direktorat Technology</SelectItem>
+                  <SelectItem value="Sub Direktorat Legal and Compliance">Sub Direktorat Legal and Compliance</SelectItem>
+                  <SelectItem value="Sub Direktorat Risk Management">Sub Direktorat Risk Management</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="notes">Catatan (Opsional)</Label>
+              <Textarea
+                id="notes"
+                value={assignmentForm.notes}
+                onChange={(e) => setAssignmentForm(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Tambahkan catatan untuk assignment ini..."
+                rows={3}
+              />
+            </div>
+          </div>
+        )}
+      </FormDialog>
     </div>
   );
 };

@@ -107,53 +107,55 @@ const Sidebar = () => {
         }
       ]
     },
-    { 
-      name: 'List GCG', 
-      icon: PanelLeft, 
-      path: '/list-gcg',
-      badge: null,
-      subItems: [
-        {
-          name: 'Tahun Buku',
-          icon: Calendar,
-          path: '/list-gcg',
-          anchor: '#year-selector',
-          description: 'Pilih tahun buku'
-        },
-        {
-          name: 'Progress Keseluruhan',
-          icon: BarChart3,
-          path: '/list-gcg',
-          anchor: '#overall-progress',
-          description: 'Progress upload'
-        },
-        {
-          name: 'Progress per Aspek',
-          icon: TrendingUp,
-          path: '/list-gcg',
-          anchor: '#aspect-progress',
-          description: 'Progress per aspek'
-        },
-        {
-          name: 'Daftar Checklist',
-          icon: ListTodo,
-          path: '/list-gcg',
-          anchor: '#checklist-table',
-          description: 'Daftar checklist GCG'
-        }
-      ]
-    },
+
     { 
       name: 'Penilaian GCG', 
       icon: BarChart3, 
       path: '/penilaian-gcg',
-      badge: null
+      badge: null,
+      badgeIcon: Lock
     }
   ];
 
   // Tambahkan menu Super Admin hanya untuk Super Admin
   if (user?.role === 'superadmin') {
     menuItems.push(
+      {
+        name: 'List GCG',
+        icon: PanelLeft,
+        path: '/list-gcg',
+        badgeIcon: Lock,
+        subItems: [
+          {
+            name: 'Tahun Buku',
+            icon: Calendar,
+            path: '/list-gcg',
+            anchor: '#year-selector',
+            description: 'Pilih tahun buku'
+          },
+          {
+            name: 'Progress Keseluruhan',
+            icon: BarChart3,
+            path: '/list-gcg',
+            anchor: '#overall-progress',
+            description: 'Progress upload dokumen'
+          },
+          {
+            name: 'Progress per Aspek',
+            icon: TrendingUp,
+            path: '/list-gcg',
+            anchor: '#aspect-progress',
+            description: 'Progress per aspek'
+          },
+          {
+            name: 'Daftar Checklist',
+            icon: ListTodo,
+            path: '/list-gcg',
+            anchor: '#checklist-table',
+            description: 'Daftar checklist GCG'
+          }
+        ]
+      },
       {
         name: 'Management Dokumen',
         icon: FileText,
@@ -172,12 +174,7 @@ const Sidebar = () => {
         path: '/admin/struktur-perusahaan',
         badgeIcon: Lock
       },
-      {
-        name: 'Checklist GCG',
-        icon: ListTodo,
-        path: '/admin/checklist-gcg',
-        badgeIcon: Lock
-      },
+
       {
         name: 'Meta Data',
         icon: Settings,
@@ -276,7 +273,15 @@ const Sidebar = () => {
         {/* Menu Items */}
         <nav className="mt-6 pb-20">
           <div className="px-4 space-y-1">
-            {menuItems.map((item) => {
+            {menuItems
+              .filter(item => {
+                // Hide Penilaian GCG menu if user is not superadmin
+                if (item.name === 'Penilaian GCG' && user?.role !== 'superadmin') {
+                  return false;
+                }
+                return true;
+              })
+              .map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
               const hasSubItems = item.subItems && item.subItems.length > 0;

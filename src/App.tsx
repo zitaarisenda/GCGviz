@@ -2,7 +2,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { UserProvider } from './contexts/UserContext';
-import { DireksiProvider } from './contexts/DireksiContext';
+import { DirektoratProvider } from './contexts/DireksiContext';
 import { ChecklistProvider } from './contexts/ChecklistContext';
 import { FileUploadProvider } from './contexts/FileUploadContext';
 import { DocumentMetadataProvider } from './contexts/DocumentMetadataContext';
@@ -15,10 +15,10 @@ import Login from './pages/auth/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/dashboard/Dashboard';
 import ListGCG from './pages/ListGCG';
-import DocumentManagement from './pages/DocumentManagement';
+
 import AdminDocumentManagement from './pages/admin/DocumentManagement';
 import StrukturPerusahaan from './pages/admin/StrukturPerusahaan';
-import ChecklistGCG from './pages/admin/ChecklistGCG';
+
 import KelolaAkun from './pages/admin/KelolaAkun';
 import MetaData from './pages/admin/MetaData';
 import NotFound from './pages/NotFound';
@@ -44,52 +44,48 @@ const AppRoutes = () => {
 
   if (!user) {
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </div>
     );
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/documents" 
-        element={
-          <ProtectedRoute>
-            <DocumentManagement />
-          </ProtectedRoute>
-        } 
-      />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+
       <Route 
         path="/list-gcg" 
         element={
-          <ProtectedRoute>
+          <SuperAdminRoute>
             <ListGCG />
-          </ProtectedRoute>
+          </SuperAdminRoute>
         } 
       />
       <Route 
         path="/penilaian-gcg" 
         element={
-          <ProtectedRoute>
+          <SuperAdminRoute>
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-gray-900 mb-4">Penilaian GCG</h1>
                 <p className="text-gray-600">Halaman penilaian GCG akan dikembangkan selanjutnya</p>
               </div>
             </div>
-          </ProtectedRoute>
+          </SuperAdminRoute>
         } 
       />
       
@@ -107,14 +103,7 @@ const AppRoutes = () => {
           </SuperAdminRoute>
         } 
       />
-      <Route 
-        path="/admin/checklist-gcg" 
-        element={
-          <SuperAdminRoute>
-            <ChecklistGCG />
-          </SuperAdminRoute>
-        } 
-      />
+
       <Route 
         path="/admin/kelola-akun" 
         element={
@@ -151,31 +140,32 @@ const AppRoutes = () => {
       <Route path="/register" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </div>
   );
 };
 
 const App = () => {
   return (
-    <UserProvider>
-      <DireksiProvider>
-        <ChecklistProvider>
-          <FileUploadProvider>
-            <DocumentMetadataProvider>
-              <YearProvider>
-                <KlasifikasiProvider>
-                  <Router>
+    <Router>
+      <UserProvider>
+        <DirektoratProvider>
+          <ChecklistProvider>
+            <FileUploadProvider>
+              <DocumentMetadataProvider>
+                <YearProvider>
+                  <KlasifikasiProvider>
                     <SidebarProvider>
                       <AppRoutes />
                       <Toaster />
                     </SidebarProvider>
-                  </Router>
-                </KlasifikasiProvider>
-              </YearProvider>
-            </DocumentMetadataProvider>
-          </FileUploadProvider>
-        </ChecklistProvider>
-      </DireksiProvider>
-    </UserProvider>
+                  </KlasifikasiProvider>
+                </YearProvider>
+              </DocumentMetadataProvider>
+            </FileUploadProvider>
+          </ChecklistProvider>
+        </DirektoratProvider>
+      </UserProvider>
+    </Router>
   );
 };
 
