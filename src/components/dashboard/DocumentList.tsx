@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,7 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   FileText, 
   Search, 
-  Filter, 
   Eye, 
   Download, 
   Calendar,
@@ -32,10 +31,12 @@ import {
   Circle,
   Lock,
   Mail,
-  Save
+  Save,
+  Users
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import { IconButton, TableActions, ActionButton } from '@/components/panels';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { IconButton, TableActions, ActionButton, DocumentFilterPanel } from '@/components/panels';
 
 interface DocumentListProps {
   year?: number;
@@ -67,6 +68,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [selectedPrinciple, setSelectedPrinciple] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedDirektorat, setSelectedDirektorat] = useState('all');
+  const [selectedSubDirektorat, setSelectedSubDirektorat] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [aspectFilter, setAspectFilter] = useState<string | null>(null);
   // Checklist GCG filter state
@@ -149,6 +151,10 @@ const DocumentList: React.FC<DocumentListProps> = ({
       filtered = filtered.filter(doc => doc.direktorat === selectedDirektorat);
     }
 
+    if (selectedSubDirektorat !== 'all') {
+      filtered = filtered.filter(doc => doc.subdirektorat === selectedSubDirektorat);
+    }
+
     if (selectedStatus !== 'all') {
       filtered = filtered.filter(doc => doc.status === selectedStatus);
     }
@@ -170,7 +176,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
     }
 
     return maxItems ? filtered.slice(0, maxItems) : filtered;
-  }, [yearDocuments, searchTerm, selectedPrinciple, selectedType, selectedDirektorat, selectedStatus, filterChecklistStatus, filterChecklistAspect, checklist, maxItems]);
+  }, [yearDocuments, searchTerm, selectedPrinciple, selectedType, selectedDirektorat, selectedSubDirektorat, selectedStatus, filterChecklistStatus, filterChecklistAspect, checklist, maxItems]);
 
   // Scroll to highlighted document
   React.useEffect(() => {
@@ -191,6 +197,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const principles = useMemo(() => [...new Set(yearDocuments.map(doc => doc.gcgPrinciple))], [yearDocuments]);
   const types = useMemo(() => [...new Set(yearDocuments.map(doc => doc.documentType))], [yearDocuments]);
   const direktorats = useMemo(() => [...new Set(yearDocuments.map(doc => doc.direktorat))], [yearDocuments]);
+  const subDirektorats = useMemo(() => [...new Set(yearDocuments.map(doc => doc.subdirektorat))], [yearDocuments]);
   const statuses = useMemo(() => [...new Set(yearDocuments.map(doc => doc.status))], [yearDocuments]);
 
   const formatFileSize = (bytes: number) => {
@@ -512,123 +519,39 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
       {/* Filters Section */}
       {showFilters && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center space-x-2 mb-4">
-            <Filter className="w-4 h-4 text-gray-600" />
-            <span className="font-medium text-gray-900">Filter & Pencarian</span>
-          </div>
-          
-          {/* Search */}
-          <div className="mb-4">
-            <Input
-              placeholder="Cari berdasarkan judul, deskripsi, nomor dokumen..."
-              className="w-full"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* Filter Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Filter Prinsip GCG */}
-            <div>
-              <Select value={selectedPrinciple} onValueChange={setSelectedPrinciple}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Prinsip GCG" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Prinsip</SelectItem>
-                  {principles.filter(Boolean).map(principle => (
-                    <SelectItem key={principle} value={principle}>{principle}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filter Jenis Dokumen */}
-            <div>
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Jenis Dokumen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Jenis</SelectItem>
-                  {types.filter(Boolean).map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filter Direktorat */}
-            <div>
-              <Select value={selectedDirektorat} onValueChange={setSelectedDirektorat}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Direktorat" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Direktorat</SelectItem>
-                  {direktorats.filter(Boolean).map(direktorat => (
-                    <SelectItem key={direktorat} value={direktorat}>{direktorat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filter Status */}
-            <div>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="review">Review</SelectItem>
-                  <SelectItem value="approved">Disetujui</SelectItem>
-                  <SelectItem value="rejected">Ditolak</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filter Checklist GCG */}
-            <div>
-              <Select value={filterChecklistStatus} onValueChange={val => setFilterChecklistStatus(val as 'all' | 'with' | 'without')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Checklist GCG" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua</SelectItem>
-                  <SelectItem value="with">Sudah Dipilih</SelectItem>
-                  <SelectItem value="without">Belum Dipilih</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filter Aspek Checklist */}
-            <div>
-              <Select value={filterChecklistAspect} onValueChange={val => setFilterChecklistAspect(val)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Aspek Checklist" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua</SelectItem>
-                  {Array.from(new Set(checklist.map(item => item.aspek))).map(aspek => (
-                    <SelectItem key={aspek} value={aspek}>{aspek.replace(/^Aspek\s+/i, '')}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {/* Reset Filter Button */}
-          {(filterChecklistStatus !== 'all' || filterChecklistAspect !== 'all') && (
-            <div className="mt-4">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => {
-                  setFilterChecklistStatus('all');
-                  setFilterChecklistAspect('all');
-                }}
-              >
-                Reset Filter
-              </Button>
-            </div>
-          )}
+          <DocumentFilterPanel
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            selectedPrinciple={selectedPrinciple}
+            onPrincipleChange={setSelectedPrinciple}
+            selectedType={selectedType}
+            onTypeChange={setSelectedType}
+            selectedDirektorat={selectedDirektorat}
+            onDirektoratChange={setSelectedDirektorat}
+            selectedSubDirektorat={selectedSubDirektorat}
+            onSubDirektoratChange={setSelectedSubDirektorat}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+            filterChecklistStatus={filterChecklistStatus}
+            onChecklistStatusChange={setFilterChecklistStatus}
+            filterChecklistAspect={filterChecklistAspect}
+            onChecklistAspectChange={setFilterChecklistAspect}
+            principles={principles}
+            types={types}
+            direktorats={direktorats}
+            subDirektorats={subDirektorats}
+            aspects={Array.from(new Set(checklist.map(item => item.aspek)))}
+            onResetFilters={() => {
+              setSearchTerm('');
+              setSelectedPrinciple('all');
+              setSelectedType('all');
+              setSelectedDirektorat('all');
+              setSelectedSubDirektorat('all');
+              setSelectedStatus('all');
+              setFilterChecklistStatus('all');
+              setFilterChecklistAspect('all');
+            }}
+          />
         </div>
       )}
 
@@ -749,13 +672,20 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                   <span className="text-xs font-medium text-gray-700">Organisasi</span>
                 </div>
                 <div className="space-y-1">
+                  {/* Direktorat */}
                   <div className="text-sm font-medium text-gray-900">
                     <Building2 className="w-3 h-3 inline mr-1" />
-                    {doc.direktorat}
+                    {doc.direktorat || 'Tidak ada data'}
                   </div>
+                  {/* Sub Direktorat */}
+                  <div className="text-xs text-gray-700">
+                    <Users className="w-3 h-3 inline mr-1" />
+                    {doc.subdirektorat || 'Tidak ada data'}
+                  </div>
+                  {/* Divisi */}
                   <div className="text-xs text-gray-600">
                     <User className="w-3 h-3 inline mr-1" />
-                    {doc.division}
+                    {doc.division || 'Tidak ada data'}
                   </div>
                 </div>
               </div>
@@ -940,14 +870,18 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                   <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
                     Organisasi
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
-                                      <Label className="text-sm font-medium text-gray-700">Direktorat</Label>
-                <p className="text-sm text-gray-900">{selectedDocument.direktorat}</p>
+                      <Label className="text-sm font-medium text-gray-700">Direktorat</Label>
+                      <p className="text-sm text-gray-900">{selectedDocument.direktorat || 'Tidak ada data'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Sub Direktorat</Label>
+                      <p className="text-sm text-gray-900">{selectedDocument.subdirektorat || 'Tidak ada data'}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Divisi</Label>
-                      <p className="text-sm text-gray-900">{selectedDocument.division}</p>
+                      <p className="text-sm text-gray-900">{selectedDocument.division || 'Tidak ada data'}</p>
                     </div>
                   </div>
                 </div>
@@ -1179,7 +1113,7 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                     <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
                       Organisasi
                     </h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="editDirektorat">
                           Direktorat <span className="text-red-500">*</span>
@@ -1202,6 +1136,26 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                             )}
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="editSubDirektorat">
+                          Sub Direktorat
+                        </Label>
+                        <Input
+                          id="editSubDirektorat"
+                          value={editFormData.subdirektorat || ''}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, subdirektorat: e.target.value }))}
+                          placeholder="Masukkan sub direktorat"
+                          list="subdirektorat-suggestions"
+                        />
+                        <datalist id="subdirektorat-suggestions">
+                          <option value="Subdirektorat Akuntansi" />
+                          <option value="Subdirektorat Perpajakan" />
+                          <option value="Subdirektorat Rekrutmen" />
+                          <option value="Subdirektorat Pengembangan" />
+                          <option value="Subdirektorat Infrastruktur" />
+                          <option value="Subdirektorat Aplikasi" />
+                        </datalist>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="editDivision">
