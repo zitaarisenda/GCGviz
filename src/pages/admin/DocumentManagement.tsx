@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Calendar,
-  FileText,
+  FileText, 
   Download,
   Archive,
   Building2,
@@ -37,7 +37,7 @@ const DocumentManagement = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
 
-  // Get documents for selected year
+      // Get documents for selected year
   const yearDocuments = useMemo(() => {
     return documents.filter(doc => doc.year === selectedYear);
   }, [documents, selectedYear]);
@@ -109,7 +109,7 @@ const DocumentManagement = () => {
 
     setIsDownloading(true);
     setDownloadProgress(0);
-
+    
     try {
       // Simulate download progress
       for (let i = 0; i <= 100; i += 10) {
@@ -141,7 +141,7 @@ const DocumentManagement = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
+      
       // Success message
       const totalSize = getTotalSize(filteredDocuments);
       alert(`Download berhasil!\n\nFile: ${filename}\nDokumen: ${filteredDocuments.length} file\nUkuran: ${formatFileSize(totalSize)}`);
@@ -219,12 +219,12 @@ const DocumentManagement = () => {
           <div className="mb-6">
             <Card className="border-0 shadow-lg">
               <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <div className={`p-1.5 rounded-lg ${downloadInfo.color} text-white`}>
                       {downloadInfo.icon}
-                    </div>
-                    <div>
+                  </div>
+                  <div>
                       <CardTitle className="text-base">{downloadInfo.title}</CardTitle>
                       <CardDescription className="text-xs">{downloadInfo.description}</CardDescription>
                     </div>
@@ -288,8 +288,8 @@ const DocumentManagement = () => {
                         </Badge>
                       )}
                     </Button>
-                  </div>
-
+                       </div>
+                      
                   {/* Specific Selection */}
                   {downloadType !== 'all' && (
                     <div className="space-y-2">
@@ -352,9 +352,9 @@ const DocumentManagement = () => {
                           </div>
                         </div>
                       )}
-                    </div>
-                  )}
-
+                        </div>
+                      )}
+                      
                   {/* Download Summary */}
                   {filteredDocuments.length > 0 && (
                     <div className="bg-blue-50 border border-blue-200 rounded p-3">
@@ -374,7 +374,7 @@ const DocumentManagement = () => {
                           </div>
                         </div>
                         <div className="text-right">
-                          <Button
+                        <Button 
                             onClick={handleDownload}
                             disabled={isDownloading || (downloadType !== 'all' && !selectedAspect && !selectedDirektorat && !selectedSubDirektorat)}
                             className="bg-blue-600 hover:bg-blue-700 h-8 px-3 text-xs"
@@ -390,7 +390,7 @@ const DocumentManagement = () => {
                                 Unduh ZIP
                               </>
                             )}
-                          </Button>
+                        </Button>
                         </div>
                       </div>
                     </div>
@@ -404,8 +404,8 @@ const DocumentManagement = () => {
                         <span className="text-xs text-yellow-800">
                           Tidak ada dokumen yang sesuai dengan kriteria yang dipilih.
                         </span>
-                      </div>
-                    </div>
+              </div>
+            </div>
                   )}
 
                   {/* No Documents at All */}
@@ -416,7 +416,7 @@ const DocumentManagement = () => {
                         <span className="text-xs text-gray-600">
                           Belum ada dokumen untuk tahun {selectedYear}.
                         </span>
-                      </div>
+          </div>
                     </div>
                   )}
                 </div>
@@ -431,14 +431,14 @@ const DocumentManagement = () => {
               showFilters={true}
               filterYear={selectedYear}
             />
-          </div>
+                  </div>
 
           {/* Additional Content Area - Placeholder untuk fitur yang akan dikembangkan */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
             <div className="text-center">
               <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
                 <FileText className="w-10 h-10 text-white" />
-              </div>
+                      </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 Fitur Management Dokumen
               </h3>
@@ -453,9 +453,9 @@ const DocumentManagement = () => {
                 </div>
                 <p className="text-sm text-green-600 mt-2">
                   Panel daftar dokumen dan fitur download terintegrasi dengan tahun buku dan siap untuk fitur management dokumen yang akan datang.
-                </p>
-              </div>
-            </div>
+                    </p>
+                  </div>
+                  </div>
           </div>
         </div>
       </div>

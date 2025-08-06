@@ -548,9 +548,9 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
               setSelectedDirektorat('all');
               setSelectedSubDirektorat('all');
               setSelectedStatus('all');
-              setFilterChecklistStatus('all');
-              setFilterChecklistAspect('all');
-            }}
+                  setFilterChecklistStatus('all');
+                  setFilterChecklistAspect('all');
+                }}
           />
         </div>
       )}
@@ -872,7 +872,7 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                   </h3>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">Direktorat</Label>
+                                      <Label className="text-sm font-medium text-gray-700">Direktorat</Label>
                       <p className="text-sm text-gray-900">{selectedDocument.direktorat || 'Tidak ada data'}</p>
                     </div>
                     <div>
