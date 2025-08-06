@@ -395,7 +395,7 @@ const Register = () => {
                     <div>
                       <h4 className="text-sm font-medium text-blue-900 mb-1">Registrasi User Only</h4>
                       <p className="text-sm text-blue-800">
-                        Registrasi ini hanya untuk User. Akun Admin dan Super Admin dibuat oleh Super Admin melalui menu Kelola Akun.
+                        Registrasi ini hanya untuk User. Akun Admin dan Super Admin dibuat oleh Super Admin melalui menu Manajemen User.
                       </p>
                     </div>
                   </div>

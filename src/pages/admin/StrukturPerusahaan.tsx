@@ -15,7 +15,7 @@ import { useYear } from '@/contexts/YearContext';
 import { Users, Briefcase, Plus, Edit, Trash2, Calendar } from 'lucide-react';
 import { seedSubdirektorat } from '@/lib/seed/seedDirektorat';
 import { triggerStrukturPerusahaanUpdate } from '@/lib/strukturPerusahaan';
-import { YearSelectorPanel, ConfirmDialog, FormDialog, ActionButton, IconButton } from '@/components/panels';
+import { YearSelectorPanel, ConfirmDialog, FormDialog, ActionButton, IconButton, PageHeaderPanel } from '@/components/panels';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -410,6 +410,12 @@ const StrukturPerusahaan = () => {
       <Topbar />
       <div className={`transition-all duration-300 ease-in-out pt-16 ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>  
         <div className="p-6">
+          {/* Header */}
+          <PageHeaderPanel
+            title="Struktur Organisasi"
+            subtitle="Kelola struktur organisasi perusahaan berdasarkan tahun buku"
+          />
+
           {/* Panel Tahun Buku */}
           <YearSelectorPanel
             selectedYear={selectedYear}

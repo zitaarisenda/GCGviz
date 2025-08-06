@@ -40,13 +40,19 @@ const Topbar = () => {
       case '/documents':
         return { title: 'Manajemen Dokumen', breadcrumb: ['Dashboard', 'Manajemen Dokumen'] };
       case '/list-gcg':
-        return { title: 'List GCG', breadcrumb: ['Dashboard', 'Super Admin', 'List GCG'] };
+        return { title: 'Monitoring & Upload GCG', breadcrumb: ['Dashboard', 'Super Admin', 'Monitoring & Upload GCG'] };
       case '/penilaian-gcg':
         return { title: 'Penilaian GCG', breadcrumb: ['Dashboard', 'Penilaian GCG'] };
       case '/admin/kelola-akun':
-        return { title: 'Kelola Akun', breadcrumb: ['Dashboard', 'Admin', 'Kelola Akun'] };
+        return { title: 'Manajemen User', breadcrumb: ['Dashboard', 'Admin', 'Manajemen User'] };
       case '/admin/checklist-gcg':
         return { title: 'Checklist GCG', breadcrumb: ['Dashboard', 'Admin', 'Checklist GCG'] };
+      case '/admin/meta-data':
+        return { title: 'Pengaturan Metadata', breadcrumb: ['Dashboard', 'Admin', 'Pengaturan Metadata'] };
+      case '/admin/struktur-perusahaan':
+        return { title: 'Struktur Organisasi', breadcrumb: ['Dashboard', 'Admin', 'Struktur Organisasi'] };
+      case '/admin/document-management':
+        return { title: 'Kelola Dokumen', breadcrumb: ['Dashboard', 'Admin', 'Kelola Dokumen'] };
       default:
         return { title: 'Dashboard', breadcrumb: ['Dashboard'] };
     }

@@ -625,8 +625,8 @@ const ListGCG = () => {
         <div className="p-6">
           {/* Enhanced Header */}
           <PageHeaderPanel
-            title="List GCG"
-            subtitle="Daftar checklist Good Corporate Governance"
+            title="Monitoring & Upload GCG"
+            subtitle="Monitoring dan pengelolaan checklist GCG berdasarkan tahun buku"
             badge={{ text: selectedYear.toString(), variant: "default" }}
             actions={[
               {

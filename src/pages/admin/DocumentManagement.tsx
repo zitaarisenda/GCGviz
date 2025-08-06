@@ -195,10 +195,10 @@ const DocumentManagement = () => {
       `}>
         <div className="p-6">
           {/* Header */}
-          <PageHeaderPanel
-            title="Management Dokumen"
-            subtitle="Kelola dokumen GCG berdasarkan tahun buku"
-          />
+                      <PageHeaderPanel
+              title="Kelola Dokumen"
+              subtitle="Kelola dokumen GCG berdasarkan tahun buku"
+            />
 
           {/* Year Selector Panel */}
           <div className="mb-8">

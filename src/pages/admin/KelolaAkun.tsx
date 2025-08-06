@@ -19,7 +19,7 @@ import { useYear } from '@/contexts/YearContext';
 import { 
   UserCog, 
   Plus, 
-  Edit,
+  Edit, 
   Trash2, 
   Shield,
   Users,
@@ -101,34 +101,34 @@ const KelolaAkun = () => {
     setIsAddingAccount(true);
     
     try {
-      // Check if email already exists
+    // Check if email already exists
       const existingUser = accounts.find(account => account.email === accountData.email);
-      if (existingUser) {
+    if (existingUser) {
         alert('Email sudah terdaftar. Gunakan email yang berbeda.');
-        return;
-      }
+      return;
+    }
 
-      // Create new account
-      const newAccount: Account = {
-        id: Date.now(),
+    // Create new account
+    const newAccount: Account = {
+      id: Date.now(),
         email: accountData.email,
         name: accountData.name,
         role: accountData.role,
         direktorat: accountData.direktorat,
         subdirektorat: accountData.subdirektorat,
         divisi: accountData.divisi,
-        createdAt: new Date(),
-        isActive: true
-      };
+      createdAt: new Date(),
+      isActive: true
+    };
 
       // Add to accounts list
       const updatedAccounts = [...accounts, newAccount];
       setAccounts(updatedAccounts);
 
-      // Save to localStorage
+    // Save to localStorage
       const usersData = localStorage.getItem('users') || '[]';
       const users = JSON.parse(usersData);
-      users.push({
+    users.push({
         id: newAccount.id,
         email: newAccount.email,
         password: accountData.password, // In real app, this should be hashed
@@ -139,12 +139,12 @@ const KelolaAkun = () => {
         divisi: newAccount.divisi,
         createdAt: newAccount.createdAt.toISOString(),
         isActive: newAccount.isActive
-      });
-      localStorage.setItem('users', JSON.stringify(users));
+    });
+    localStorage.setItem('users', JSON.stringify(users));
 
       // Close dialog
-      setIsAddDialogOpen(false);
-      alert('Akun berhasil ditambahkan!');
+    setIsAddDialogOpen(false);
+    alert('Akun berhasil ditambahkan!');
     } catch (error) {
       alert('Terjadi kesalahan saat menambahkan akun.');
     } finally {
@@ -156,17 +156,17 @@ const KelolaAkun = () => {
     setIsEditingAccount(true);
     
     try {
-      // Check if email already exists (excluding current account)
+    // Check if email already exists (excluding current account)
       const existingUser = accounts.find(account => 
         account.email === accountData.email && account.id !== accountData.id
-      );
-      if (existingUser) {
+    );
+    if (existingUser) {
         alert('Email sudah terdaftar. Gunakan email yang berbeda.');
-        return;
-      }
+      return;
+    }
 
-      // Update account
-      const updatedAccount: Account = {
+    // Update account
+    const updatedAccount: Account = {
         ...editingAccount!,
         email: accountData.email,
         name: accountData.name,
@@ -182,29 +182,29 @@ const KelolaAkun = () => {
       );
       setAccounts(updatedAccounts);
 
-      // Update localStorage
+    // Update localStorage
       const usersData = localStorage.getItem('users') || '[]';
       const users = JSON.parse(usersData);
       const userIndex = users.findIndex((u: any) => u.id === accountData.id);
-      if (userIndex !== -1) {
-        users[userIndex] = {
-          ...users[userIndex],
+    if (userIndex !== -1) {
+      users[userIndex] = {
+        ...users[userIndex],
           email: accountData.email,
           name: accountData.name,
           role: accountData.role,
           direktorat: accountData.direktorat,
           subdirektorat: accountData.subdirektorat,
           divisi: accountData.divisi,
-          // Only update password if provided
+        // Only update password if provided
           ...(accountData.password && { password: accountData.password })
-        };
-        localStorage.setItem('users', JSON.stringify(users));
-      }
+      };
+      localStorage.setItem('users', JSON.stringify(users));
+    }
 
       // Close dialog
       setIsEditDialogOpen(false);
-      setEditingAccount(null);
-      alert('Akun berhasil diupdate!');
+    setEditingAccount(null);
+    alert('Akun berhasil diupdate!');
     } catch (error) {
       alert('Terjadi kesalahan saat mengupdate akun.');
     } finally {
@@ -308,22 +308,22 @@ const KelolaAkun = () => {
           <div className="mb-8">
                   <div className="flex items-center justify-between">
                     <div>
-                <h1 className="text-3xl font-bold text-gray-900">Kelola Akun</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Manajemen User</h1>
                 <p className="text-gray-600 mt-2">
                   Manajemen akun admin dan user
                 </p>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button
+              <div className="flex space-x-2">
+                          <Button
                         onClick={() => setIsAddDialogOpen(true)}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         <Plus className="w-4 h-4 mr-2" />
-                        Tambah Akun
-                      </Button>
-                    </div>
+                          Tambah Akun
+                          </Button>
                   </div>
-                </div>
+            </div>
+          </div>
 
           {/* Accounts List */}
           <div id="accounts-list">
@@ -366,8 +366,8 @@ const KelolaAkun = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => openEditDialog(account)}
-                                disabled={account.role === 'superadmin'}
+                              onClick={() => openEditDialog(account)}
+                              disabled={account.role === 'superadmin'}
                                 className="text-blue-600 hover:text-blue-700"
                               >
                                 <Edit className="w-4 h-4" />
@@ -375,8 +375,8 @@ const KelolaAkun = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => openDeleteDialog(account)}
-                                disabled={account.role === 'superadmin' || account.id === currentUser?.id}
+                              onClick={() => openDeleteDialog(account)}
+                              disabled={account.role === 'superadmin' || account.id === currentUser?.id}
                                 className="text-red-600 hover:text-red-700"
                               >
                                 <Trash2 className="w-4 h-4" />
