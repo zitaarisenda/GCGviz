@@ -19,7 +19,7 @@ import ListGCG from './pages/ListGCG';
 
 import AdminDocumentManagement from './pages/admin/DocumentManagement';
 import StrukturPerusahaan from './pages/admin/StrukturPerusahaan';
-
+import AdminDashboard from './pages/admin/AdminDashboard';
 import KelolaAkun from './pages/admin/KelolaAkun';
 import MetaData from './pages/admin/MetaData';
 import NotFound from './pages/NotFound';
@@ -34,6 +34,21 @@ const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (user.role !== 'superadmin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Admin Route Component
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useUser();
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (user.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -59,12 +74,24 @@ const AppRoutes = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        
+        {/* Dashboard - Different for Super Admin and Admin */}
         <Route 
           path="/dashboard" 
           element={
             <ProtectedRoute>
-              <Dashboard />
+              {user.role === 'admin' ? <AdminDashboard /> : <Dashboard />}
             </ProtectedRoute>
+          } 
+        />
+
+        {/* Admin Dashboard Route */}
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
           } 
         />
 

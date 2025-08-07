@@ -36,6 +36,15 @@ interface FileUploadDialogProps {
   checklistDescription?: string;
   aspect?: string;
   trigger?: React.ReactNode;
+  prefillData?: {
+    checklistId?: number;
+    aspek?: string;
+    deskripsi?: string;
+    direktorat?: string;
+    subDirektorat?: string;
+    divisi?: string;
+    tahun?: number;
+  };
 }
 
 interface UploadFormData {
@@ -662,7 +671,8 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
   checklistId,
   checklistDescription,
   aspect,
-  trigger
+  trigger,
+  prefillData
 }) => {
   const { user } = useUser();
   const { direktorat, getAllSubdirektorat } = useDirektorat();
@@ -747,19 +757,33 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       setSelectedAspectFilter('');
       
       // Auto-fill form when checklist data is provided
-    if (checklistId && checklistDescription && aspect) {
-      setFormData(prev => ({
-        ...prev,
-        title: checklistDescription,
-        description: checklistDescription,
-        gcgPrinciple: getPrincipleFromAspect(aspect),
-        documentCategory: getCategoryFromAspect(aspect),
-        selectedChecklistId: checklistId,
-        year: selectedYear || new Date().getFullYear()
-      }));
+      if (checklistId && checklistDescription && aspect) {
+        setFormData(prev => ({
+          ...prev,
+          title: checklistDescription,
+          description: checklistDescription,
+          gcgPrinciple: getPrincipleFromAspect(aspect),
+          documentCategory: getCategoryFromAspect(aspect),
+          selectedChecklistId: checklistId,
+          year: selectedYear || new Date().getFullYear()
+        }));
+      }
+      
+      // Auto-fill form when prefillData is provided
+      if (prefillData) {
+        setFormData(prev => ({
+          ...prev,
+          title: prefillData.deskripsi || prev.title,
+          description: prefillData.deskripsi || prev.description,
+          direktorat: prefillData.direktorat || prev.direktorat,
+          subdirektorat: prefillData.subDirektorat || prev.subdirektorat,
+          division: prefillData.divisi || prev.division,
+          selectedChecklistId: prefillData.checklistId || prev.selectedChecklistId,
+          year: prefillData.tahun || selectedYear || new Date().getFullYear()
+        }));
+      }
     }
-    }
-  }, [isOpen, checklistId, checklistDescription, aspect, selectedYear]);
+  }, [isOpen, checklistId, checklistDescription, aspect, selectedYear, prefillData]);
 
   // Update year when selectedYear changes
   useEffect(() => {

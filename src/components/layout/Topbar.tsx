@@ -53,6 +53,8 @@ const Topbar = () => {
         return { title: 'Struktur Organisasi', breadcrumb: ['Dashboard', 'Admin', 'Struktur Organisasi'] };
       case '/admin/document-management':
         return { title: 'Kelola Dokumen', breadcrumb: ['Dashboard', 'Admin', 'Kelola Dokumen'] };
+      case '/admin/dashboard':
+        return { title: 'Dashboard Admin', breadcrumb: ['Dashboard Admin'] };
       default:
         return { title: 'Dashboard', breadcrumb: ['Dashboard'] };
     }
