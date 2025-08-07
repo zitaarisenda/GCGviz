@@ -137,19 +137,21 @@ const Topbar = () => {
           <HelpCircle className="w-5 h-5 text-gray-600" />
         </Button>
 
-        {/* User Avatar */}
-        <div className="flex items-center space-x-3">
-          <Avatar className="w-8 h-8">
-            <AvatarImage src="" alt={user?.name || 'User'} />
-            <AvatarFallback className="bg-blue-600 text-white text-sm">
-              {user?.name?.charAt(0) || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="hidden md:block">
-            <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
-            <p className="text-xs text-gray-500 capitalize">{user?.role || 'user'}</p>
+        {/* User Avatar - Hidden for Admin */}
+        {user?.role !== 'admin' && (
+          <div className="flex items-center space-x-3">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src="" alt={user?.name || 'User'} />
+              <AvatarFallback className="bg-blue-600 text-white text-sm">
+                {user?.name?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="hidden md:block">
+              <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
+              <p className="text-xs text-gray-500 capitalize">{user?.role || 'user'}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

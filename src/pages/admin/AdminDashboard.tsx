@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AdminSidebar from '@/components/layout/AdminSidebar';
 import Topbar from '@/components/layout/Topbar';
@@ -13,19 +13,18 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Calendar, 
   Upload, 
   Download, 
   FileText, 
   CheckCircle, 
-  Clock, 
-  User,
-  Building2,
-  Users,
-  Briefcase
+  Clock,
+  Eye
 } from 'lucide-react';
 import FileUploadDialog from '@/components/dashboard/FileUploadDialog';
+import YearStatisticsPanel from '@/components/dashboard/YearStatisticsPanel';
 
 interface ChecklistAssignment {
   id: number;
@@ -142,8 +141,75 @@ const AdminDashboard = () => {
   const assignedChecklists = getAssignedChecklists();
   const userDocuments = getUserDocuments();
 
+  // Get overall progress for admin (based on assigned checklists)
+  const getOverallProgress = useMemo(() => {
+    if (!selectedYear) return null;
+
+    const totalItems = assignedChecklists.length;
+    const uploadedCount = userDocuments.length;
+    const progress = totalItems > 0 ? Math.round((uploadedCount / totalItems) * 100) : 0;
+
+    return {
+      aspek: 'KESELURUHAN',
+      totalItems,
+      uploadedCount,
+      progress
+    };
+  }, [selectedYear, assignedChecklists, userDocuments]);
+
+  // Get aspect statistics for admin (based on assigned checklists)
+  const getAspectStats = useMemo(() => {
+    if (!selectedYear) return [];
+
+    // Group assigned checklists by aspect
+    const aspectGroups: { [key: string]: any[] } = {};
+    assignedChecklists.forEach(assignment => {
+      if (!aspectGroups[assignment.aspek]) {
+        aspectGroups[assignment.aspek] = [];
+      }
+      aspectGroups[assignment.aspek].push(assignment);
+    });
+
+    return Object.entries(aspectGroups).map(([aspek, assignments]) => {
+      const totalItems = assignments.length;
+      const uploadedCount = assignments.filter(assignment => 
+        userDocuments.some(doc => doc.checklistId === assignment.checklistId)
+      ).length;
+      const progress = totalItems > 0 ? Math.round((uploadedCount / totalItems) * 100) : 0;
+
+      return {
+        aspek,
+        totalItems,
+        uploadedCount,
+        progress
+      };
+    }).sort((a, b) => b.progress - a.progress); // Sort by progress descending
+  }, [selectedYear, assignedChecklists, userDocuments]);
+
+  // Get assigned checklists for table display
+  const getAssignedChecklistsForTable = useMemo(() => {
+    if (!selectedYear) return [];
+
+    return assignedChecklists.map(assignment => {
+      const checklistItem = checklist.find(c => c.id === assignment.checklistId);
+      const hasDocument = userDocuments.some(doc => 
+        doc.checklistId === assignment.checklistId
+      );
+      const uploadedDocument = userDocuments.find(doc => 
+        doc.checklistId === assignment.checklistId
+      );
+
+      return {
+        ...assignment,
+        checklistItem,
+        status: hasDocument ? 'uploaded' : 'not_uploaded' as 'uploaded' | 'not_uploaded',
+        uploadedDocument
+      };
+    });
+  }, [selectedYear, assignedChecklists, checklist, userDocuments]);
+
   // Get aspect colors
-  const getAspectColor = (aspect: string) => {
+  const getAspectColor = (aspect: string, progress: number = 0) => {
     const colors: { [key: string]: string } = {
       'Aspek 1 - Komitmen': 'bg-red-500',
       'Aspek 2 - Implementasi': 'bg-blue-500',
@@ -179,6 +245,14 @@ const AdminDashboard = () => {
     link.click();
   };
 
+  const handleViewDocument = (checklistId: number) => {
+    const uploadedDocument = userDocuments.find(doc => doc.checklistId === checklistId);
+    if (uploadedDocument) {
+      // For admin, just show a message or could navigate to document view
+      console.log('View document:', uploadedDocument);
+    }
+  };
+
   return (
     <>
       <AdminSidebar />
@@ -196,39 +270,7 @@ const AdminDashboard = () => {
             subtitle={`Selamat datang, ${user?.name} - ${userSubDirektorat}`}
           />
 
-          {/* User Profile Panel */}
-          <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-blue-900">
-                <User className="w-5 h-5" />
-                <span>Profil Pengguna</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="flex items-center space-x-2">
-                  <User className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">Nama:</span>
-                  <span className="text-sm text-gray-900">{user?.name}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Building2 className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">Direktorat:</span>
-                  <span className="text-sm text-gray-900">{userDirektorat}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Users className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">Sub Direktorat:</span>
-                  <span className="text-sm text-gray-900">{userSubDirektorat}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Briefcase className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">Divisi:</span>
-                  <span className="text-sm text-gray-900">{userDivisi}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+
 
           {/* Year Selector Panel */}
           <Card className="mb-6 border-0 shadow-lg">
@@ -276,97 +318,36 @@ const AdminDashboard = () => {
           {/* Show content only when year is selected */}
           {selectedYear ? (
             <>
-              {/* Progress Overview */}
-              <Card className="mb-6 border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>Progress Keseluruhan</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Progress upload dokumen untuk {userSubDirektorat}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Total Progress
-                      </span>
-                      <span className="text-sm font-bold text-blue-600">
-                        {progressStats.totalCompleted}/{progressStats.totalAssigned}
-                      </span>
-                    </div>
-                    <Progress 
-                      value={progressStats.overallProgress} 
-                      className="h-3"
-                    />
-                    <div className="text-center">
-                      <span className="text-2xl font-bold text-blue-600">
-                        {progressStats.overallProgress.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Statistik Tahun Buku */}
+              {selectedYear && (
+                <YearStatisticsPanel 
+                  selectedYear={selectedYear}
+                  aspectStats={getAspectStats}
+                  overallProgress={getOverallProgress}
+                  getAspectIcon={getAspectIcon}
+                  getAspectColor={getAspectColor}
+                  onAspectClick={() => {}} // Admin tidak perlu click untuk filter
+                  isSidebarOpen={isSidebarOpen}
+                  title="Statistik Tahun Buku"
+                  description={`Overview dokumen dan checklist assessment tahun ${selectedYear} untuk ${userSubDirektorat}`}
+                  maxCardsInSlider={4}
+                  showViewAllButton={true}
+                  showOverallProgress={true}
+                />
+              )}
 
-              {/* Progress per Aspek */}
-              <Card className="mb-6 border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <FileText className="w-5 h-5 text-purple-600" />
-                    <span>Progress per Aspek</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Progress upload dokumen per aspek yang ditugaskan
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {Object.entries(progressStats.aspectStats).map(([aspect, stats]) => {
-                      const AspectIcon = getAspectIcon(aspect);
-                      const aspectColor = getAspectColor(aspect);
-                      const progress = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
-                      
-                      return (
-                        <Card key={aspect} className="border border-gray-200">
-                          <CardHeader className="pb-3">
-                            <div className="flex items-center space-x-2">
-                              <div className={`w-3 h-3 rounded-full ${aspectColor}`}></div>
-                              <CardTitle className="text-sm font-medium">
-                                {aspect}
-                              </CardTitle>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="pt-0">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600">Progress</span>
-                                <span className="font-semibold text-blue-600">
-                                  {stats.completed}/{stats.total}
-                                </span>
-                              </div>
-                              <Progress value={progress} className="h-2" />
-                              <div className="text-center">
-                                <span className="text-lg font-bold text-blue-600">
-                                  {progress.toFixed(1)}%
-                                </span>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
 
-              {/* Tabs for Tugas Upload and Daftar Dokumen */}
+
+              {/* Tabs for Tugas Upload, Upload Dokumen, and Daftar Dokumen */}
               <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="space-y-6">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="tugas" className="flex items-center space-x-2">
                     <Upload className="w-4 h-4" />
                     <span>Tugas Upload</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="upload-dokumen" className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4" />
+                    <span>Upload Dokumen</span>
                   </TabsTrigger>
                   <TabsTrigger value="dokumen" className="flex items-center space-x-2">
                     <FileText className="w-4 h-4" />
@@ -461,6 +442,176 @@ const AdminDashboard = () => {
                               </Card>
                             );
                           })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Upload Dokumen Tab */}
+                <TabsContent value="upload-dokumen">
+                  <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-indigo-50">
+                    <CardHeader>
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <CardTitle className="flex items-center space-x-2 text-indigo-900">
+                            <FileText className="w-5 h-5 text-indigo-600" />
+                            <span>Upload Dokumen - Tahun {selectedYear}</span>
+                          </CardTitle>
+                          <CardDescription className="text-indigo-700 mt-2">
+                            <span>
+                              <span className="font-semibold text-indigo-600">{getAssignedChecklistsForTable.length}</span> item checklist yang ditugaskan untuk {userSubDirektorat}
+                            </span>
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {getAssignedChecklistsForTable.length === 0 ? (
+                        <div className="text-center py-8">
+                          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            Belum ada checklist yang ditugaskan
+                          </h3>
+                          <p className="text-gray-600">
+                            Super Admin belum menugaskan checklist untuk {userSubDirektorat}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="overflow-hidden rounded-lg border border-indigo-100">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100">
+                                <TableHead className="text-indigo-900 font-semibold">No</TableHead>
+                                <TableHead className="text-indigo-900 font-semibold">Aspek</TableHead>
+                                <TableHead className="text-indigo-900 font-semibold">Deskripsi Checklist</TableHead>
+                                <TableHead className="text-indigo-900 font-semibold">Status</TableHead>
+                                <TableHead className="text-indigo-900 font-semibold">File</TableHead>
+                                <TableHead className="text-indigo-900 font-semibold">Aksi</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {getAssignedChecklistsForTable.map((item, index) => {
+                                const IconComponent = getAspectIcon(item.aspek);
+                                
+                                return (
+                                  <TableRow key={item.id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-colors duration-200">
+                                    <TableCell className="font-medium text-gray-700">
+                                      {index + 1}
+                                    </TableCell>
+                                    <TableCell className="max-w-xs">
+                                      <div className="flex items-center space-x-2">
+                                        <div className="p-1.5 rounded-md bg-gray-100">
+                                          <IconComponent className="w-3 h-3 text-gray-600" />
+                                        </div>
+                                        <span className="text-xs text-gray-600 truncate">
+                                          {item.aspek}
+                                        </span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="max-w-md">
+                                      <div className="text-sm font-semibold text-gray-900 leading-relaxed" title={item.deskripsi}>
+                                        {item.deskripsi}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      {item.status === 'uploaded' ? (
+                                        <span className="flex items-center text-green-600 text-sm font-medium">
+                                          <CheckCircle className="w-4 h-4 mr-1" />
+                                          Sudah Upload
+                                        </span>
+                                      ) : (
+                                        <span className="flex items-center text-gray-400 text-sm">
+                                          <Clock className="w-4 h-4 mr-1" />
+                                          Belum Upload
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      {item.uploadedDocument ? (
+                                        <div className="space-y-1">
+                                          <div className="flex items-center space-x-2">
+                                            <FileText className="w-4 h-4 text-blue-600" />
+                                            <span className="text-sm font-medium text-gray-900 truncate" title={item.uploadedDocument.namaFile}>
+                                              {item.uploadedDocument.namaFile}
+                                            </span>
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            Nama File: {item.uploadedDocument.namaFile}
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            Tanggal Upload: {new Date(item.uploadedDocument.uploadDate).toLocaleDateString('id-ID')}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-sm text-gray-400 italic">
+                                          Belum ada file
+                                        </div>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex space-x-2">
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          onClick={() => handleViewDocument(item.checklistId)}
+                                          disabled={!item.uploadedDocument}
+                                          className={`${
+                                            item.uploadedDocument
+                                              ? 'border-blue-200 text-blue-600 hover:bg-blue-50'
+                                              : 'border-gray-200 text-gray-400 cursor-not-allowed'
+                                          }`}
+                                          title={
+                                            item.uploadedDocument
+                                              ? 'Lihat dokumen'
+                                              : 'Dokumen belum diupload'
+                                          }
+                                        >
+                                          <Eye className="w-4 h-4" />
+                                        </Button>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          onClick={() => handleDownloadDocument(item.uploadedDocument)}
+                                          disabled={!item.uploadedDocument}
+                                          className={`${
+                                            item.uploadedDocument
+                                              ? 'border-green-200 text-green-600 hover:bg-green-50'
+                                              : 'border-gray-200 text-gray-400 cursor-not-allowed'
+                                          }`}
+                                          title={
+                                            item.uploadedDocument
+                                              ? 'Download dokumen'
+                                              : 'Dokumen belum diupload'
+                                          }
+                                        >
+                                          <Download className="w-4 h-4" />
+                                        </Button>
+                                        <Button 
+                                          variant="default" 
+                                          size="sm"
+                                          onClick={() => handleUploadDocument(item)}
+                                          disabled={item.status === 'uploaded'}
+                                          className={`${
+                                            item.status === 'uploaded'
+                                              ? 'bg-gray-400 cursor-not-allowed'
+                                              : 'bg-blue-600 hover:bg-blue-700'
+                                          }`}
+                                          title={
+                                            item.status === 'uploaded'
+                                              ? 'Dokumen sudah diupload'
+                                              : 'Upload dokumen'
+                                          }
+                                        >
+                                          <Upload className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
                         </div>
                       )}
                     </CardContent>
