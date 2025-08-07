@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import YearSelector from '@/components/dashboard/YearSelector';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import YearStatisticsPanel from '@/components/dashboard/YearStatisticsPanel';
-import PerformanceOverview from '@/components/dashboard/PerformanceOverview';
 import SpiderChart from '@/components/dashboard/SpiderChart';
 import SubDirektoratPerformance from '@/components/dashboard/SubDirektoratPerformance';
 import MonthlyTrends from '@/components/dashboard/MonthlyTrends';
@@ -17,19 +16,9 @@ const Dashboard = () => {
   const { isSidebarOpen } = useSidebar();
   const { selectedYear } = useYear();
   const [searchParams] = useSearchParams();
-  const [animateStats, setAnimateStats] = useState(false);
   
   // Get URL parameters
   const filterYear = searchParams.get('year');
-
-  // Trigger animation when year changes
-  useEffect(() => {
-    if (selectedYear) {
-      setAnimateStats(true);
-      const timer = setTimeout(() => setAnimateStats(false), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedYear]);
 
   return (
     <>
@@ -56,9 +45,6 @@ const Dashboard = () => {
           {/* Show content only when year is selected */}
           {selectedYear ? (
             <>
-              {/* Performance Overview Cards */}
-              <PerformanceOverview animateStats={animateStats} />
-
               {/* Dashboard Stats (Original) */}
               <div id="dashboard-stats">
                 <DashboardStats />
