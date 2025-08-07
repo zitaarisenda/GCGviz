@@ -6,7 +6,6 @@ import YearSelector from '@/components/dashboard/YearSelector';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import YearStatisticsPanel from '@/components/dashboard/YearStatisticsPanel';
 import SpiderChart from '@/components/dashboard/SpiderChart';
-import SubDirektoratPerformance from '@/components/dashboard/SubDirektoratPerformance';
 import MonthlyTrends from '@/components/dashboard/MonthlyTrends';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useYear } from '@/contexts/YearContext';
@@ -59,8 +58,6 @@ const Dashboard = () => {
                 <MonthlyTrends />
               </div>
 
-              {/* Sub-Direktorat Performance */}
-              <SubDirektoratPerformance />
             </>
           ) : (
             /* Empty State when no year selected */
