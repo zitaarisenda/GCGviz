@@ -7,8 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebar } from '@/contexts/SidebarContext';
+import GCGDashboard from '@/components/dashboard/GCGDashboard';
+import CSVPoweredDashboard from '@/components/dashboard/CSVPoweredDashboard'; // Now reads XLSX
 import { 
   FileText, 
   Upload, 
@@ -22,14 +25,16 @@ import {
   CheckCircle,
   AlertCircle,
   ArrowLeft,
-  LineChart
+  LineChart,
+  HelpCircle
 } from 'lucide-react';
 
 interface PenilaianRow {
   id: string;
+  no?: string; // Only for DETAILED mode
   aspek: string;
   deskripsi: string;
-  jumlah_parameter: number;
+  jumlah_parameter?: number; // Only for DETAILED mode
   bobot: number;
   skor: number;
   capaian: number;
@@ -43,20 +48,112 @@ const PenilaianGCG = () => {
   const [currentStep, setCurrentStep] = useState<'method' | 'table' | 'upload'>('method');
   const [selectedMethod, setSelectedMethod] = useState<'manual' | 'otomatis' | null>(null);
   
-  // State untuk tahun
+  // State untuk tahun dan auditor
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [customYear, setCustomYear] = useState('');
   const [showAddYear, setShowAddYear] = useState(false);
   const [customYears, setCustomYears] = useState<number[]>([]);
+  const [auditor, setAuditor] = useState('Self Assessment');
   
   // State untuk data table
   const [tableData, setTableData] = useState<PenilaianRow[]>([]);
   const [editingCell, setEditingCell] = useState<{rowId: string, field: keyof PenilaianRow} | null>(null);
   
+  // Track which fields are being edited to handle 0 display properly
+  const [editingFields, setEditingFields] = useState<Record<string, string>>({});
+  
   // State untuk file upload
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
+  const [processingResult, setProcessingResult] = useState<any | null>(null);
+  
+  // State untuk save functionality
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  
+  // State for data format mode
+  const [isDetailedMode, setIsDetailedMode] = useState(false);
+  
+  // State for aspect summary table (DETAILED mode only)
+  const [aspectSummaryData, setAspectSummaryData] = useState<PenilaianRow[]>([]);
+  
+  // Predetermined GCG aspect summary rows (for DETAILED mode)
+  const getAspectSummaryRows = (): PenilaianRow[] => [
+    {
+      id: 'aspect-1',
+      aspek: 'I',
+      deskripsi: '',
+      bobot: 0,
+      skor: 0,
+      capaian: 0,
+      penjelasan: 'Sangat Kurang'
+    },
+    {
+      id: 'aspect-2', 
+      aspek: 'II',
+      deskripsi: '',
+      bobot: 0,
+      skor: 0,
+      capaian: 0,
+      penjelasan: 'Sangat Kurang'
+    },
+    {
+      id: 'aspect-3',
+      aspek: 'III', 
+      deskripsi: '',
+      bobot: 0,
+      skor: 0,
+      capaian: 0,
+      penjelasan: 'Sangat Kurang'
+    },
+    {
+      id: 'aspect-4',
+      aspek: 'IV',
+      deskripsi: '',
+      bobot: 0,
+      skor: 0,
+      capaian: 0,
+      penjelasan: 'Sangat Kurang'
+    },
+    {
+      id: 'aspect-5',
+      aspek: 'V',
+      deskripsi: '', 
+      bobot: 0,
+      skor: 0,
+      capaian: 0,
+      penjelasan: 'Sangat Kurang'
+    },
+    {
+      id: 'aspect-6',
+      aspek: 'VI',
+      deskripsi: '',
+      bobot: 0,
+      skor: 0,
+      capaian: 0,
+      penjelasan: 'Sangat Kurang'
+    }
+  ];
+
+  // Handle mode toggle
+  const handleModeToggle = (detailed: boolean) => {
+    setIsDetailedMode(detailed);
+    
+    if (detailed) {
+      // Switch to DETAILED mode - load aspect summary
+      setAspectSummaryData(getAspectSummaryRows());
+      // Clear main table data and ensure DETAILED fields
+      setTableData([]);
+      console.log('📊 DETAILED mode activated - aspect summary loaded');
+    } else {
+      // Switch to BRIEF mode - clear aspect summary
+      setAspectSummaryData([]);
+      // Clear main table data and remove DETAILED fields
+      setTableData([]);
+      console.log('📋 BRIEF mode activated - simplified view');
+    }
+  };
 
   // Generate tahun dari 2014 sampai sekarang + 2 tahun ke depan + custom years
   const years = useMemo(() => {
@@ -71,13 +168,55 @@ const PenilaianGCG = () => {
     return [...new Set(allYears)].sort((a, b) => b - a);
   }, [customYears]);
 
-  // Auto-calculate capaian dan penjelasan
+  // Auto-calculate capaian dan penjelasan with negative bobot handling
   const calculateCapaian = (skor: number, bobot: number): number => {
-    if (bobot === 0) return 0;
+    // Handle special cases
+    if (bobot === 0) {
+      // If bobot is 0, assume perfect score (best classification)
+      return 100;
+    }
+    
+    if (bobot < 0) {
+      // Negative bobot = assessment of bad things (harassment, violations)
+      // Special range: -100% < capaian < 0%
+      // Logic: skor = 0 → capaian = 0% (Sangat Baik)
+      //        skor = |bobot| → capaian = -100% (Sangat Kurang)
+      if (skor === 0) {
+        return 0; // No bad events = 0% = Sangat Baik for negative bobot
+      }
+      // Formula: -(|skor| / |bobot|) * 100
+      const absBobot = Math.abs(bobot);
+      const absSkor = Math.abs(skor);
+      const ratio = Math.min(absSkor, absBobot) / absBobot; // Cap at 100%
+      return -Math.round(ratio * 100); // Negative percentage
+    }
+    
+    // Normal positive bobot calculation
     return Math.round((skor / bobot) * 100);
   };
 
-  const getPenjelasan = (capaian: number): string => {
+  const getPenjelasan = (capaian: number, bobot: number = 1): string => {
+    // Handle 0% capaian - depends on bobot sign
+    if (capaian === 0) {
+      if (bobot < 0) {
+        // For negative bobot, 0% = Sangat Baik (no bad events)
+        return 'Sangat Baik';
+      } else {
+        // For positive bobot, 0% = Sangat Kurang (no achievement)
+        return 'Sangat Kurang';
+      }
+    }
+    
+    // Handle negative capaian (from negative bobot)
+    if (capaian < 0 && capaian >= -100) {
+      if (capaian >= -10) return 'Sangat Baik';    // -1% to -10%
+      if (capaian >= -20) return 'Baik';           // -11% to -20%
+      if (capaian >= -30) return 'Cukup Baik';     // -21% to -30%
+      if (capaian >= -40) return 'Kurang Baik';    // -31% to -40%
+      return 'Sangat Kurang';                      // -41% to -100%
+    }
+    
+    // Handle positive capaian (normal logic for positive bobot)
     if (capaian >= 90) return 'Sangat Baik';
     if (capaian >= 80) return 'Baik';
     if (capaian >= 70) return 'Cukup Baik';
@@ -89,9 +228,10 @@ const PenilaianGCG = () => {
   const addNewRow = () => {
     const newRow: PenilaianRow = {
       id: Date.now().toString(),
+      no: isDetailedMode ? '' : undefined,
       aspek: '',
       deskripsi: '',
-      jumlah_parameter: 0,
+      jumlah_parameter: isDetailedMode ? 0 : undefined,
       bobot: 0,
       skor: 0,
       capaian: 0,
@@ -105,8 +245,30 @@ const PenilaianGCG = () => {
     setTableData(tableData.filter(row => row.id !== rowId));
   };
 
+  // Update aspect summary cell
+  const updateAspectSummaryCell = (rowId: string, field: keyof PenilaianRow, value: any) => {
+    console.log(`🔄 UpdateAspectSummaryCell: ${field} = ${value}`);
+    
+    setAspectSummaryData(aspectSummaryData.map(row => {
+      if (row.id === rowId) {
+        const updatedRow = { ...row, [field]: value };
+        
+        // Auto-calculate capaian dan penjelasan jika skor atau bobot berubah
+        if (field === 'skor' || field === 'bobot') {
+          updatedRow.capaian = calculateCapaian(updatedRow.skor, updatedRow.bobot);
+          updatedRow.penjelasan = getPenjelasan(updatedRow.capaian, updatedRow.bobot);
+        }
+        
+        return updatedRow;
+      }
+      return row;
+    }));
+  };
+
   // Update cell value
   const updateCell = (rowId: string, field: keyof PenilaianRow, value: any) => {
+    console.log(`🔄 UpdateCell: ${field} = ${value} (type: ${typeof value})`);
+    
     setTableData(tableData.map(row => {
       if (row.id === rowId) {
         const updatedRow = { ...row, [field]: value };
@@ -114,7 +276,8 @@ const PenilaianGCG = () => {
         // Auto-calculate capaian dan penjelasan jika skor atau bobot berubah
         if (field === 'skor' || field === 'bobot') {
           updatedRow.capaian = calculateCapaian(updatedRow.skor, updatedRow.bobot);
-          updatedRow.penjelasan = getPenjelasan(updatedRow.capaian);
+          updatedRow.penjelasan = getPenjelasan(updatedRow.capaian, updatedRow.bobot);
+          console.log(`📊 Auto-calculated: skor=${updatedRow.skor}, bobot=${updatedRow.bobot}, capaian=${updatedRow.capaian}%, penjelasan=${updatedRow.penjelasan}`);
         }
         
         return updatedRow;
@@ -165,21 +328,51 @@ const PenilaianGCG = () => {
 
       const result = await response.json();
       
-      // Convert result to PenilaianRow format  
+      // Store processing result for display
+      setProcessingResult(result);
+      
+      // Convert result to PenilaianRow format with proper number parsing
       const extractedData = result.extractedData || {};
       const sampleData = extractedData.sample_indicators || [];
-      const processedData: PenilaianRow[] = sampleData.map((row: any, index: number) => ({
-        id: row.no?.toString() || (index + 1).toString(),
-        aspek: row.section || '',
-        deskripsi: row.description || '',
-        jumlah_parameter: row.jumlah_parameter || 0,
-        bobot: row.bobot || 100,
-        skor: row.skor || 0,
-        capaian: row.capaian || 0,
-        penjelasan: row.penjelasan || 'Tidak ada data'
-      }));
+      const processedData: PenilaianRow[] = sampleData.map((row: any, index: number) => {
+        // Ensure proper number parsing for all numeric fields
+        const jumlah_parameter = typeof row.jumlah_parameter === 'string' ? parseInt(row.jumlah_parameter) || 0 : (row.jumlah_parameter || 0);
+        const bobot = typeof row.bobot === 'string' ? parseFloat(row.bobot) || 100 : (row.bobot || 100);
+        const skor = typeof row.skor === 'string' ? parseFloat(row.skor) || 0 : (row.skor || 0);
+        const capaian = typeof row.capaian === 'string' ? parseFloat(row.capaian) || 0 : (row.capaian || 0);
+        
+        console.log(`Processing row ${index + 1}:`, {
+          no: row.no,
+          section: row.section,
+          description: row.description,
+          jumlah_parameter,
+          bobot, 
+          skor,
+          capaian,
+          penjelasan: row.penjelasan
+        });
+        
+        return {
+          id: row.no?.toString() || (index + 1).toString(),
+          aspek: row.section || '',
+          deskripsi: row.description || '', // This matches the backend field name
+          jumlah_parameter,
+          bobot,
+          skor,
+          capaian,
+          penjelasan: getPenjelasan(capaian, bobot) // Always recalculate with frontend logic
+        };
+      });
       
       setTableData(processedData);
+      
+      // Auto-update selected year if extracted from file
+      if (extractedData.year && !isNaN(parseInt(extractedData.year))) {
+        const extractedYear = parseInt(extractedData.year);
+        setSelectedYear(extractedYear);
+        console.log(`Auto-updated year to: ${extractedYear}`);
+      }
+      
       setCurrentStep('table');
       
     } catch (error) {
@@ -190,9 +383,92 @@ const PenilaianGCG = () => {
     }
   };
 
+  // Load data when year changes
+  const handleYearChange = async (year: number) => {
+    try {
+      console.log(`🔧 DEBUG: Year changed to ${year}, loading data...`);
+      
+      setSelectedYear(year);
+      
+      // Try to load existing data for this year
+      const response = await fetch(`/api/load/${year}`);
+      const result = await response.json();
+      
+      if (result.success && result.data.length > 0) {
+        // Found existing data for this year
+        console.log(`✅ Loaded ${result.data.length} rows for year ${year}`);
+        setTableData(result.data);
+        setAuditor(result.auditor);
+        setSaveMessage(`📂 Data tahun ${year} berhasil dimuat (${result.data.length} baris)`);
+        setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        // No data for this year - clear the table
+        console.log(`📝 No data found for year ${year}, clearing table`);
+        setTableData([]);
+        setSaveMessage(`📋 Tahun ${year} dipilih - tabel dikosongkan untuk input baru`);
+        setTimeout(() => setSaveMessage(null), 3000);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error loading year data:', error);
+      // If there's an error, just clear the table
+      setTableData([]);
+    }
+  };
+
+  // Save handler for local JSON storage
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      setSaveMessage(null);
+      
+      console.log('🔧 DEBUG: Starting save process...');
+      console.log(`📊 Saving ${tableData.length} rows for year ${selectedYear}`);
+      
+      const saveData = {
+        data: tableData,
+        year: selectedYear,
+        auditor: auditor,
+        method: selectedMethod || 'manual'
+      };
+      
+      const response = await fetch('/api/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(saveData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log(`✅ Save successful! Assessment ID: ${result.assessment_id}`);
+        setSaveMessage(`📊 Data berhasil disimpan! 
+        💾 Assessment ID: ${result.assessment_id}
+        📁 Excel otomatis dibuat di: data/output/web-output/output.xlsx`);
+        
+        // Auto-hide success message after 5 seconds (longer for more info)
+        setTimeout(() => setSaveMessage(null), 5000);
+      } else {
+        throw new Error(result.error || 'Save failed');
+      }
+      
+    } catch (error) {
+      console.error('❌ Save error:', error);
+      setSaveMessage(`Gagal menyimpan data: ${error}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Method Selection Step
   const renderMethodSelection = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center space-x-3 mb-4">
@@ -210,113 +486,44 @@ const PenilaianGCG = () => {
         </div>
       </div>
 
-      {/* Method Selection Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {/* Input Manual */}
-        <Card 
-          className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 border-2 border-gray-200 hover:border-green-300"
-          onClick={() => {
-            setSelectedMethod('manual');
-            setCurrentStep('table');
-          }}
-        >
-          <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mb-4">
-              <Edit3 className="w-8 h-8 text-white" />
-            </div>
-            <CardTitle className="text-xl text-green-700">Input Manual</CardTitle>
-            <CardDescription className="text-gray-600">
-              Input data penilaian GCG secara manual satu per satu
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <div className="space-y-3">
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Kontrol penuh atas data</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Edit langsung di tabel</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Tambah baris sesuai kebutuhan</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Input Section */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold text-gray-800 text-left">Input</h2>
+        
+        <div className="flex items-center space-x-4">
+          {/* Input Manual - Small Button */}
+          <Button 
+            onClick={() => {
+              setSelectedMethod('manual');
+              setCurrentStep('table');
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm"
+          >
+            <Edit3 className="w-4 h-4 mr-2" />
+            Input Manual
+          </Button>
 
-        {/* Input Otomatis */}
-        <Card 
-          className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 border-2 border-gray-200 hover:border-purple-300"
-          onClick={() => {
-            setSelectedMethod('otomatis');
-            setCurrentStep('upload');
-          }}
-        >
-          <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-purple-500 to-violet-500 rounded-full flex items-center justify-center mb-4">
-              <Upload className="w-8 h-8 text-white" />
-            </div>
-            <CardTitle className="text-xl text-purple-700">Input Otomatis</CardTitle>
-            <CardDescription className="text-gray-600">
-              Upload file dokumen untuk diproses otomatis
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <div className="space-y-3">
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-purple-500" />
-                <span>Support Excel, PDF, Gambar</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-purple-500" />
-                <span>Akurasi 98.9% (Excel)</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-purple-500" />
-                <span>Dapat di-review dan edit</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Input Otomatis - Small Button */}
+          <Button 
+            onClick={() => {
+              setSelectedMethod('otomatis');
+              setCurrentStep('upload');
+            }}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 text-sm"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Input Otomatis
+          </Button>
 
-        {/* View Dashboard */}
-        <Card 
-          className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 border-2 border-gray-200 hover:border-blue-300"
-          onClick={() => {
-            alert('Dashboard sedang dalam pengembangan (work in progress)');
-          }}
-        >
-          <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mb-4">
-              <LineChart className="w-8 h-8 text-white" />
-            </div>
-            <CardTitle className="text-xl text-blue-700">Lihat Dashboard</CardTitle>
-            <CardDescription className="text-gray-600">
-              Lihat dashboard dan analisis data GCG
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <div className="space-y-3">
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-blue-500" />
-                <span>Visualisasi data interaktif</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-blue-500" />
-                <span>Analisis tren dan performa</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <CheckCircle className="w-4 h-4 text-blue-500" />
-                <span>Export laporan otomatis</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
+      {/* Dashboard Section */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold text-gray-800 text-left">Dashboard Visualisasi</h2>
+        
+        <CSVPoweredDashboard selectedYear={selectedYear} tableData={tableData} auditor={auditor} />
+      </div>
     </div>
   );
 
@@ -431,6 +638,7 @@ const PenilaianGCG = () => {
     </div>
   );
 
+
   // Table Step (main editing interface)
   const renderTable = () => (
     <div className="space-y-6">
@@ -459,89 +667,304 @@ const PenilaianGCG = () => {
         </div>
       </div>
 
-      {/* Year Selection */}
+      {/* Year and Auditor Selection */}
       <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-blue-50">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center space-x-2 text-blue-900">
             <Calendar className="w-5 h-5 text-blue-600" />
-            <span>Tahun Buku Penilaian</span>
+            <span>Tahun Buku & Info Penilaian</span>
           </CardTitle>
           <CardDescription>
-            Pilih tahun buku untuk data penilaian GCG ini
+            Pilih tahun buku dan tentukan auditor untuk data penilaian GCG ini
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pilih tahun buku" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map(year => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {showAddYear ? (
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="number"
-                  placeholder="2026"
-                  value={customYear}
-                  onChange={(e) => setCustomYear(e.target.value)}
-                  className="w-20"
-                />
-                <Button size="sm" onClick={handleAddYear}>
-                  <CheckCircle className="w-3 h-3" />
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowAddYear(false);
-                    setCustomYear('');
-                  }}
-                >
-                  <Minus className="w-3 h-3" />
-                </Button>
+          <div className="space-y-4">
+            {/* Year Selection Row */}
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">Tahun Buku</Label>
+                <Select value={selectedYear.toString()} onValueChange={(value) => handleYearChange(parseInt(value))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih tahun buku" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map(year => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddYear(true)}
-                className="border-dashed border-blue-300 text-blue-600 hover:bg-blue-50"
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                Tambah Tahun Buku
-              </Button>
-            )}
+            
+              {showAddYear ? (
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="number"
+                    placeholder="2026"
+                    value={customYear}
+                    onChange={(e) => setCustomYear(e.target.value)}
+                    className="w-20"
+                  />
+                  <Button size="sm" onClick={handleAddYear}>
+                    <CheckCircle className="w-3 h-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowAddYear(false);
+                      setCustomYear('');
+                    }}
+                  >
+                    <Minus className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAddYear(true)}
+                  className="border-dashed border-blue-300 text-blue-600 hover:bg-blue-50"
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Tambah Tahun Buku
+                </Button>
+              )}
+            </div>
+
+            {/* Auditor Selection Row */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">Auditor/Penilai</Label>
+              <Input
+                type="text"
+                placeholder="Contoh: Self Assessment, BPKP, Internal Audit, PWC, etc."
+                value={auditor}
+                onChange={(e) => setAuditor(e.target.value)}
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Masukkan nama auditor atau jenis penilaian (self assessment, pihak eksternal, dll)
+              </p>
+            </div>
+
+            {/* Data Format Mode Toggle */}
+            <div className="pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium text-gray-700">Format Data</Label>
+                  <p className="text-xs text-gray-500">
+                    Pilih format input: BRIEF (per aspek) atau DETAILED (per indikator dengan No dan Jumlah Parameter)
+                  </p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className={`text-sm ${!isDetailedMode ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
+                    BRIEF
+                  </span>
+                  <Switch
+                    checked={isDetailedMode}
+                    onCheckedChange={handleModeToggle}
+                    className="data-[state=checked]:bg-purple-600"
+                  />
+                  <span className={`text-sm ${isDetailedMode ? 'text-purple-900 font-medium' : 'text-gray-500'}`}>
+                    DETAILED
+                  </span>
+                </div>
+              </div>
+              
+              {isDetailedMode && (
+                <div className="mt-2 p-2 bg-purple-50 rounded-lg">
+                  <p className="text-xs text-purple-800">
+                    📊 Mode DETAILED aktif - Tabel aspek summary + tabel indikator dengan kolom No dan Jumlah Parameter
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="mt-3 p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Tahun Buku Terpilih: {selectedYear}</strong> - Semua data akan disimpan untuk tahun buku ini
+              <strong>Tahun Buku: {selectedYear}</strong> | <strong>Auditor: {auditor}</strong> | <strong>Format: {isDetailedMode ? 'DETAILED' : 'BRIEF'}</strong>
+              <br />
+              <span className="text-xs">
+                Semua data akan disimpan dengan informasi ini
+                {isDetailedMode && ' | Mode DETAILED: Tabel aspek + indikator'}
+              </span>
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Table */}
+      {/* Processing Success Info */}
+      {processingResult && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-3">
+              <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-green-900">File Berhasil Diproses!</h4>
+                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-green-700 font-medium">File:</p>
+                    <p className="text-green-600">{processingResult.originalFilename}</p>
+                  </div>
+                  <div>
+                    <p className="text-green-700 font-medium">Format:</p>
+                    <p className="text-green-600">{processingResult.extractedData?.format_type || 'DETAILED'}</p>
+                  </div>
+                  <div>
+                    <p className="text-green-700 font-medium">Indikator:</p>
+                    <p className="text-green-600">{processingResult.extractedData?.indicators} indikator</p>
+                  </div>
+                  <div>
+                    <p className="text-green-700 font-medium">Status:</p>
+                    <p className="text-green-600">{processingResult.extractedData?.processing_status === 'success' ? 'Berhasil' : 'Selesai'}</p>
+                  </div>
+                </div>
+                {processingResult.extractedData?.year && (
+                  <div className="mt-2">
+                    <p className="text-green-700 text-sm">
+                      <strong>Tahun:</strong> {processingResult.extractedData.year} | 
+                      <strong> Penilai:</strong> {processingResult.extractedData?.penilai || 'Tidak terdeteksi'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Aspect Summary Table (DETAILED mode only) */}
+      {isDetailedMode && (
+        <Card className="border-0 shadow-lg bg-purple-50">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Target className="w-5 h-5 text-purple-600" />
+              <span>Summary Aspek GCG - Tahun Buku {selectedYear}</span>
+            </CardTitle>
+            <CardDescription>
+              6 aspek GCG utama untuk penilaian summary (tanpa kolom No dan Jumlah Parameter)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gradient-to-r from-purple-50 to-pink-50">
+                    <TableHead className="text-purple-900 font-semibold">Aspek</TableHead>
+                    <TableHead className="text-purple-900 font-semibold">Deskripsi</TableHead>
+                    <TableHead className="text-purple-900 font-semibold">Bobot</TableHead>
+                    <TableHead className="text-purple-900 font-semibold">Skor</TableHead>
+                    <TableHead className="text-purple-900 font-semibold">Capaian (%)</TableHead>
+                    <TableHead className="text-purple-900 font-semibold">Penjelasan</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {aspectSummaryData.map((row) => (
+                    <TableRow key={row.id} className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50">
+                      {/* Aspek (Read-only) */}
+                      <TableCell>
+                        <div className="px-3 py-2 bg-purple-100 rounded text-center font-medium text-purple-900">
+                          {row.aspek}
+                        </div>
+                      </TableCell>
+                      
+                      {/* Deskripsi */}
+                      <TableCell className="min-w-64">
+                        <Input
+                          value={row.deskripsi}
+                          onChange={(e) => updateAspectSummaryCell(row.id, 'deskripsi', e.target.value)}
+                          className="border-0 bg-transparent focus:bg-white focus:border focus:border-purple-300"
+                          placeholder="Deskripsi aspek..."
+                        />
+                      </TableCell>
+                      
+                      {/* Bobot */}
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={row.bobot.toString()}
+                          onChange={(e) => {
+                            const numValue = parseFloat(e.target.value);
+                            updateAspectSummaryCell(row.id, 'bobot', isNaN(numValue) ? 0 : numValue);
+                          }}
+                          className="border-0 bg-transparent focus:bg-white focus:border focus:border-purple-300 w-20"
+                          placeholder="0.00"
+                        />
+                      </TableCell>
+                      
+                      {/* Skor */}
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={row.skor.toString()}
+                          onChange={(e) => {
+                            const numValue = parseFloat(e.target.value);
+                            updateAspectSummaryCell(row.id, 'skor', isNaN(numValue) ? 0 : numValue);
+                          }}
+                          className="border-0 bg-transparent focus:bg-white focus:border focus:border-purple-300 w-20"
+                          placeholder="0.00"
+                        />
+                      </TableCell>
+                      
+                      {/* Capaian (Auto-calculated) */}
+                      <TableCell>
+                        <div className="text-center font-medium">
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            row.capaian >= 85 ? 'bg-green-100 text-green-800' :
+                            row.capaian >= 75 ? 'bg-blue-100 text-blue-800' :
+                            row.capaian >= 65 ? 'bg-yellow-100 text-yellow-800' :
+                            row.capaian >= 50 ? 'bg-orange-100 text-orange-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {row.capaian}%
+                          </span>
+                        </div>
+                      </TableCell>
+                      
+                      {/* Penjelasan (Auto-calculated) */}
+                      <TableCell>
+                        <div className="text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            row.penjelasan === 'Sangat Baik' ? 'bg-green-100 text-green-800' :
+                            row.penjelasan === 'Baik' ? 'bg-blue-100 text-blue-800' :
+                            row.penjelasan === 'Cukup Baik' ? 'bg-yellow-100 text-yellow-800' :
+                            row.penjelasan === 'Kurang Baik' ? 'bg-orange-100 text-orange-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {row.penjelasan}
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Data Table */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center space-x-2">
                 <FileText className="w-5 h-5 text-indigo-600" />
-                <span>Data Penilaian GCG - Tahun Buku {selectedYear}</span>
+                <span>
+                  {isDetailedMode 
+                    ? `Data Indikator Detail - Tahun Buku ${selectedYear}` 
+                    : `Data Penilaian GCG - Tahun Buku ${selectedYear}`
+                  }
+                </span>
               </CardTitle>
               <CardDescription>
-                {tableData.length} baris data penilaian
+                {tableData.length} baris data {isDetailedMode ? 'indikator detail' : 'penilaian'}
               </CardDescription>
             </div>
             <div className="space-x-2">
@@ -554,22 +977,56 @@ const PenilaianGCG = () => {
               </Button>
               <Button 
                 className="bg-blue-600 hover:bg-blue-700"
-                disabled={tableData.length === 0}
+                disabled={tableData.length === 0 || isSaving}
+                onClick={handleSave}
               >
                 <Save className="w-4 h-4 mr-2" />
-                Simpan Data
+                {isSaving ? 'Menyimpan...' : 'Simpan Data'}
               </Button>
             </div>
           </div>
         </CardHeader>
+        
+        {/* Save Message */}
+        {saveMessage && (
+          <div className="mx-6 mb-4">
+            <div className={`p-3 rounded-lg text-sm ${
+              saveMessage.includes('berhasil') 
+                ? 'bg-green-50 text-green-800 border border-green-200' 
+                : 'bg-red-50 text-red-800 border border-red-200'
+            }`}>
+              {saveMessage}
+            </div>
+          </div>
+        )}
+        
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gradient-to-r from-indigo-50 to-purple-50">
+                  {isDetailedMode && (
+                    <TableHead className="text-indigo-900 font-semibold">No</TableHead>
+                  )}
                   <TableHead className="text-indigo-900 font-semibold">Aspek</TableHead>
                   <TableHead className="text-indigo-900 font-semibold">Deskripsi</TableHead>
-                  <TableHead className="text-indigo-900 font-semibold">Jumlah Parameter</TableHead>
+                  {isDetailedMode && (
+                    <TableHead className="text-indigo-900 font-semibold">
+                      <div className="flex items-center space-x-1">
+                        <span>Jumlah Parameter</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="w-4 h-4 text-indigo-600 hover:text-indigo-800 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">Kalau jumlah parameter gak ada, kosongin aja</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TableHead>
+                  )}
                   <TableHead className="text-indigo-900 font-semibold">Bobot</TableHead>
                   <TableHead className="text-indigo-900 font-semibold">Skor</TableHead>
                   <TableHead className="text-indigo-900 font-semibold">Capaian (%)</TableHead>
@@ -580,6 +1037,18 @@ const PenilaianGCG = () => {
               <TableBody>
                 {tableData.map((row) => (
                   <TableRow key={row.id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50">
+                    {/* No (DETAILED mode only) */}
+                    {isDetailedMode && (
+                      <TableCell>
+                        <Input
+                          value={row.no || ''}
+                          onChange={(e) => updateCell(row.id, 'no', e.target.value)}
+                          className="border-0 bg-transparent focus:bg-white focus:border focus:border-blue-300 w-20"
+                          placeholder="1, 2, 3..."
+                        />
+                      </TableCell>
+                    )}
+                    
                     {/* Aspek */}
                     <TableCell>
                       <Input
@@ -600,33 +1069,175 @@ const PenilaianGCG = () => {
                       />
                     </TableCell>
                     
-                    {/* Jumlah Parameter */}
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={row.jumlah_parameter}
-                        onChange={(e) => updateCell(row.id, 'jumlah_parameter', parseInt(e.target.value) || 0)}
-                        className="border-0 bg-transparent focus:bg-white focus:border focus:border-blue-300 w-20"
-                      />
-                    </TableCell>
+                    {/* Jumlah Parameter (DETAILED mode only) */}
+                    {isDetailedMode && (
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={(() => {
+                            const fieldKey = `${row.id}-jumlah_parameter`;
+                            if (editingFields[fieldKey] !== undefined) {
+                              return editingFields[fieldKey]; // Show what user is typing
+                            }
+                            return (row.jumlah_parameter || 0).toString(); // Always show the value, including 0
+                          })()}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const fieldKey = `${row.id}-jumlah_parameter`;
+                            
+                            // Track what user is typing
+                            setEditingFields(prev => ({
+                              ...prev,
+                              [fieldKey]: value
+                            }));
+                            
+                            if (value === '' || value === null) {
+                              updateCell(row.id, 'jumlah_parameter', 0);
+                            } else {
+                              const numValue = parseInt(value);
+                              updateCell(row.id, 'jumlah_parameter', isNaN(numValue) ? 0 : numValue);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const fieldKey = `${row.id}-jumlah_parameter`;
+                            // Clear editing state
+                            setEditingFields(prev => {
+                              const newState = { ...prev };
+                              delete newState[fieldKey];
+                              return newState;
+                            });
+                            
+                            // Auto-set to 0 when user leaves empty field
+                            if (e.target.value === '' || e.target.value === null) {
+                              updateCell(row.id, 'jumlah_parameter', 0);
+                            }
+                          }}
+                          onFocus={() => {
+                            const fieldKey = `${row.id}-jumlah_parameter`;
+                            // When focusing, show current value (even if 0)
+                            setEditingFields(prev => ({
+                              ...prev,
+                              [fieldKey]: (row.jumlah_parameter || 0).toString()
+                            }));
+                          }}
+                          className="border-0 bg-transparent focus:bg-white focus:border focus:border-blue-300 w-20"
+                          placeholder="0"
+                        />
+                      </TableCell>
+                    )}
                     
                     {/* Bobot */}
                     <TableCell>
                       <Input
                         type="number"
-                        value={row.bobot}
-                        onChange={(e) => updateCell(row.id, 'bobot', parseFloat(e.target.value) || 0)}
+                        step="0.01"
+                        value={(() => {
+                          const fieldKey = `${row.id}-bobot`;
+                          if (editingFields[fieldKey] !== undefined) {
+                            return editingFields[fieldKey]; // Show what user is typing
+                          }
+                          return row.bobot.toString(); // Always show the value, including 0
+                        })()}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const fieldKey = `${row.id}-bobot`;
+                          
+                          // Track what user is typing
+                          setEditingFields(prev => ({
+                            ...prev,
+                            [fieldKey]: value
+                          }));
+                          
+                          if (value === '' || value === null) {
+                            updateCell(row.id, 'bobot', 0);
+                          } else {
+                            const numValue = parseFloat(value);
+                            updateCell(row.id, 'bobot', isNaN(numValue) ? 0 : numValue);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const fieldKey = `${row.id}-bobot`;
+                          // Clear editing state
+                          setEditingFields(prev => {
+                            const newState = { ...prev };
+                            delete newState[fieldKey];
+                            return newState;
+                          });
+                          
+                          // Auto-set to 0 when user leaves empty field
+                          if (e.target.value === '' || e.target.value === null) {
+                            updateCell(row.id, 'bobot', 0);
+                          }
+                        }}
+                        onFocus={() => {
+                          const fieldKey = `${row.id}-bobot`;
+                          // When focusing, show current value (even if 0)
+                          setEditingFields(prev => ({
+                            ...prev,
+                            [fieldKey]: row.bobot.toString()
+                          }));
+                        }}
                         className="border-0 bg-transparent focus:bg-white focus:border focus:border-blue-300 w-20"
+                        placeholder="0.00"
                       />
+                      {row.bobot < 0 && (
+                        <div className="text-xs text-orange-600 mt-1">Bobot negatif</div>
+                      )}
                     </TableCell>
                     
                     {/* Skor */}
                     <TableCell>
                       <Input
                         type="number"
-                        value={row.skor}
-                        onChange={(e) => updateCell(row.id, 'skor', parseFloat(e.target.value) || 0)}
+                        step="0.01"
+                        value={(() => {
+                          const fieldKey = `${row.id}-skor`;
+                          if (editingFields[fieldKey] !== undefined) {
+                            return editingFields[fieldKey]; // Show what user is typing
+                          }
+                          return row.skor.toString(); // Always show the value, including 0
+                        })()}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const fieldKey = `${row.id}-skor`;
+                          
+                          // Track what user is typing
+                          setEditingFields(prev => ({
+                            ...prev,
+                            [fieldKey]: value
+                          }));
+                          
+                          if (value === '' || value === null) {
+                            updateCell(row.id, 'skor', 0);
+                          } else {
+                            const numValue = parseFloat(value);
+                            updateCell(row.id, 'skor', isNaN(numValue) ? 0 : numValue);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const fieldKey = `${row.id}-skor`;
+                          // Clear editing state
+                          setEditingFields(prev => {
+                            const newState = { ...prev };
+                            delete newState[fieldKey];
+                            return newState;
+                          });
+                          
+                          // Auto-set to 0 when user leaves empty field
+                          if (e.target.value === '' || e.target.value === null) {
+                            updateCell(row.id, 'skor', 0);
+                          }
+                        }}
+                        onFocus={() => {
+                          const fieldKey = `${row.id}-skor`;
+                          // When focusing, show current value (even if 0)
+                          setEditingFields(prev => ({
+                            ...prev,
+                            [fieldKey]: row.skor.toString()
+                          }));
+                        }}
                         className="border-0 bg-transparent focus:bg-white focus:border focus:border-blue-300 w-20"
+                        placeholder="0.00"
                       />
                     </TableCell>
                     
@@ -634,11 +1245,25 @@ const PenilaianGCG = () => {
                     <TableCell>
                       <div className="text-center font-medium">
                         <span className={`px-2 py-1 rounded-full text-xs ${
-                          row.capaian >= 90 ? 'bg-green-100 text-green-800' :
-                          row.capaian >= 80 ? 'bg-blue-100 text-blue-800' :
-                          row.capaian >= 70 ? 'bg-yellow-100 text-yellow-800' :
-                          row.capaian >= 60 ? 'bg-orange-100 text-orange-800' :
-                          'bg-red-100 text-red-800'
+                          // Special case: 0% depends on bobot sign
+                          row.capaian === 0 ? (
+                            row.bobot < 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          ) :
+                          // Handle negative capaian (for negative bobot)
+                          row.capaian < 0 && row.capaian >= -100 ? (
+                            row.capaian >= -10 ? 'bg-green-100 text-green-800' :  // -1% to -10% = Sangat Baik
+                            row.capaian >= -20 ? 'bg-blue-100 text-blue-800' :    // -11% to -20% = Baik
+                            row.capaian >= -30 ? 'bg-yellow-100 text-yellow-800' : // -21% to -30% = Cukup Baik
+                            row.capaian >= -40 ? 'bg-orange-100 text-orange-800' : // -31% to -40% = Kurang Baik
+                            'bg-red-100 text-red-800'                              // -41% to -100% = Sangat Kurang
+                          ) : (
+                            // Handle positive capaian (normal logic)
+                            row.capaian >= 85 ? 'bg-green-100 text-green-800' :
+                            row.capaian >= 75 ? 'bg-blue-100 text-blue-800' :
+                            row.capaian >= 65 ? 'bg-yellow-100 text-yellow-800' :
+                            row.capaian >= 50 ? 'bg-orange-100 text-orange-800' :
+                            'bg-red-100 text-red-800'
+                          )
                         }`}>
                           {row.capaian}%
                         </span>
@@ -689,16 +1314,28 @@ const PenilaianGCG = () => {
               </div>
             )}
             
+            {/* Mode Info */}
+            {isDetailedMode && tableData.length > 0 && (
+              <div className="mt-4 text-center">
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-sm text-purple-800">
+                    📊 Mode DETAILED - Data indikator dengan kolom No dan Jumlah Parameter aktif
+                  </p>
+                </div>
+              </div>
+            )}
+            
             {tableData.length === 0 && (
               <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50">
                 <div className="p-4 bg-white rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center shadow-lg">
                   <FileText className="w-8 h-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                  Belum ada data penilaian
+                  Belum ada data {isDetailedMode ? 'indikator detail' : 'penilaian'}
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  Klik "Tambah Baris" untuk mulai menambahkan data penilaian GCG
+                  Klik "Tambah Baris" untuk mulai menambahkan data {isDetailedMode ? 'indikator detail' : 'penilaian GCG'}
+                  {isDetailedMode && ' (kolom No dan Jumlah Parameter tersedia)'}
                 </p>
                 <Button 
                   onClick={addNewRow}

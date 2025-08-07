@@ -24,7 +24,8 @@ import {
   Download,
   RotateCcw,
   Plus,
-  Lock
+  Lock,
+  Network
 } from 'lucide-react';
 
 interface MenuItem {
@@ -148,6 +149,35 @@ const Sidebar = () => {
       icon: BarChart3, 
       path: '/penilaian-gcg',
       badge: null
+    },
+    { 
+      name: 'Graph View', 
+      icon: Network, 
+      path: '/graph-view',
+      badge: null,
+      subItems: [
+        {
+          name: 'Data Explorer',
+          icon: Network,
+          path: '/graph-view',
+          anchor: '#graph-area',
+          description: 'Interactive graph visualization'
+        },
+        {
+          name: 'Filter & Search',
+          icon: Settings,
+          path: '/graph-view',
+          anchor: '#controls',
+          description: 'Filter by year, status, or search'
+        },
+        {
+          name: 'Node Details',
+          icon: FileText,
+          path: '/graph-view',
+          anchor: '#info-panel',
+          description: 'View file and document details'
+        }
+      ]
     }
   ];
 

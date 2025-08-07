@@ -17,6 +17,8 @@ import Dashboard from './pages/dashboard/Dashboard';
 import ListGCG from './pages/ListGCG';
 import DocumentManagement from './pages/DocumentManagement';
 import PenilaianGCG from './pages/PenilaianGCG';
+import GraphView from './pages/GraphView';
+import GraphViewTest from './pages/GraphViewTest';
 import AdminDocumentManagement from './pages/admin/DocumentManagement';
 import StrukturPerusahaan from './pages/admin/StrukturPerusahaan';
 import ChecklistGCG from './pages/admin/ChecklistGCG';
@@ -85,6 +87,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <PenilaianGCG />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/graph-view" 
+        element={
+          <ProtectedRoute>
+            <GraphView />
           </ProtectedRoute>
         } 
       />
