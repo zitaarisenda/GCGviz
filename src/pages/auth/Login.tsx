@@ -8,7 +8,7 @@ import { useUser } from '@/contexts/UserContext';
 import { Shield, Eye, EyeOff, Mail, Lock, ArrowRight, Building2, Users, FileText, CheckCircle, Globe, Award, Zap } from 'lucide-react';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -23,21 +23,21 @@ const Login = () => {
     
     // Simulate loading
     setTimeout(() => {
-    const success = login(username, password);
-    
-    if (success) {
+      const success = login(email, password);
+      
+      if (success) {
         navigate('/dashboard');
       } else {
-        setError('Username atau password salah');
+        setError('Email atau password salah');
       }
       setIsLoading(false);
     }, 1000);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-amber-50 to-emerald-50">
       {/* Navigation Header */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+      <nav className="bg-white/80 backdrop-blur-md border-b border-blue-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -47,14 +47,14 @@ const Login = () => {
                 className="h-10 w-auto"
               />
               <div className="hidden md:block">
-                <h1 className="text-xl font-bold text-gray-900">GCG Document Hub</h1>
-                <p className="text-sm text-gray-600">Sistem Manajemen Dokumen GCG</p>
+                <h1 className="text-xl font-bold text-blue-900">GCG Document Hub</h1>
+                <p className="text-sm text-blue-600">Sistem Manajemen Dokumen GCG</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <Link 
                 to="/register" 
-                className="text-gray-600 hover:text-blue-600 font-medium transition-colors"
+                className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
               >
                 Daftar
               </Link>
@@ -100,9 +100,33 @@ const Login = () => {
                       <FileText className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold mb-2">Manajemen Dokumen Terpusat</h3>
+                      <h3 className="text-lg font-semibold mb-2">Manajemen Dokumen</h3>
                       <p className="text-blue-100 text-sm leading-relaxed">
-                        Upload, organize, dan kelola dokumen GCG dengan sistem folder yang terstruktur berdasarkan Direksi dan metadata.
+                        Upload, organize, dan kelola dokumen GCG dengan struktur folder yang terorganisir.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Building2 className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Struktur Organisasi</h3>
+                      <p className="text-blue-100 text-sm leading-relaxed">
+                        Kelola struktur Direktorat, Subdirektorat, dan Divisi sesuai organisasi.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Award className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Compliance GCG</h3>
+                      <p className="text-blue-100 text-sm leading-relaxed">
+                        Dukung implementasi Good Corporate Governance yang sesuai standar.
                       </p>
                     </div>
                   </div>
@@ -112,136 +136,96 @@ const Login = () => {
                       <Shield className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold mb-2">Keamanan Tingkat Tinggi</h3>
+                      <h3 className="text-lg font-semibold mb-2">Keamanan Data</h3>
                       <p className="text-blue-100 text-sm leading-relaxed">
-                        Dokumen terlindungi dengan sistem keamanan yang kuat dan kontrol akses berbasis peran.
+                        Dokumen tersimpan dengan aman dan hanya dapat diakses oleh pihak berwenang.
                       </p>
                     </div>
                   </div>
-                  
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Users className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Role-Based Access Control</h3>
-                      <p className="text-blue-100 text-sm leading-relaxed">
-                        Kontrol akses berdasarkan peran (User, Admin, Super Admin) dengan hak akses yang terdefinisi jelas.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Zap className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Workflow Efisien</h3>
-                      <p className="text-blue-100 text-sm leading-relaxed">
-                        Proses upload, review, dan approval dokumen yang streamlined untuk meningkatkan produktivitas.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Statistics */}
-              <div className="mt-12 grid grid-cols-3 gap-8 pt-8 border-t border-white/20">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-200 mb-1">100%</div>
-                  <div className="text-sm text-blue-100">Compliance GCG</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-200 mb-1">24/7</div>
-                  <div className="text-sm text-blue-100">Akses Sistem</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-200 mb-1">99.9%</div>
-                  <div className="text-sm text-blue-100">Uptime</div>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Floating Elements */}
+          
+          {/* Decorative Elements */}
           <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse"></div>
           <div className="absolute bottom-20 left-20 w-24 h-24 bg-white/10 rounded-full blur-xl animate-pulse delay-1000"></div>
           <div className="absolute top-1/2 right-10 w-16 h-16 bg-white/10 rounded-full blur-xl animate-pulse delay-500"></div>
         </div>
 
         {/* Right Side - Login Form */}
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-md">
-            {/* Mobile Logo */}
+            {/* Mobile Header */}
             <div className="lg:hidden text-center mb-8">
               <img 
                 src="/aset/POSIND_2023_(with_wordmark).svg.png" 
                 alt="POS Indonesia" 
                 className="h-12 w-auto mx-auto mb-4"
               />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">GCG Document Hub</h2>
-              <p className="text-gray-600">Sistem Manajemen Dokumen GCG</p>
+              <h2 className="text-2xl font-bold text-blue-900 mb-2">GCG Document Hub</h2>
+              <p className="text-blue-600">Sistem Manajemen Dokumen GCG</p>
             </div>
 
             {/* Login Form */}
             <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
               <CardContent className="p-8">
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Selamat Datang Kembali</h2>
-                  <p className="text-gray-600">Masuk ke sistem manajemen dokumen GCG</p>
+                  <h2 className="text-2xl font-bold text-blue-900 mb-2">Masuk ke Sistem</h2>
+                  <p className="text-blue-600">Akses sistem manajemen dokumen GCG</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-medium text-gray-700">
-                      Username
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium text-blue-700">
+                      Email
                     </Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <Input
-                id="username"
-                type="text"
-                placeholder="Masukkan username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                        className="pl-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                required
-              />
-            </div>
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-5 h-5" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Masukkan email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-10 h-12 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
                   </div>
 
-            <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm font-medium text-blue-700">
                       Password
                     </Label>
-              <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Masukkan password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10 pr-12 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-gray-600"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-5 h-5" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Masukkan password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-10 pr-12 h-12 border-blue-200 focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-blue-400 hover:text-blue-600"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
                           <EyeOff className="h-5 w-5" />
-                  ) : (
+                        ) : (
                           <Eye className="h-5 w-5" />
-                  )}
-                </Button>
-              </div>
-            </div>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
 
-            {error && (
+                  {error && (
                     <div className="text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200 flex items-center space-x-2">
                       <Shield className="w-4 h-4" />
                       <span>{error}</span>
@@ -262,10 +246,10 @@ const Login = () => {
                       <div className="flex items-center justify-center space-x-2">
                         <span>Masuk</span>
                         <ArrowRight className="w-4 h-4" />
-              </div>
-            )}
-            </Button>
-          </form>
+                      </div>
+                    )}
+                  </Button>
+                </form>
 
                 {/* Demo Account Info */}
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -274,25 +258,36 @@ const Login = () => {
                     <span>Demo Account</span>
                   </h4>
                   <div className="space-y-1 text-sm text-blue-800">
-                    <p><span className="font-medium">Username:</span> superadmin</p>
-                    <p><span className="font-medium">Password:</span> superadmin123</p>
+                    <p><span className="font-medium">Email:</span> arsippostgcg@gmail.com</p>
+                    <p><span className="font-medium">Password:</span> postarsipGCG.</p>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-blue-200">
+                    <button
+                      onClick={() => {
+                        localStorage.clear();
+                        window.location.reload();
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Reset Data (jika login bermasalah)
+                    </button>
                   </div>
                 </div>
 
                 {/* Register Link */}
                 <div className="mt-6 text-center">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-blue-600">
                     Belum punya akun?{' '}
                     <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
                       Daftar sebagai User
                     </Link>
                   </p>
-          </div>
-        </CardContent>
-      </Card>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Footer */}
-            <div className="mt-8 text-center text-sm text-gray-500">
+            <div className="mt-8 text-center text-sm text-blue-500">
               <p>© 2024 POS Indonesia. All rights reserved.</p>
               <p className="mt-1">Sistem Manajemen Dokumen GCG</p>
             </div>

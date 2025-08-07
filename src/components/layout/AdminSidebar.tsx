@@ -1,93 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { 
   LayoutDashboard, 
-  Shield,
-  UserCog,
-  ListTodo,
   LogOut,
-  BarChart3,
-  PanelLeft,
-  FileText,
-  Settings,
+  User,
   Building2,
-  Lock
+  Users,
+  Briefcase
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface MenuItem {
   name: string;
   icon: any;
   path: string;
-  badge?: string | null;
-  badgeIcon?: any;
 }
 
-// No longer need SubMenuItem interface since there are no submenus
-
-const Sidebar = () => {
+const AdminSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useUser();
   const { isSidebarOpen, closeSidebar } = useSidebar();
-  // No longer need expandedMenus state since there are no submenus
-
-  // No longer need auto-expand logic since there are no submenus
 
   const menuItems: MenuItem[] = [
     { 
       name: 'Dashboard', 
       icon: LayoutDashboard, 
-      path: '/dashboard',
-      badge: null
-    },
-
-    { 
-      name: 'Penilaian GCG', 
-      icon: BarChart3, 
-      path: '/penilaian-gcg',
-      badge: null,
-      badgeIcon: Lock
+      path: '/admin/dashboard'
     }
   ];
-
-  // Tambahkan menu Super Admin hanya untuk Super Admin
-  if (user?.role === 'superadmin') {
-    menuItems.push(
-      {
-        name: 'Monitoring & Upload GCG',
-        icon: PanelLeft,
-        path: '/list-gcg',
-        badgeIcon: Lock
-      },
-      {
-        name: 'Kelola Dokumen',
-        icon: FileText,
-        path: '/admin/document-management',
-        badgeIcon: Lock
-      },
-      {
-        name: 'Manajemen User',
-        icon: UserCog,
-        path: '/admin/kelola-akun',
-        badgeIcon: Lock
-      },
-      {
-        name: 'Struktur Organisasi',
-        icon: Building2,
-        path: '/admin/struktur-perusahaan',
-        badgeIcon: Lock
-      },
-
-      {
-        name: 'Pengaturan Metadata',
-        icon: Settings,
-        path: '/admin/meta-data',
-        badgeIcon: Lock
-      }
-    );
-  }
 
   const handleLogout = () => {
     logout();
@@ -106,10 +50,6 @@ const Sidebar = () => {
       closeSidebar();
     }
   };
-
-  // No longer need handleSubItemClick since there are no submenus
-
-  // No longer need isMenuExpanded since there are no submenus
 
   return (
     <>
@@ -137,18 +77,46 @@ const Sidebar = () => {
           </div>
         </div>
 
+        {/* User Profile Section */}
+        <div className="p-4 border-b border-gray-800">
+          <div className="flex items-center space-x-3">
+            <Avatar className="w-10 h-10">
+              <AvatarImage src="" alt={user?.name || 'Admin'} />
+              <AvatarFallback className="bg-blue-600 text-white text-sm">
+                {user?.name?.charAt(0) || 'A'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {user?.name || 'Admin'}
+              </p>
+              <p className="text-xs text-gray-400 truncate">
+                {user?.subDirektorat || 'Sub Direktorat'}
+              </p>
+            </div>
+          </div>
+          
+          {/* User Details */}
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center space-x-2 text-xs text-gray-400">
+              <Building2 className="w-3 h-3" />
+              <span className="truncate">{user?.direktorat || 'Direktorat'}</span>
+            </div>
+            <div className="flex items-center space-x-2 text-xs text-gray-400">
+              <Users className="w-3 h-3" />
+              <span className="truncate">{user?.subDirektorat || 'Sub Direktorat'}</span>
+            </div>
+            <div className="flex items-center space-x-2 text-xs text-gray-400">
+              <Briefcase className="w-3 h-3" />
+              <span className="truncate">{user?.divisi || 'Divisi'}</span>
+            </div>
+          </div>
+        </div>
+
         {/* Menu Items */}
         <nav className="mt-6 pb-20">
           <div className="px-4 space-y-1">
-            {menuItems
-              .filter(item => {
-                // Hide Penilaian GCG menu if user is not superadmin
-                if (item.name === 'Penilaian GCG' && user?.role !== 'superadmin') {
-                  return false;
-                }
-                return true;
-              })
-              .map((item) => {
+            {menuItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
               
@@ -169,16 +137,6 @@ const Sidebar = () => {
                         <Icon className="w-5 h-5" />
                         <span className="font-medium">{item.name}</span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        {item.badgeIcon && (
-                          <item.badgeIcon className="w-4 h-4 text-blue-400" />
-                        )}
-                        {item.badge && (
-                          <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full">
-                            {item.badge}
-                          </span>
-                        )}
-                      </div>
                     </Link>
                   </div>
                 </div>
@@ -188,18 +146,20 @@ const Sidebar = () => {
         </nav>
 
         {/* Logout Button */}
-        <div className="absolute bottom-6 left-4 right-4">
-          <button
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
+          <Button
             onClick={handleLogout}
-            className="w-full flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-all duration-200"
+            variant="ghost"
+            className="w-full justify-start text-gray-300 hover:bg-gray-800 hover:text-white"
           >
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">Logout</span>
-          </button>
+            <LogOut className="w-5 h-5 mr-3" />
+            Logout
+          </Button>
         </div>
       </div>
     </>
   );
 };
 
-export default Sidebar; 
+export default AdminSidebar;
+

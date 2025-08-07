@@ -130,8 +130,8 @@ const FileUploadSection = () => {
                       />
                       {selectedFile && (
                         <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                          <p><strong>File:</strong> {selectedFile.name}</p>
-                          <p><strong>Size:</strong> {formatFileSize(selectedFile.size)}</p>
+                          <p><strong>Nama File:</strong> {selectedFile.name}</p>
+                          <p><strong>Ukuran:</strong> {formatFileSize(selectedFile.size)}</p>
                         </div>
                       )}
                     </div>

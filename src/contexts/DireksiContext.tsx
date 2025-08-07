@@ -1,61 +1,116 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { seedDireksi } from "@/lib/seed/seedDireksi";
+import { seedDirektorat, seedSubdirektorat } from "@/lib/seed/seedDirektorat";
 
-export interface Direksi {
+export interface Direktorat {
   id: number;
   nama: string;
 }
 
-interface DireksiContextType {
-  direksi: Direksi[];
-  addDireksi: (nama: string) => void;
-  editDireksi: (id: number, nama: string) => void;
-  deleteDireksi: (id: number) => void;
+export interface Subdirektorat {
+  id: number;
+  nama: string;
 }
 
-const DireksiContext = createContext<DireksiContextType | undefined>(undefined);
+interface DirektoratContextType {
+  direktorat: Direktorat[];
+  subdirektorat: Subdirektorat[];
+  addDirektorat: (nama: string) => void;
+  editDirektorat: (id: number, nama: string) => void;
+  deleteDirektorat: (id: number) => void;
+  addSubdirektorat: (nama: string) => void;
+  editSubdirektorat: (id: number, nama: string) => void;
+  deleteSubdirektorat: (id: number) => void;
+  getAllSubdirektorat: () => Subdirektorat[];
+}
 
-export const DireksiProvider = ({ children }: { children: ReactNode }) => {
-  const [direksi, setDireksi] = useState<Direksi[]>([]);
+const DirektoratContext = createContext<DirektoratContextType | undefined>(undefined);
+
+export const DirektoratProvider = ({ children }: { children: ReactNode }) => {
+  const [direktorat, setDirektorat] = useState<Direktorat[]>([]);
+  const [subdirektorat, setSubdirektorat] = useState<Subdirektorat[]>([]);
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem("direksi") || "null");
-    if (!data) {
-      localStorage.setItem("direksi", JSON.stringify(seedDireksi));
-      setDireksi(seedDireksi);
+    const direktoratData = JSON.parse(localStorage.getItem("direktorat") || "null");
+    const subdirektoratData = JSON.parse(localStorage.getItem("subdirektorat") || "null");
+    
+    if (!direktoratData) {
+      localStorage.setItem("direktorat", JSON.stringify(seedDirektorat));
+      setDirektorat(seedDirektorat);
     } else {
-      setDireksi(data);
+      setDirektorat(direktoratData);
+    }
+    
+    if (!subdirektoratData) {
+      localStorage.setItem("subdirektorat", JSON.stringify(seedSubdirektorat));
+      setSubdirektorat(seedSubdirektorat);
+    } else {
+      setSubdirektorat(subdirektoratData);
     }
   }, []);
 
-  const addDireksi = (nama: string) => {
-    const newDireksi = { id: Date.now(), nama };
-    const updated = [...direksi, newDireksi];
-    setDireksi(updated);
-    localStorage.setItem("direksi", JSON.stringify(updated));
+  const addDirektorat = (nama: string) => {
+    const newDirektorat = { id: Date.now(), nama };
+    const updated = [...direktorat, newDirektorat];
+    setDirektorat(updated);
+    localStorage.setItem("direktorat", JSON.stringify(updated));
   };
 
-  const editDireksi = (id: number, nama: string) => {
-    const updated = direksi.map((d) => (d.id === id ? { ...d, nama } : d));
-    setDireksi(updated);
-    localStorage.setItem("direksi", JSON.stringify(updated));
+  const editDirektorat = (id: number, nama: string) => {
+    const updated = direktorat.map((d) => (d.id === id ? { ...d, nama } : d));
+    setDirektorat(updated);
+    localStorage.setItem("direktorat", JSON.stringify(updated));
   };
 
-  const deleteDireksi = (id: number) => {
-    const updated = direksi.filter((d) => d.id !== id);
-    setDireksi(updated);
-    localStorage.setItem("direksi", JSON.stringify(updated));
+  const deleteDirektorat = (id: number) => {
+    const updated = direktorat.filter((d) => d.id !== id);
+    setDirektorat(updated);
+    localStorage.setItem("direktorat", JSON.stringify(updated));
+    
+
+  };
+
+  const addSubdirektorat = (nama: string) => {
+    const newSubdirektorat = { id: Date.now(), nama };
+    const updated = [...subdirektorat, newSubdirektorat];
+    setSubdirektorat(updated);
+    localStorage.setItem("subdirektorat", JSON.stringify(updated));
+  };
+
+  const editSubdirektorat = (id: number, nama: string) => {
+    const updated = subdirektorat.map((s) => (s.id === id ? { ...s, nama } : s));
+    setSubdirektorat(updated);
+    localStorage.setItem("subdirektorat", JSON.stringify(updated));
+  };
+
+  const deleteSubdirektorat = (id: number) => {
+    const updated = subdirektorat.filter((s) => s.id !== id);
+    setSubdirektorat(updated);
+    localStorage.setItem("subdirektorat", JSON.stringify(updated));
+  };
+
+  const getAllSubdirektorat = () => {
+    return subdirektorat;
   };
 
   return (
-    <DireksiContext.Provider value={{ direksi, addDireksi, editDireksi, deleteDireksi }}>
+    <DirektoratContext.Provider value={{ 
+      direktorat, 
+      subdirektorat,
+      addDirektorat, 
+      editDirektorat, 
+      deleteDirektorat,
+      addSubdirektorat,
+      editSubdirektorat,
+      deleteSubdirektorat,
+      getAllSubdirektorat
+    }}>
       {children}
-    </DireksiContext.Provider>
+    </DirektoratContext.Provider>
   );
 };
 
-export const useDireksi = () => {
-  const ctx = useContext(DireksiContext);
-  if (!ctx) throw new Error("useDireksi must be used within DireksiProvider");
+export const useDirektorat = () => {
+  const ctx = useContext(DirektoratContext);
+  if (!ctx) throw new Error("useDirektorat must be used within DirektoratProvider");
   return ctx;
 }; 

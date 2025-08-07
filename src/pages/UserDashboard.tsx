@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { FormDialog, ActionButton } from "@/components/panels";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -254,73 +255,30 @@ const UserDashboard = () => {
                       </div>
                       
                       <div className="flex items-center space-x-2 ml-4">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" onClick={() => setViewDocument(doc)}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              Detail
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
-                            <DialogHeader>
-                              <DialogTitle className="flex items-center space-x-2">
-                                <FileText className="w-5 h-5 text-green-600" />
-                                <span>Detail Dokumen</span>
-                              </DialogTitle>
-                            </DialogHeader>
-                            {viewDocument && (
-                              <div className="space-y-4">
-                                <div>
-                                  <h3 className="text-lg font-semibold mb-2">{viewDocument.title}</h3>
-                                  <p className="text-gray-600">{viewDocument.description}</p>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 gap-4">
-                                  <div>
-                                    <Label className="text-sm font-medium text-gray-700">Tanggal Upload</Label>
-                                    <p className="text-sm text-gray-900">{new Date(viewDocument.created_at).toLocaleDateString('id-ID')}</p>
-                                  </div>
-                                </div>
-                                
-                                <div className="flex space-x-2 pt-4">
-                                  <Button 
-                                    className="bg-green-600 hover:bg-green-700"
-                                    onClick={() => window.open(viewDocument.file_url, '_blank')}
-                                  >
-                                    <ExternalLink className="w-4 h-4 mr-2" />
-                                    Buka File
-                                  </Button>
-                                  <Button 
-                                    variant="outline"
-                                    onClick={() => {
-                                      const link = document.createElement('a');
-                                      link.href = viewDocument.file_url;
-                                      link.download = viewDocument.title;
-                                      link.click();
-                                    }}
-                                  >
-                                    <Download className="w-4 h-4 mr-2" />
-                                    Unduh
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
+                        <ActionButton
+                          onClick={() => setViewDocument(doc)}
+                          variant="outline"
+                          icon={<Eye className="w-4 h-4" />}
+                          size="sm"
+                        >
+                          Detail
+                        </ActionButton>
+
                         
-                        <Button 
-                          size="sm" 
-                          className="bg-green-600 hover:bg-green-700"
+                        <ActionButton
                           onClick={() => {
                             const link = document.createElement('a');
                             link.href = doc.file_url;
                             link.download = doc.title;
                             link.click();
                           }}
+                          variant="default"
+                          icon={<Download className="w-4 h-4" />}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
                         >
-                          <Download className="w-4 h-4 mr-2" />
                           Unduh
-                        </Button>
+                        </ActionButton>
                       </div>
                     </div>
                   </CardContent>
@@ -338,6 +296,59 @@ const UserDashboard = () => {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+};
+
+      {/* FormDialog untuk View Document */}
+      <FormDialog
+        isOpen={!!viewDocument}
+        onClose={() => setViewDocument(null)}
+        onSubmit={() => {}}
+        title="Detail Dokumen"
+        description="Informasi lengkap dokumen"
+        variant="view"
+        submitText="Tutup"
+      >
+        {viewDocument && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">{viewDocument.title}</h3>
+              <p className="text-gray-600">{viewDocument.description}</p>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Tanggal Upload</Label>
+                <p className="text-sm text-gray-900">{new Date(viewDocument.created_at).toLocaleDateString('id-ID')}</p>
+              </div>
+            </div>
+            
+            <div className="flex space-x-2 pt-4">
+              <ActionButton
+                onClick={() => window.open(viewDocument.file_url, '_blank')}
+                variant="default"
+                icon={<ExternalLink className="w-4 h-4" />}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Buka File
+              </ActionButton>
+              <ActionButton
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = viewDocument.file_url;
+                  link.download = viewDocument.title;
+                  link.click();
+                }}
+                variant="outline"
+                icon={<Download className="w-4 h-4" />}
+              >
+                Unduh
+              </ActionButton>
+            </div>
+          </div>
+        )}
+      </FormDialog>
     </div>
   );
 };

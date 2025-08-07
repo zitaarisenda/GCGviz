@@ -4,7 +4,7 @@ import { seedUser } from "@/lib/seed/seedUser";
 export type UserRole = "superadmin" | "admin" | "user";
 export interface User {
   id: number;
-  username: string;
+  email: string;
   password: string;
   role: UserRole;
   name: string;
@@ -12,7 +12,7 @@ export interface User {
 
 interface UserContextType {
   user: User | null;
-  login: (username: string, password: string) => boolean;
+  login: (email: string, password: string) => boolean;
   logout: () => void;
 }
 
@@ -23,20 +23,19 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   // Inisialisasi user dari localStorage atau seed
   useEffect(() => {
-    const users = JSON.parse(localStorage.getItem("users") || "null");
-    if (!users) {
-      localStorage.setItem("users", JSON.stringify(seedUser));
-    }
+    // Selalu update dengan data seed terbaru
+    localStorage.setItem("users", JSON.stringify(seedUser));
+    
     const currentUser = localStorage.getItem("currentUser");
     if (currentUser) {
       setUser(JSON.parse(currentUser));
     }
   }, []);
 
-  const login = (username: string, password: string) => {
+  const login = (email: string, password: string) => {
     const users: User[] = JSON.parse(localStorage.getItem("users") || "[]");
     const found = users.find(
-      (u) => u.username === username && u.password === password
+      (u) => u.email === email && u.password === password
     );
     if (found) {
       setUser(found);

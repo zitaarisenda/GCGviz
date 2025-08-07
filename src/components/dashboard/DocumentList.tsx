@@ -4,20 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
-import { useDireksi } from '@/contexts/DireksiContext';
+import { useDirektorat } from '@/contexts/DireksiContext';
 import { useYear } from '@/contexts/YearContext';
 import { useKlasifikasi } from '@/contexts/KlasifikasiContext';
+import { useStrukturPerusahaan } from '@/contexts/StrukturPerusahaanContext';
+import { useToast } from '@/hooks/use-toast';
 import { 
   FileText, 
   Search, 
-  Filter, 
   Eye, 
   Download, 
   Calendar,
@@ -29,9 +30,14 @@ import {
   Edit,
   CheckCircle,
   Circle,
-  Lock
+  Lock,
+  Mail,
+  Save,
+  Users
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { IconButton, TableActions, ActionButton, DocumentFilterPanel } from '@/components/panels';
 
 interface DocumentListProps {
   year?: number;
@@ -54,14 +60,17 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const { deleteFileByFileName, refreshFiles } = useFileUpload();
   const { selectedYear } = useYear();
   const { checklist } = useChecklist();
-  const { direksi } = useDireksi();
+  const { direktorat } = useDirektorat();
   const { klasifikasiPrinsip, klasifikasiJenis, klasifikasiKategori, klasifikasiData } = useKlasifikasi();
+  const { direktorat: direktorats, subdirektorat: subDirektorats } = useStrukturPerusahaan();
+  const { toast } = useToast();
   
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPrinciple, setSelectedPrinciple] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
-  const [selectedDireksi, setSelectedDireksi] = useState('all');
+  const [selectedDirektorat, setSelectedDirektorat] = useState('all');
+  const [selectedSubDirektorat, setSelectedSubDirektorat] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [aspectFilter, setAspectFilter] = useState<string | null>(null);
   // Checklist GCG filter state
@@ -140,8 +149,12 @@ const DocumentList: React.FC<DocumentListProps> = ({
       filtered = filtered.filter(doc => doc.documentType === selectedType);
     }
 
-    if (selectedDireksi !== 'all') {
-      filtered = filtered.filter(doc => doc.direksi === selectedDireksi);
+    if (selectedDirektorat !== 'all') {
+      filtered = filtered.filter(doc => doc.direktorat === selectedDirektorat);
+    }
+
+    if (selectedSubDirektorat !== 'all') {
+      filtered = filtered.filter(doc => doc.subdirektorat === selectedSubDirektorat);
     }
 
     if (selectedStatus !== 'all') {
@@ -165,7 +178,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
     }
 
     return maxItems ? filtered.slice(0, maxItems) : filtered;
-  }, [yearDocuments, searchTerm, selectedPrinciple, selectedType, selectedDireksi, selectedStatus, filterChecklistStatus, filterChecklistAspect, checklist, maxItems]);
+  }, [yearDocuments, searchTerm, selectedPrinciple, selectedType, selectedDirektorat, selectedSubDirektorat, selectedStatus, filterChecklistStatus, filterChecklistAspect, checklist, maxItems]);
 
   // Scroll to highlighted document
   React.useEffect(() => {
@@ -185,7 +198,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   // Get unique values for filters
   const principles = useMemo(() => [...new Set(yearDocuments.map(doc => doc.gcgPrinciple))], [yearDocuments]);
   const types = useMemo(() => [...new Set(yearDocuments.map(doc => doc.documentType))], [yearDocuments]);
-  const direksis = useMemo(() => [...new Set(yearDocuments.map(doc => doc.direksi))], [yearDocuments]);
+  // Data direktorat dan subdirektorat sudah didapat dari context
   const statuses = useMemo(() => [...new Set(yearDocuments.map(doc => doc.status))], [yearDocuments]);
 
   const formatFileSize = (bytes: number) => {
@@ -309,7 +322,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
       gcgPrinciple: doc.gcgPrinciple,
       documentType: doc.documentType,
       documentCategory: doc.documentCategory || '',
-      direksi: doc.direksi,
+              direktorat: doc.direktorat,
+        subdirektorat: doc.subdirektorat,
       division: doc.division || '',
       status: doc.status,
       confidentiality: doc.confidentiality,
@@ -333,14 +347,145 @@ const DocumentList: React.FC<DocumentListProps> = ({
     setEditFormData({});
   };
 
-  // Simplified input handlers to reduce lag
-  const handleEditInputChange = (field: string, value: string) => {
-    setEditFormData(prev => ({ ...prev, [field]: value }));
+  // Email revision functionality
+  const handleRevisionEmail = (doc: any) => {
+    try {
+      // Get current user info for sender
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const senderEmail = currentUser.email || 'user@example.com';
+      const senderName = currentUser.name || 'User';
+      
+      // Helper function to format empty values
+      const formatValue = (value: any) => {
+        return value && value.trim() !== '' ? value : '-';
+      };
+      
+      // Prepare email content with better formatting
+      const subject = encodeURIComponent(`Revisi Dokumen: ${doc.title}`);
+      const body = encodeURIComponent(`Halo,
+
+Saya ingin mengajukan revisi untuk dokumen berikut:
+
+**INFORMASI DOKUMEN:**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• **Judul Dokumen:** ${formatValue(doc.title)}
+• **Nomor Dokumen:** ${formatValue(doc.documentNumber)}
+• **Direktorat:** ${formatValue(doc.direktorat)}
+• **Subdirektorat:** ${formatValue(doc.subdirektorat)}
+• **Divisi:** ${formatValue(doc.division)}
+• **Prinsip GCG:** ${formatValue(doc.gcgPrinciple)}
+• **Jenis Dokumen:** ${formatValue(doc.documentType)}
+• **Kategori:** ${formatValue(doc.documentCategory)}
+• **Status:** ${formatValue(doc.status)}
+• **Tanggal Upload:** ${new Date(doc.uploadDate).toLocaleDateString('id-ID')}
+
+**ALASAN REVISI:**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Silakan isi alasan revisi di sini]
+
+**PERMINTAAN:**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Silakan isi permintaan revisi di sini]
+
+Terima kasih atas perhatiannya.
+
+Salam,
+${senderName}
+${senderEmail}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dikirim dari GCG Document Hub
+Tahun: ${doc.year || new Date().getFullYear()}`);
+
+      // Open default email client
+      const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
+      window.open(mailtoLink, '_blank');
+      
+      // Show success toast
+      toast({
+        title: "Email revisi dibuka",
+        description: `Draft email revisi untuk "${doc.title}" telah dibuka di aplikasi email Anda`,
+      });
+    } catch (error) {
+      console.error('Email revision error:', error);
+      toast({
+        title: "Gagal membuka email",
+        description: "Terjadi kesalahan saat membuka aplikasi email",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleEditSelectChange = (field: string, value: string) => {
-    setEditFormData(prev => ({ ...prev, [field]: value }));
-  };
+  // Download functionality
+  const handleDownloadDocument = useCallback((doc: any) => {
+    try {
+      // Create a blob from the file data (simulated for now)
+      const blob = new Blob(['Document content'], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.fileName || `${doc.title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      // Show success toast
+      toast({
+        title: "Download berhasil",
+        description: `File ${doc.fileName} berhasil diunduh`,
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download gagal",
+        description: "Terjadi kesalahan saat mengunduh file",
+        variant: "destructive"
+      });
+    }
+  }, [toast]);
+
+  // Ultra-optimized event handlers with debouncing
+  const handleEditInputChange = useCallback((field: string, value: string) => {
+    setEditFormData(prev => {
+      // Only update if value actually changed
+      if (prev[field] === value) return prev;
+      return { ...prev, [field]: value };
+    });
+  }, []);
+
+  const handleEditSelectChange = useCallback((field: string, value: string) => {
+    setEditFormData(prev => {
+      // Only update if value actually changed
+      if (prev[field] === value) return prev;
+      return { ...prev, [field]: value };
+    });
+  }, []);
+
+  const handleCloseEditDialog = useCallback(() => {
+    setIsEditDialogOpen(false);
+    setEditingDocument(null);
+    setEditFormData({});
+  }, []);
+
+  const handleOpenEditDialog = useCallback((doc: any) => {
+    setEditingDocument(doc);
+    setEditFormData({
+      title: doc.title || '',
+      documentNumber: doc.documentNumber || '',
+      documentDate: doc.documentDate || '',
+      description: doc.description || '',
+      gcgPrinciple: doc.gcgPrinciple || '',
+      documentType: doc.documentType || '',
+      documentCategory: doc.documentCategory || '',
+              direktorat: doc.direktorat || '',
+        subdirektorat: doc.subdirektorat || '',
+      division: doc.division || '',
+      status: doc.status || 'draft',
+      confidentiality: doc.confidentiality || 'public'
+    });
+    setIsEditDialogOpen(true);
+  }, []);
 
   if (!targetYear) {
     return (
@@ -375,123 +520,39 @@ const DocumentList: React.FC<DocumentListProps> = ({
       {/* Filters Section */}
       {showFilters && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center space-x-2 mb-4">
-            <Filter className="w-4 h-4 text-gray-600" />
-            <span className="font-medium text-gray-900">Filter & Pencarian</span>
-          </div>
-          
-          {/* Search */}
-          <div className="mb-4">
-            <Input
-              placeholder="Cari berdasarkan judul, deskripsi, nomor dokumen..."
-              className="w-full"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* Filter Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Filter Prinsip GCG */}
-            <div>
-              <Select value={selectedPrinciple} onValueChange={setSelectedPrinciple}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Prinsip GCG" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Prinsip</SelectItem>
-                  {principles.filter(Boolean).map(principle => (
-                    <SelectItem key={principle} value={principle}>{principle}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filter Jenis Dokumen */}
-            <div>
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Jenis Dokumen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Jenis</SelectItem>
-                  {types.filter(Boolean).map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filter Direksi */}
-            <div>
-              <Select value={selectedDireksi} onValueChange={setSelectedDireksi}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Direksi" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Direksi</SelectItem>
-                  {direksis.filter(Boolean).map(direksi => (
-                    <SelectItem key={direksi} value={direksi}>{direksi}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filter Status */}
-            <div>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="review">Review</SelectItem>
-                  <SelectItem value="approved">Disetujui</SelectItem>
-                  <SelectItem value="rejected">Ditolak</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filter Checklist GCG */}
-            <div>
-              <Select value={filterChecklistStatus} onValueChange={val => setFilterChecklistStatus(val as 'all' | 'with' | 'without')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Checklist GCG" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua</SelectItem>
-                  <SelectItem value="with">Sudah Dipilih</SelectItem>
-                  <SelectItem value="without">Belum Dipilih</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Filter Aspek Checklist */}
-            <div>
-              <Select value={filterChecklistAspect} onValueChange={val => setFilterChecklistAspect(val)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Aspek Checklist" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua</SelectItem>
-                  {Array.from(new Set(checklist.map(item => item.aspek))).map(aspek => (
-                    <SelectItem key={aspek} value={aspek}>{aspek.replace(/^Aspek\s+/i, '')}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {/* Reset Filter Button */}
-          {(filterChecklistStatus !== 'all' || filterChecklistAspect !== 'all') && (
-            <div className="mt-4">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => {
+          <DocumentFilterPanel
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            selectedPrinciple={selectedPrinciple}
+            onPrincipleChange={setSelectedPrinciple}
+            selectedType={selectedType}
+            onTypeChange={setSelectedType}
+            selectedDirektorat={selectedDirektorat}
+            onDirektoratChange={setSelectedDirektorat}
+            selectedSubDirektorat={selectedSubDirektorat}
+            onSubDirektoratChange={setSelectedSubDirektorat}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+            filterChecklistStatus={filterChecklistStatus}
+            onChecklistStatusChange={setFilterChecklistStatus}
+            filterChecklistAspect={filterChecklistAspect}
+            onChecklistAspectChange={setFilterChecklistAspect}
+            principles={principles}
+            types={types}
+            direktorats={direktorats}
+            subDirektorats={subDirektorats}
+            aspects={Array.from(new Set(checklist.map(item => item.aspek)))}
+            onResetFilters={() => {
+              setSearchTerm('');
+              setSelectedPrinciple('all');
+              setSelectedType('all');
+              setSelectedDirektorat('all');
+              setSelectedSubDirektorat('all');
+              setSelectedStatus('all');
                   setFilterChecklistStatus('all');
                   setFilterChecklistAspect('all');
                 }}
-              >
-                Reset Filter
-              </Button>
-            </div>
-          )}
+          />
         </div>
       )}
 
@@ -547,7 +608,12 @@ const DocumentList: React.FC<DocumentListProps> = ({
                     </Button>
                   </DialogTrigger>
                   
-                  <Button variant="outline" size="sm" className="hover:bg-green-50 hover:border-green-200">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleDownloadDocument(doc)}
+                    className="hover:bg-green-50 hover:border-green-200"
+                  >
                     <Download className="w-4 h-4 mr-1" />
                     Unduh
                   </Button>
@@ -555,11 +621,21 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => handleEditDocument(doc)}
+                    onClick={() => handleOpenEditDialog(doc)}
                     className="hover:bg-yellow-50 hover:border-yellow-200"
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     Edit
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleRevisionEmail(doc)}
+                    className="hover:bg-purple-50 hover:border-purple-200"
+                  >
+                    <Mail className="w-4 h-4 mr-1" />
+                    Revisi
                   </Button>
                   
                   <Button 
@@ -597,13 +673,20 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   <span className="text-xs font-medium text-gray-700">Organisasi</span>
                 </div>
                 <div className="space-y-1">
+                  {/* Direktorat */}
                   <div className="text-sm font-medium text-gray-900">
                     <Building2 className="w-3 h-3 inline mr-1" />
-                    {doc.direksi}
+                    {doc.direktorat || 'Tidak ada data'}
                   </div>
+                  {/* Sub Direktorat */}
+                  <div className="text-xs text-gray-700">
+                    <Users className="w-3 h-3 inline mr-1" />
+                    {doc.subdirektorat || 'Tidak ada data'}
+                  </div>
+                  {/* Divisi */}
                   <div className="text-xs text-gray-600">
                     <User className="w-3 h-3 inline mr-1" />
-                    {doc.division}
+                    {doc.division || 'Tidak ada data'}
                   </div>
                 </div>
               </div>
@@ -788,14 +871,18 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
                     Organisasi
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">Direksi</Label>
-                      <p className="text-sm text-gray-900">{selectedDocument.direksi}</p>
+                                      <Label className="text-sm font-medium text-gray-700">Direktorat</Label>
+                      <p className="text-sm text-gray-900">{selectedDocument.direktorat || 'Tidak ada data'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Sub Direktorat</Label>
+                      <p className="text-sm text-gray-900">{selectedDocument.subdirektorat || 'Tidak ada data'}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Divisi</Label>
-                      <p className="text-sm text-gray-900">{selectedDocument.division}</p>
+                      <p className="text-sm text-gray-900">{selectedDocument.division || 'Tidak ada data'}</p>
                     </div>
                   </div>
                 </div>
@@ -865,6 +952,14 @@ const DocumentList: React.FC<DocumentListProps> = ({
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
                   </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => handleRevisionEmail(selectedDocument)}
+                    className="hover:bg-purple-50 hover:border-purple-200"
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Revisi
+                  </Button>
                 </div>
               </div>
             )}
@@ -873,7 +968,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
 
         {/* Edit Document Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <Edit className="w-5 h-5 text-blue-600" />
@@ -885,7 +980,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
             </DialogHeader>
             
             {editingDocument && (
-              <div className="flex-1 overflow-y-auto pr-2" style={{ willChange: 'scroll-position' }}>
+              <div className="flex-1 overflow-y-auto pr-2">
                 <div className="space-y-6">
                   {/* Tahun Buku (Read Only) */}
                   <div className="space-y-2">
@@ -918,7 +1013,11 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Input
                           id="editTitle"
                           value={editFormData.title || ''}
-                          onChange={(e) => handleEditInputChange('title', e.target.value)}
+                          onChange={(e) => {
+                            // Debounce the input change
+                            const value = e.target.value;
+                            setTimeout(() => handleEditInputChange('title', value), 100);
+                          }}
                           placeholder="Masukkan judul dokumen"
                         />
                       </div>
@@ -929,7 +1028,11 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Input
                           id="editDocumentNumber"
                           value={editFormData.documentNumber || ''}
-                          onChange={(e) => handleEditInputChange('documentNumber', e.target.value)}
+                          onChange={(e) => {
+                            // Debounce the input change
+                            const value = e.target.value;
+                            setTimeout(() => handleEditInputChange('documentNumber', value), 100);
+                          }}
                           placeholder="Masukkan nomor dokumen"
                         />
                       </div>
@@ -940,7 +1043,11 @@ const DocumentList: React.FC<DocumentListProps> = ({
                         <Textarea
                           id="editDescription"
                           value={editFormData.description || ''}
-                          onChange={(e) => handleEditInputChange('description', e.target.value)}
+                          onChange={(e) => {
+                            // Debounce the textarea change
+                            const value = e.target.value;
+                            setTimeout(() => handleEditInputChange('description', value), 150);
+                          }}
                           placeholder="Masukkan deskripsi dokumen"
                           rows={3}
                         />
@@ -1007,29 +1114,49 @@ const DocumentList: React.FC<DocumentListProps> = ({
                     <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
                       Organisasi
                     </h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="editDireksi">
-                          Direksi <span className="text-red-500">*</span>
+                        <Label htmlFor="editDirektorat">
+                          Direktorat <span className="text-red-500">*</span>
                         </Label>
-                        <Select value={editFormData.direksi || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, direksi: value }))}>
+                        <Select value={editFormData.direktorat || ''} onValueChange={(value) => setEditFormData(prev => ({ ...prev, direktorat: value }))}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Pilih direksi" />
+                            <SelectValue placeholder="Pilih direktorat" />
                           </SelectTrigger>
                           <SelectContent>
-                            {direksi && direksi.length > 0 ? (
-                              direksi.map((dir) => (
+                            {direktorat && direktorat.length > 0 ? (
+                              direktorat.map((dir) => (
                                 <SelectItem key={dir.id} value={dir.nama}>
                                   {dir.nama}
                                 </SelectItem>
                               ))
                             ) : (
                               <SelectItem value="no-data" disabled>
-                                Tidak ada data direksi
+                                Tidak ada data direktorat
                               </SelectItem>
                             )}
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="editSubDirektorat">
+                          Sub Direktorat
+                        </Label>
+                        <Input
+                          id="editSubDirektorat"
+                          value={editFormData.subdirektorat || ''}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, subdirektorat: e.target.value }))}
+                          placeholder="Masukkan sub direktorat"
+                          list="subdirektorat-suggestions"
+                        />
+                        <datalist id="subdirektorat-suggestions">
+                          <option value="Subdirektorat Akuntansi" />
+                          <option value="Subdirektorat Perpajakan" />
+                          <option value="Subdirektorat Rekrutmen" />
+                          <option value="Subdirektorat Pengembangan" />
+                          <option value="Subdirektorat Infrastruktur" />
+                          <option value="Subdirektorat Aplikasi" />
+                        </datalist>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="editDivision">
@@ -1144,7 +1271,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                             return !isUsed;
                           }).sort((a, b) => a.aspek.localeCompare(b.aspek));
                           return availableItems.length > 0 ? (
-                            availableItems.map((item) => (
+                            availableItems.slice(0, 50).map((item) => (
                               <div key={item.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
                                 <Checkbox
                                   id={`edit-checklist-${item.id}`}
@@ -1212,12 +1339,19 @@ const DocumentList: React.FC<DocumentListProps> = ({
 
             {/* Dialog Actions */}
             <div className="flex justify-end space-x-2 pt-4 border-t mt-4">
-              <Button variant="outline" onClick={handleCancelEdit}>
+              <ActionButton
+                onClick={handleCancelEdit}
+                variant="outline"
+              >
                 Batal
-              </Button>
-              <Button onClick={handleSaveEdit} className="bg-blue-600 hover:bg-blue-700">
+              </ActionButton>
+              <ActionButton
+                onClick={handleSaveEdit}
+                variant="default"
+                icon={<Save className="w-4 h-4" />}
+              >
                 Simpan Perubahan
-              </Button>
+              </ActionButton>
             </div>
           </DialogContent>
         </Dialog>

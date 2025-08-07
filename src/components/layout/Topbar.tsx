@@ -40,13 +40,21 @@ const Topbar = () => {
       case '/documents':
         return { title: 'Manajemen Dokumen', breadcrumb: ['Dashboard', 'Manajemen Dokumen'] };
       case '/list-gcg':
-        return { title: 'List GCG', breadcrumb: ['Dashboard', 'List GCG'] };
+        return { title: 'Monitoring & Upload GCG', breadcrumb: ['Dashboard', 'Super Admin', 'Monitoring & Upload GCG'] };
       case '/penilaian-gcg':
         return { title: 'Penilaian GCG', breadcrumb: ['Dashboard', 'Penilaian GCG'] };
       case '/admin/kelola-akun':
-        return { title: 'Kelola Akun', breadcrumb: ['Dashboard', 'Admin', 'Kelola Akun'] };
+        return { title: 'Manajemen User', breadcrumb: ['Dashboard', 'Admin', 'Manajemen User'] };
       case '/admin/checklist-gcg':
         return { title: 'Checklist GCG', breadcrumb: ['Dashboard', 'Admin', 'Checklist GCG'] };
+      case '/admin/meta-data':
+        return { title: 'Pengaturan Metadata', breadcrumb: ['Dashboard', 'Admin', 'Pengaturan Metadata'] };
+      case '/admin/struktur-perusahaan':
+        return { title: 'Struktur Organisasi', breadcrumb: ['Dashboard', 'Admin', 'Struktur Organisasi'] };
+      case '/admin/document-management':
+        return { title: 'Kelola Dokumen', breadcrumb: ['Dashboard', 'Admin', 'Kelola Dokumen'] };
+      case '/admin/dashboard':
+        return { title: 'Dashboard Admin', breadcrumb: ['Dashboard Admin'] };
       default:
         return { title: 'Dashboard', breadcrumb: ['Dashboard'] };
     }
@@ -129,19 +137,21 @@ const Topbar = () => {
           <HelpCircle className="w-5 h-5 text-gray-600" />
         </Button>
 
-        {/* User Avatar */}
-        <div className="flex items-center space-x-3">
-          <Avatar className="w-8 h-8">
-            <AvatarImage src="" alt={user?.name || 'User'} />
-            <AvatarFallback className="bg-blue-600 text-white text-sm">
-              {user?.name?.charAt(0) || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="hidden md:block">
-            <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
-            <p className="text-xs text-gray-500 capitalize">{user?.role || 'user'}</p>
+        {/* User Avatar - Hidden for Admin */}
+        {user?.role !== 'admin' && (
+          <div className="flex items-center space-x-3">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src="" alt={user?.name || 'User'} />
+              <AvatarFallback className="bg-blue-600 text-white text-sm">
+                {user?.name?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="hidden md:block">
+              <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
+              <p className="text-xs text-gray-500 capitalize">{user?.role || 'user'}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
