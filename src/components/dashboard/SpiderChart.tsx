@@ -243,27 +243,14 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Assignment Summary */}
-        {selectedSubDirektorat && assignmentStats && (
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-medium text-blue-900">
-                  {SUBDIREKTORAT_OPTIONS.find(s => s.value === selectedSubDirektorat)?.label}
-                </h4>
-                <p className="text-xs text-blue-700">
-                  Total Penugasan: {assignmentStats.totalAssigned} | Selesai: {assignmentStats.completedCount}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold text-blue-600">
-                  {assignmentStats.progress.toFixed(1)}%
-                </div>
-                <div className="text-xs text-blue-600">Progress</div>
-              </div>
-            </div>
+        {/* Assignment Summary: Show active subdirektorat name as placeholder */}
+        <div className="mb-4 flex items-center justify-center">
+          <div className="px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 font-semibold text-sm shadow-sm">
+            {selectedSubDirektorat
+              ? SUBDIREKTORAT_OPTIONS.find(s => s.value === selectedSubDirektorat)?.label || selectedSubDirektorat
+              : 'Tidak ada sub-direktorat aktif'}
           </div>
-        )}
+        </div>
 
         {/* Radar Chart */}
         <div className="flex items-center justify-center mb-6">
