@@ -71,11 +71,14 @@ const AdminDashboard = () => {
       if (!assignments) return [];
       
       const assignmentsList = JSON.parse(assignments) as ChecklistAssignment[];
-      return assignmentsList.filter(
+      
+      const filtered = assignmentsList.filter(
         assignment => 
           assignment.subdirektorat === userSubDirektorat && 
           assignment.tahun === selectedYear
       );
+      
+      return filtered;
     } catch (error) {
       console.error('Error getting assigned checklists:', error);
       return [];
@@ -89,11 +92,14 @@ const AdminDashboard = () => {
       if (!documents) return [];
       
       const documentsList = JSON.parse(documents);
-      return documentsList.filter(
+      
+      const filtered = documentsList.filter(
         (doc: any) => 
           doc.subdirektorat === userSubDirektorat && 
           doc.tahun === selectedYear
       );
+      
+      return filtered;
     } catch (error) {
       console.error('Error getting user documents:', error);
       return [];
@@ -122,6 +128,13 @@ const AdminDashboard = () => {
       window.removeEventListener('fileUploaded', handleDataUpdate);
     };
   }, []);
+
+  // Force update when user data changes
+  useEffect(() => {
+    if (user && userSubDirektorat) {
+      setForceUpdate(prev => prev + 1);
+    }
+  }, [user, userSubDirektorat]);
 
   // Calculate progress statistics
   const progressStats = useMemo(() => {
@@ -600,7 +613,7 @@ const AdminDashboard = () => {
             aspek: selectedChecklist.aspek,
             deskripsi: selectedChecklist.checklistItem?.deskripsi || selectedChecklist.deskripsi,
             direktorat: userDirektorat,
-            subDirektorat: userSubDirektorat,
+            subdirektorat: userSubDirektorat, // Changed to lowercase to match interface
             divisi: userDivisi,
             tahun: selectedYear
           }}

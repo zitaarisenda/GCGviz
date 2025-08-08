@@ -41,7 +41,7 @@ interface FileUploadDialogProps {
     aspek?: string;
     deskripsi?: string;
     direktorat?: string;
-    subDirektorat?: string;
+    subdirektorat?: string; // Changed to lowercase to match UploadFormData
     divisi?: string;
     tahun?: number;
   };
@@ -785,7 +785,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
           title: prefillData.deskripsi || prev.title,
           description: prefillData.deskripsi || prev.description,
           direktorat: prefillData.direktorat || prev.direktorat,
-          subdirektorat: prefillData.subDirektorat || prev.subdirektorat,
+          subdirektorat: prefillData.subdirektorat || prev.subdirektorat,
           division: prefillData.divisi || prev.division,
           selectedChecklistId: prefillData.checklistId || prev.selectedChecklistId,
           year: prefillData.tahun || selectedYear || new Date().getFullYear()
@@ -797,7 +797,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
         setFormData(prev => ({
           ...prev,
           direktorat: user?.direktorat || prev.direktorat,
-          subdirektorat: user?.subdirektorat || user?.subDirektorat || prev.subdirektorat,
+          subdirektorat: user?.subDirektorat || user?.subDirektorat || prev.subdirektorat,
           division: user?.divisi || prev.division,
         }));
       }
@@ -1109,7 +1109,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
         documentType: formData.documentType || 'Dokumen GCG',
         documentCategory: formData.documentCategory || 'GCG',
         direktorat: formData.direktorat || user?.direktorat || '',
-        subdirektorat: formData.subdirektorat || user?.subdirektorat || user?.subDirektorat || '',
+        subdirektorat: formData.subdirektorat || user?.subDirektorat || user?.subDirektorat || '',
         division: formData.division || user?.divisi || '',
         status: formData.status || 'draft',
         confidentiality: formData.confidentiality || 'public',
