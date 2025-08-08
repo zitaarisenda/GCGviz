@@ -8,6 +8,10 @@ export interface User {
   password: string;
   role: UserRole;
   name: string;
+  direktorat?: string;
+  subDirektorat?: string; // mempertahankan casing historis jika ada penggunaan lama
+  subdirektorat?: string; // normalisasi baru
+  divisi?: string;
 }
 
 interface UserContextType {
@@ -38,8 +42,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       (u) => u.email === email && u.password === password
     );
     if (found) {
+      // Normalisasi field nama organisasi
+      const normalized: User = {
+        ...found,
+        subdirektorat: (found as any).subdirektorat || (found as any).subDirektorat || '',
+        subDirektorat: (found as any).subDirektorat || (found as any).subdirektorat || ''
+      };
       setUser(found);
-      localStorage.setItem("currentUser", JSON.stringify(found));
+      localStorage.setItem("currentUser", JSON.stringify(normalized));
       return true;
     }
     return false;

@@ -38,8 +38,10 @@ const SubDirektoratPerformance: React.FC<SubDirektoratPerformanceProps> = ({ cla
         item.subdirektorat === subdir
       ).length;
       
+      // Hilangkan awalan "Sub Direktorat " agar rapi
+      const cleanName = subdir.replace(/^\s*Sub\s*Direktorat\s*/i, '').trim();
       return {
-        name: subdir,
+        name: cleanName,
         documents: subdirDocs.length,
         uploaded: subdirUploaded,
         total: subdirTotal,
@@ -198,8 +200,8 @@ const SubDirektoratPerformance: React.FC<SubDirektoratPerformanceProps> = ({ cla
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {performanceData.slice(0, 4).map((item, index) => (
               <div key={index} className="text-center p-3 bg-gray-50 rounded-lg">
-                <div className={`text-lg font-bold ${getPerformanceColor(item.progress)}`}>
-                  {item.progress.toFixed(0)}%
+                <div className="text-base font-bold text-gray-800">
+                  {item.uploaded}/{Math.max(item.total, 1)}
                 </div>
                 <div className="text-xs text-gray-600 truncate">{item.name}</div>
               </div>

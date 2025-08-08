@@ -315,10 +315,12 @@ const FileUploadSection = memo(({
 
 const BasicInfoSection = memo(({ 
   formData, 
-  onInputChange 
+  onInputChange,
+  userRole
 }: {
   formData: UploadFormData;
   onInputChange: (field: keyof UploadFormData, value: string) => void;
+  userRole?: string;
 }) => (
   <div className="space-y-4">
     <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
@@ -328,14 +330,14 @@ const BasicInfoSection = memo(({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
         <Label htmlFor="title">
-          Judul Dokumen <span className="text-red-500">*</span>
+          Judul Dokumen {userRole !== 'admin' && <span className="text-red-500">*</span>}
         </Label>
         <OptimizedInput
           id="title"
           value={formData.title}
           onChange={(value) => onInputChange('title', value)}
           placeholder="Masukkan judul dokumen"
-          required
+          required={userRole !== 'admin'}
         />
       </div>
       
@@ -368,13 +370,15 @@ const GCGClassificationSection = memo(({
   onSelectChange, 
   gcgPrinciples, 
   documentTypes, 
-  documentCategories 
+  documentCategories,
+  userRole
 }: {
   formData: UploadFormData;
   onSelectChange: (field: keyof UploadFormData, value: string) => void;
   gcgPrinciples: string[];
   documentTypes: string[];
   documentCategories: string[];
+  userRole?: string;
 }) => (
   <div className="space-y-4">
     <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
@@ -384,7 +388,7 @@ const GCGClassificationSection = memo(({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div className="space-y-2">
         <Label htmlFor="gcgPrinciple">
-          Prinsip GCG <span className="text-red-500">*</span>
+          Prinsip GCG {userRole !== 'admin' && <span className="text-red-500">*</span>}
         </Label>
         <OptimizedSelect 
           value={formData.gcgPrinciple} 
@@ -399,7 +403,7 @@ const GCGClassificationSection = memo(({
       
       <div className="space-y-2">
         <Label htmlFor="documentType">
-          Jenis Dokumen <span className="text-red-500">*</span>
+          Jenis Dokumen {userRole !== 'admin' && <span className="text-red-500">*</span>}
         </Label>
         <OptimizedSelect 
           value={formData.documentType} 
@@ -436,7 +440,8 @@ const OrganizationalSection = memo(({
   onCustomDivisionChange,
   direktoratSuggestions, 
   subdirektoratSuggestions, 
-  divisionSuggestions 
+  divisionSuggestions,
+  userRole
 }: {
   formData: UploadFormData;
   onSelectChange: (field: keyof UploadFormData, value: string) => void;
@@ -446,6 +451,7 @@ const OrganizationalSection = memo(({
   direktoratSuggestions: string[];
   subdirektoratSuggestions: string[];
   divisionSuggestions: string[];
+  userRole?: string;
 }) => (
   <div className="space-y-4">
     <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
@@ -455,13 +461,13 @@ const OrganizationalSection = memo(({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
         <Label htmlFor="direktorat">
-          Direktorat <span className="text-red-500">*</span>
+          Direktorat {userRole !== 'admin' && <span className="text-red-500">*</span>}
         </Label>
         <OptimizedSelect 
           value={formData.direktorat} 
           onValueChange={(value) => onSelectChange('direktorat', value)}
           placeholder={direktoratSuggestions.length > 0 ? "Pilih direktorat" : "Belum ada data direktorat tahun ini"}
-          disabled={direktoratSuggestions.length === 0}
+          disabled={direktoratSuggestions.length === 0 || userRole === 'admin'}
         >
           {direktoratSuggestions.map(direktorat => (
             <SelectItem key={direktorat} value={direktorat}>{direktorat}</SelectItem>
@@ -477,7 +483,7 @@ const OrganizationalSection = memo(({
           value={formData.subdirektorat} 
           onValueChange={(value) => onSelectChange('subdirektorat', value)}
           placeholder={subdirektoratSuggestions.length > 0 ? "Pilih subdirektorat" : "Belum ada data subdirektorat"}
-          disabled={subdirektoratSuggestions.length === 0}
+          disabled={subdirektoratSuggestions.length === 0 || userRole === 'admin'}
         >
           {subdirektoratSuggestions.map(subdirektorat => (
             <SelectItem key={subdirektorat} value={subdirektorat}>{subdirektorat}</SelectItem>
@@ -487,27 +493,30 @@ const OrganizationalSection = memo(({
       
       <div className="space-y-2">
         <Label htmlFor="division">
-          Divisi <span className="text-red-500">*</span>
+          Divisi {userRole !== 'admin' && <span className="text-red-500">*</span>}
         </Label>
         <div className="space-y-2">
           <OptimizedSelect 
             value={formData.division} 
             onValueChange={(value) => onSelectChange('division', value)}
             placeholder={divisionSuggestions.length > 0 ? "Pilih divisi" : "Belum ada data divisi tahun ini"}
+            disabled={userRole === 'admin'}
           >
             {divisionSuggestions.map(division => (
               <SelectItem key={division} value={division}>{division}</SelectItem>
             ))}
           </OptimizedSelect>
-          <div className="space-y-2">
-            <Label htmlFor="customDivision">Atau ketik divisi manual</Label>
-            <OptimizedInput
-              id="customDivision"
-              value={customDivision}
-              onChange={onCustomDivisionChange}
-              placeholder="Ketik nama divisi jika tidak ada di daftar"
-            />
-          </div>
+          {userRole !== 'admin' && (
+            <div className="space-y-2">
+              <Label htmlFor="customDivision">Atau ketik divisi manual</Label>
+              <OptimizedInput
+                id="customDivision"
+                value={customDivision}
+                onChange={onCustomDivisionChange}
+                placeholder="Ketik nama divisi jika tidak ada di daftar"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -782,8 +791,18 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
           year: prefillData.tahun || selectedYear || new Date().getFullYear()
         }));
       }
+
+      // Auto-fill organizational info for admin users
+      if (user?.role === 'admin') {
+        setFormData(prev => ({
+          ...prev,
+          direktorat: user?.direktorat || prev.direktorat,
+          subdirektorat: user?.subdirektorat || user?.subDirektorat || prev.subdirektorat,
+          division: user?.divisi || prev.division,
+        }));
+      }
     }
-  }, [isOpen, checklistId, checklistDescription, aspect, selectedYear, prefillData]);
+  }, [isOpen, checklistId, checklistDescription, aspect, selectedYear, prefillData, user]);
 
   // Update year when selectedYear changes
   useEffect(() => {
@@ -1012,40 +1031,54 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       return;
     }
 
-    if (!formData.title) {
-      toast({
-        title: "Data tidak lengkap",
-        description: "Judul dokumen wajib diisi",
-        variant: "destructive"
-      });
-      return;
-    }
+    // For admin users, only file is required
+    if (user?.role === 'admin') {
+      // Only validate file selection for admin
+      if (!selectedFile) {
+        toast({
+          title: "File belum dipilih",
+          description: "Silakan pilih file yang akan diupload",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else {
+      // For superadmin, validate required fields
+      if (!formData.title) {
+        toast({
+          title: "Data tidak lengkap",
+          description: "Judul dokumen wajib diisi",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    if (!formData.gcgPrinciple) {
-      toast({
-        title: "Data tidak lengkap",
-        description: "Prinsip GCG wajib diisi",
-        variant: "destructive"
-      });
-      return;
-    }
+      if (!formData.gcgPrinciple) {
+        toast({
+          title: "Data tidak lengkap",
+          description: "Prinsip GCG wajib diisi",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    if (!formData.documentType) {
-      toast({
-        title: "Data tidak lengkap",
-        description: "Jenis dokumen wajib diisi",
-        variant: "destructive"
-      });
-      return;
-    }
+      if (!formData.documentType) {
+        toast({
+          title: "Data tidak lengkap",
+          description: "Jenis dokumen wajib diisi",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    if (user?.role === 'superadmin' && (!formData.direktorat || !formData.division)) {
-      toast({
-        title: "Data tidak lengkap",
-        description: "Direktorat dan divisi wajib diisi untuk Super Admin",
-        variant: "destructive"
-      });
-      return;
+      if (user?.role === 'superadmin' && (!formData.direktorat || !formData.division)) {
+        toast({
+          title: "Data tidak lengkap",
+          description: "Direktorat dan divisi wajib diisi untuk Super Admin",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     setIsUploading(true);
@@ -1068,18 +1101,18 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       // Add document metadata
       addDocument({
         fileName: selectedFile.name,
-        title: formData.title,
-        documentNumber: formData.documentNumber,
-        documentDate: formData.documentDate,
-        description: formData.description,
-        gcgPrinciple: formData.gcgPrinciple,
-        documentType: formData.documentType,
-        documentCategory: formData.documentCategory,
-        direktorat: formData.direktorat,
-        subdirektorat: formData.subdirektorat,
-        division: formData.division,
-        status: formData.status,
-        confidentiality: formData.confidentiality,
+        title: formData.title || selectedChecklist?.deskripsi || 'Dokumen GCG',
+        documentNumber: formData.documentNumber || '',
+        documentDate: formData.documentDate || new Date().toISOString().split('T')[0],
+        description: formData.description || selectedChecklist?.deskripsi || '',
+        gcgPrinciple: formData.gcgPrinciple || 'Aspek GCG',
+        documentType: formData.documentType || 'Dokumen GCG',
+        documentCategory: formData.documentCategory || 'GCG',
+        direktorat: formData.direktorat || user?.direktorat || '',
+        subdirektorat: formData.subdirektorat || user?.subdirektorat || user?.subDirektorat || '',
+        division: formData.division || user?.divisi || '',
+        status: formData.status || 'draft',
+        confidentiality: formData.confidentiality || 'public',
         fileSize: selectedFile.size,
         checklistId: formData.selectedChecklistId,
         year: formData.year,
@@ -1090,6 +1123,11 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
         title: "Upload berhasil",
         description: "Dokumen berhasil diupload dan metadata telah disimpan",
       });
+
+      // Dispatch events to notify other components
+      window.dispatchEvent(new CustomEvent('fileUploaded'));
+      window.dispatchEvent(new CustomEvent('documentsUpdated'));
+      window.dispatchEvent(new CustomEvent('assignmentsUpdated'));
 
       // Reset form
       setFormData({
@@ -1147,10 +1185,14 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     setFormData(prev => ({ ...prev, file: null, fileName: '', fileSize: 0 }));
   }, []);
 
-  // Ultra-optimized memoized values with lazy loading
-  const divisionSuggestions = useMemo(() => getDivisionSuggestionsByYear, [getDivisionSuggestionsByYear]);
   // Get data from context
-  const { direktorat: direktoratSuggestions, subdirektorat: subdirektoratSuggestions } = useStrukturPerusahaan();
+  const { direktorat: direktoratSuggestions, subdirektorat: subdirektoratSuggestions, divisi: divisiCtx } = useStrukturPerusahaan();
+  // Ultra-optimized memoized values with lazy loading
+  const divisionSuggestions = useMemo(() => {
+    const fromYear = getDivisionSuggestionsByYear;
+    const merged = Array.from(new Set([...(fromYear || []), ...(divisiCtx || [])]));
+    return merged;
+  }, [getDivisionSuggestionsByYear, divisiCtx]);
 
   // Lazy load heavy computations only when needed
   const memoizedChecklistItems = useMemo(() => {
@@ -1219,6 +1261,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
             <BasicInfoSection
               formData={formData}
               onInputChange={handleInputChange}
+              userRole={user?.role}
             />
 
             {/* GCG Classification */}
@@ -1228,6 +1271,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
               gcgPrinciples={gcgPrinciples}
               documentTypes={documentTypes}
               documentCategories={documentCategories}
+              userRole={user?.role}
             />
 
             {/* Organizational Information */}
@@ -1240,6 +1284,7 @@ const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
               direktoratSuggestions={direktoratSuggestions}
               subdirektoratSuggestions={subdirektoratSuggestions}
               divisionSuggestions={divisionSuggestions}
+              userRole={user?.role}
             />
 
             {/* Document Management */}

@@ -63,6 +63,16 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
     }
   };
 
+  // Listen to updates from ListGCG and refresh chart
+  useEffect(() => {
+    const onUpdate = () => {
+      // Trigger recompute by toggling selectedSubDirektorat (no-op)
+      setSelectedSubDirektorat((prev) => (prev ? `${prev}` : prev));
+    };
+    window.addEventListener('assignmentsUpdated', onUpdate);
+    return () => window.removeEventListener('assignmentsUpdated', onUpdate);
+  }, []);
+
   // Auto-rotate through sub-direktorat
   useEffect(() => {
     if (!isAutoRotateEnabled) return;
@@ -77,6 +87,8 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
 
     return () => clearInterval(interval);
   }, [isAutoRotateEnabled]);
+
+  const normalizeAspek = (s: string) => s.replace(/\s+/g, ' ').trim();
 
   const chartData = useMemo(() => {
     if (!selectedYear) return null;
@@ -99,7 +111,7 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
     const data = aspects.map(aspect => {
       // Get all assignments for this aspect
       const aspectAssignments = yearAssignments.filter(assignment => 
-        assignment.aspek === aspect.name
+        normalizeAspek(assignment.aspek) === normalizeAspek(aspect.name)
       );
 
       // Filter by selected sub-direktorat if any
@@ -144,7 +156,7 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
   const radius = 120;
   const centerX = 150;
   const centerY = 150;
-  const labelRadius = radius + 25; // Radius untuk label (sedikit lebih dekat)
+  const labelRadius = radius + 40; // Radius untuk label agar berada di sisi segi enam
 
   const getPoint = (angle: number, value: number) => {
     const normalizedValue = value / 100;
@@ -243,8 +255,8 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Assignment Summary: Show active subdirektorat name as placeholder */}
-        <div className="mb-4 flex items-center justify-center">
+        {/* Assignment Summary: pindah ke kiri agar konsisten dengan Progres Pengerjaan */}
+        <div className="mb-4 flex items-center justify-start">
           <div className="px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 font-semibold text-sm shadow-sm">
             {selectedSubDirektorat
               ? SUBDIREKTORAT_OPTIONS.find(s => s.value === selectedSubDirektorat)?.label || selectedSubDirektorat
@@ -255,7 +267,7 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
         {/* Radar Chart */}
         <div className="flex items-center justify-center mb-6">
           <div className="relative">
-            <svg width="300" height="300" viewBox="0 0 300 300" className="transform -rotate-90">
+            <svg width="300" height="300" viewBox="0 0 300 300">
               {/* Grid Lines */}
               {generateGridLines().map((points, index) => (
                 <polygon
@@ -323,22 +335,38 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
               const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
               const labelPos = getLabelPosition(angle);
               const isTop = labelPos.y < centerY;
-              const isLeft = labelPos.x < centerX;
-              
+
+              // Untuk aspek 2 dan 3 (index 1 dan 2), tidak perlu alignment khusus
+              if (index === 1 || index === 2) {
+                return (
+                  <div
+                    key={`label-${index}`}
+                    className="absolute"
+                    style={{
+                      left: labelPos.x + 8,
+                      top: labelPos.y,
+                      transform: 'translateY(-50%)'
+                    }}
+                  >
+                    <div className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-white border shadow-sm ${data.color}`}>
+                      {data.name}
+                    </div>
+                  </div>
+                );
+              }
+
+              // Default alignment untuk aspek lainnya
               return (
                 <div
                   key={`label-${index}`}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                  className="absolute"
                   style={{
                     left: labelPos.x,
                     top: labelPos.y,
                     transform: `translate(-50%, ${isTop ? '-100%' : '0%'})`
                   }}
                 >
-                  <div className={`
-                    text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-white border shadow-sm
-                    ${data.color}
-                  `}>
+                  <div className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-white border shadow-sm ${data.color}`}>
                     {data.name}
                   </div>
                 </div>
@@ -376,10 +404,11 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
                   ${index === currentSubDirektoratIndex && isAutoRotateEnabled ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
                 `}
                 onClick={() => handleSubDirektoratClick(subDirektorat.value)}
-              >
+                >
                 <div className="flex items-center space-x-1">
                   <Building2 className="w-3 h-3" />
-                  <span className="truncate">{subDirektorat.label}</span>
+                  {/* Hilangkan kata 'Sub Direktorat' dari label agar lebih rapi */}
+                  <span className="truncate">{subDirektorat.label.replace(/^\s*Sub\s*Direktorat\s*/i, '')}</span>
                 </div>
               </div>
             ))}

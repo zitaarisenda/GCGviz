@@ -84,11 +84,13 @@ const SUBDIREKTORAT_OPTIONS = [
 const AssignmentDropdown = memo(({ 
   item, 
   onAssign, 
-  isSuperAdmin 
+  isSuperAdmin,
+  currentAssignmentLabel
 }: { 
   item: { id: number; aspek: string; deskripsi: string }; 
   onAssign: (checklistId: number, subdirektorat: string, aspek: string, deskripsi: string) => void;
   isSuperAdmin: boolean;
+  currentAssignmentLabel?: string | null;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -146,9 +148,15 @@ const AssignmentDropdown = memo(({
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
         disabled={isLoading}
-        className="w-48 justify-between disabled:opacity-50"
+        className={`w-56 justify-between disabled:opacity-50 ${currentAssignmentLabel ? 'border-blue-300 bg-blue-50 text-blue-700' : ''}`}
       >
-        <span>{isLoading ? 'Assigning...' : 'Assign ke Subdirektorat'}</span>
+        <span className="truncate text-left">
+          {isLoading 
+            ? 'Assigning...'
+            : currentAssignmentLabel 
+              ? `Assigned: ${currentAssignmentLabel}`
+              : 'Assign ke Subdirektorat'}
+        </span>
         <svg
           className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
@@ -160,7 +168,7 @@ const AssignmentDropdown = memo(({
       </Button>
       
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 mt-1 w-56 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
           <div className="py-1">
             {dropdownOptions}
           </div>
@@ -206,6 +214,19 @@ const ListGCG = () => {
   
   // State untuk assignment checklist
   const [assignments, setAssignments] = useState<ChecklistAssignment[]>([]);
+
+  // Load assignments from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('checklistAssignments');
+      if (stored) {
+        const parsed = JSON.parse(stored) as ChecklistAssignment[];
+        setAssignments(parsed);
+      }
+    } catch (err) {
+      console.error('Failed to load checklistAssignments from localStorage', err);
+    }
+  }, []);
   
   // State untuk tab
   const [activeTab, setActiveTab] = useState<'rekap' | 'kelola-aspek' | 'kelola-checklist'>('rekap');
@@ -283,6 +304,26 @@ const ListGCG = () => {
     const yearChecklist = checklist.filter(item => item.tahun === selectedYear);
     return [...new Set(yearChecklist.map(item => item.aspek))];
   }, [checklist, selectedYear]);
+
+  // Ringkasan assignment per subdirektorat (Breakdown Penugasan)
+  const assignmentSummary = useMemo(() => {
+    const yearAssignments = assignments.filter(a => a.tahun === selectedYear);
+    if (yearAssignments.length === 0) return [] as Array<{ sub: string; display: string; total: number; completed: number; percent: number }>;
+    const bySub: Record<string, number[]> = {};
+    yearAssignments.forEach(a => {
+      if (!bySub[a.subdirektorat]) bySub[a.subdirektorat] = [];
+      bySub[a.subdirektorat].push(a.checklistId);
+    });
+    const yearFiles = getFilesByYear(selectedYear);
+    const isChecklistUploadedId = (checklistId: number) => yearFiles.some(f => f.checklistId === checklistId);
+    const clean = (name: string) => name.replace(/^\s*Sub\s*Direktorat\s*/i, '').trim();
+    return Object.entries(bySub).map(([sub, checklistIds]) => {
+      const total = checklistIds.length;
+      const completed = checklistIds.filter(id => isChecklistUploadedId(id)).length;
+      const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+      return { sub, display: clean(sub), total, completed, percent };
+    }).sort((a, b) => a.display.localeCompare(b.display));
+  }, [assignments, selectedYear, getFilesByYear]);
 
   // Check if checklist item is uploaded - menggunakan data yang sama dengan DashboardStats
   const isChecklistUploaded = useCallback((checklistId: number) => {
@@ -493,8 +534,21 @@ const ListGCG = () => {
       assignedAt: new Date(),
       status: 'assigned'
     };
-    
-    setAssignments(prev => [...prev, newAssignment]);
+    // Update state and persist to localStorage so radar & panels dapat membaca
+    setAssignments(prev => {
+      // Replace existing assignment for this checklistId & year if any
+      const next = [...prev.filter(a => !(a.checklistId === checklistId && a.tahun === selectedYear)), newAssignment];
+      try {
+        localStorage.setItem('checklistAssignments', JSON.stringify(next));
+        // Notify other panels/components to refresh
+        try {
+          window.dispatchEvent(new Event('assignmentsUpdated'));
+        } catch {}
+      } catch (err) {
+        console.error('Failed to persist checklistAssignments', err);
+      }
+      return next;
+    });
     toast({
       title: "Assignment Berhasil",
       description: `Checklist berhasil ditugaskan ke ${subdirektorat}`,
@@ -684,6 +738,38 @@ const ListGCG = () => {
                     showOverallProgress={true}
                   />
                 )}
+
+              {/* Breakdown Penugasan Subdirektorat */}
+              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm mb-6">
+                <CardHeader>
+                  <CardTitle className="text-indigo-900">Breakdown Penugasan Subdirektorat</CardTitle>
+                  <CardDescription>
+                    Ringkasan jumlah checklist yang ditugaskan dan selesai per subdirektorat pada tahun {selectedYear}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {assignmentSummary.length === 0 ? (
+                    <div className="text-sm text-gray-500">Belum ada penugasan untuk tahun ini.</div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {assignmentSummary.map((row, idx) => (
+                        <div key={idx} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                          <div className="text-sm font-semibold text-gray-900 mb-1 text-center truncate">{row.display}</div>
+                          <div className="flex items-center justify-center space-x-2 mb-2">
+                            <span className="text-base font-bold text-blue-600">{row.completed}/{row.total}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-700"
+                              style={{ width: `${row.percent}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-indigo-50">
                 <CardHeader>
@@ -966,11 +1052,17 @@ const ListGCG = () => {
                               >
                             <Upload className="w-4 h-4" />
                           </Button>
-                              <AssignmentDropdown 
-                                item={item}
-                                onAssign={handleAssignment}
-                                isSuperAdmin={user?.role === 'superadmin'}
-                              />
+                      <AssignmentDropdown 
+                        item={item}
+                        onAssign={handleAssignment}
+                        isSuperAdmin={user?.role === 'superadmin'}
+                        currentAssignmentLabel={(() => {
+                          const a = assignments.find(a => a.checklistId === item.id && a.tahun === selectedYear);
+                          if (!a) return null;
+                          const opt = SUBDIREKTORAT_OPTIONS.find(o => o.value === a.subdirektorat);
+                          return opt?.label || a.subdirektorat;
+                        })()}
+                      />
                         </div>
                       </TableCell>
                     </TableRow>

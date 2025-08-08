@@ -49,12 +49,12 @@ const Dashboard = () => {
                 <DashboardStats />
               </div>
 
-              {/* Advanced Analytics Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {/* Spider Chart */}
+              {/* Advanced Analytics Panels - stacked (not side-by-side) */}
+              <div className="space-y-6 mb-8">
+                {/* Performance Radar */}
                 <SpiderChart />
-                
-                {/* Monthly Trends */}
+
+                {/* Progress Panel */}
                 <MonthlyTrends />
               </div>
 
