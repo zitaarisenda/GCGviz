@@ -7,6 +7,7 @@ import { useYear } from '@/contexts/YearContext';
 import { useUser } from '@/contexts/UserContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useFileUpload } from '@/contexts/FileUploadContext';
+import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { PageHeaderPanel } from '@/components/panels';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,12 @@ import {
   FileText, 
   CheckCircle, 
   Clock,
-  Eye
+  Eye,
+  Search
 } from 'lucide-react';
 import FileUploadDialog from '@/components/dashboard/FileUploadDialog';
 import YearStatisticsPanel from '@/components/dashboard/YearStatisticsPanel';
+import { setupTestData, clearTestData } from '@/lib/seed/testData';
 
 interface ChecklistAssignment {
   id: number;
@@ -44,10 +47,24 @@ const AdminDashboard = () => {
   const { user } = useUser();
   const { checklist } = useChecklist();
   const { getFilesByYear } = useFileUpload();
+  const { documents, getDocumentsByYear: getDocumentsByYearFromContext } = useDocumentMetadata();
   const [searchParams] = useSearchParams();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedChecklist, setSelectedChecklist] = useState<any>(null);
   const [forceUpdate, setForceUpdate] = useState(0);
+  
+  // Search and sorting states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<string>('namaFile');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [checklistSearchQuery, setChecklistSearchQuery] = useState('');
+  const [checklistSortField, setChecklistSortField] = useState<string>('aspek');
+  const [checklistSortDirection, setChecklistSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Get user's sub-direktorat and other info
+  const userSubDirektorat = user?.subdirektorat || 'Sub Direktorat Keuangan';
+  const userDirektorat = user?.direktorat || 'Direktorat Keuangan';
+  const userDivisi = user?.divisi || 'Divisi Akuntansi';
 
   // Get URL parameters
   const filterYear = searchParams.get('year');
@@ -59,18 +76,17 @@ const AdminDashboard = () => {
     }
   }, [filterYear, selectedYear, setSelectedYear]);
 
-  // Get user's organizational info
-  const userDirektorat = (user as any)?.direktorat || '';
-  const userSubDirektorat = (user as any)?.subdirektorat || (user as any)?.subDirektorat || '';
-  const userDivisi = (user as any)?.divisi || '';
-
   // Get assigned checklists for this user's subdirektorat
   const getAssignedChecklists = () => {
     try {
       const assignments = localStorage.getItem('checklistAssignments');
-      if (!assignments) return [];
+      if (!assignments) {
+        console.log('No checklistAssignments found in localStorage');
+        return [];
+      }
       
       const assignmentsList = JSON.parse(assignments) as ChecklistAssignment[];
+      console.log('All assignments:', assignmentsList);
       
       const filtered = assignmentsList.filter(
         assignment => 
@@ -78,6 +94,7 @@ const AdminDashboard = () => {
           assignment.tahun === selectedYear
       );
       
+      console.log('Filtered assignments for', userSubDirektorat, 'year', selectedYear, ':', filtered);
       return filtered;
     } catch (error) {
       console.error('Error getting assigned checklists:', error);
@@ -85,20 +102,22 @@ const AdminDashboard = () => {
     }
   };
 
-  // Get user's documents
+  // Get user documents for selected year and sub-direktorat
   const getUserDocuments = () => {
     try {
       const documents = localStorage.getItem('documents');
-      if (!documents) return [];
-      
+      if (!documents) {
+        console.log('No documents found in localStorage');
+        return [];
+      }
       const documentsList = JSON.parse(documents);
+      console.log('All documents:', documentsList);
       
-      const filtered = documentsList.filter(
-        (doc: any) => 
-          doc.subdirektorat === userSubDirektorat && 
-          doc.tahun === selectedYear
+      const filtered = documentsList.filter((doc: any) => 
+        doc.tahun === selectedYear && doc.subdirektorat === userSubDirektorat
       );
       
+      console.log('Filtered documents for', userSubDirektorat, 'year', selectedYear, ':', filtered);
       return filtered;
     } catch (error) {
       console.error('Error getting user documents:', error);
@@ -106,10 +125,260 @@ const AdminDashboard = () => {
     }
   };
 
+  // Get all documents for a specific year (for previous years view)
+  const getAllDocumentsForYear = (year: number) => {
+    try {
+      const documents = localStorage.getItem('documents');
+      if (!documents) {
+        console.log('No documents found in localStorage');
+        return [];
+      }
+      const documentsList = JSON.parse(documents);
+      
+      const filtered = documentsList.filter((doc: any) => doc.tahun === year);
+      console.log('All documents for year', year, ':', filtered);
+      return filtered;
+    } catch (error) {
+      console.error('Error getting all documents for year:', error);
+      return [];
+    }
+  };
+
+  // Check if selected year is the current/latest year
+  const isCurrentYear = selectedYear === Math.max(...availableYears);
+
+  // Sorting and filtering functions
+  const sortData = (data: any[], field: string, direction: 'asc' | 'desc') => {
+    return [...data].sort((a, b) => {
+      let aValue = a[field];
+      let bValue = b[field];
+      
+      // Handle date fields
+      if (field === 'uploadDate') {
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      }
+      
+      // Handle string fields
+      if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+      
+      if (direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  };
+
+  const filterData = (data: any[], query: string, fields: string[]) => {
+    if (!query.trim()) return data;
+    
+    return data.filter(item => 
+      fields.some(field => {
+        const value = item[field];
+        if (typeof value === 'string') {
+          return value.toLowerCase().includes(query.toLowerCase());
+        }
+        return false;
+      })
+    );
+  };
+
+  // Get filtered and sorted documents for current year
+  const getFilteredUserDocuments = () => {
+    const filtered = filterData(userDocuments, searchQuery, ['namaFile', 'aspek', 'subdirektorat']);
+    return sortData(filtered, sortField, sortDirection);
+  };
+
+  // Get filtered and sorted documents for previous years
+  const getFilteredAllDocuments = () => {
+    const allDocs = getAllDocumentsForYear(selectedYear);
+    const filtered = filterData(allDocs, searchQuery, ['namaFile', 'aspek', 'subdirektorat']);
+    return sortData(filtered, sortField, sortDirection);
+  };
+
+  // Get filtered and sorted checklist items
+  const getFilteredChecklistItems = () => {
+    const filtered = filterData(getAssignedChecklistsForTable, checklistSearchQuery, ['aspek', 'deskripsi']);
+    return sortData(filtered, checklistSortField, checklistSortDirection);
+  };
+
+  // Mock data for testing
+  const generateMockData = () => {
+    const mockChecklistAssignments = [
+      {
+        id: 1,
+        checklistId: 1,
+        subdirektorat: userSubDirektorat,
+        aspek: "Aspek 1 - Komitmen",
+        deskripsi: "Implementasi kebijakan GCG dan komitmen manajemen",
+        tahun: selectedYear,
+        assignedBy: "Super Admin",
+        assignedAt: new Date(),
+        status: "assigned",
+        notes: "Prioritas tinggi"
+      },
+      {
+        id: 2,
+        checklistId: 2,
+        subdirektorat: userSubDirektorat,
+        aspek: "Aspek 2 - Implementasi",
+        deskripsi: "Pelaksanaan program GCG dan monitoring kinerja",
+        tahun: selectedYear,
+        assignedBy: "Super Admin",
+        assignedAt: new Date(),
+        status: "assigned",
+        notes: "Deadline akhir bulan"
+      },
+      {
+        id: 3,
+        checklistId: 3,
+        subdirektorat: userSubDirektorat,
+        aspek: "Aspek 3 - Monitoring",
+        deskripsi: "Evaluasi efektivitas implementasi GCG",
+        tahun: selectedYear,
+        assignedBy: "Super Admin",
+        assignedAt: new Date(),
+        status: "assigned",
+        notes: "Laporan bulanan"
+      },
+      {
+        id: 4,
+        checklistId: 4,
+        subdirektorat: userSubDirektorat,
+        aspek: "Aspek 4 - Evaluasi",
+        deskripsi: "Assesment risiko dan kepatuhan GCG",
+        tahun: selectedYear,
+        assignedBy: "Super Admin",
+        assignedAt: new Date(),
+        status: "assigned",
+        notes: "Review triwulan"
+      },
+      {
+        id: 5,
+        checklistId: 5,
+        subdirektorat: userSubDirektorat,
+        aspek: "Aspek 5 - Pelaporan",
+        deskripsi: "Penyusunan laporan GCG dan disclosure",
+        tahun: selectedYear,
+        assignedBy: "Super Admin",
+        assignedAt: new Date(),
+        status: "assigned",
+        notes: "Laporan tahunan"
+      }
+    ];
+
+    const mockDocuments = [
+      {
+        id: 1,
+        checklistId: 1,
+        subdirektorat: userSubDirektorat,
+        direktorat: userDirektorat,
+        divisi: userDivisi,
+        tahun: selectedYear,
+        namaFile: "Kebijakan_GCG_2024.pdf",
+        uploadDate: new Date(),
+        fileSize: 2048,
+        fileType: "application/pdf",
+        aspek: "Aspek 1 - Komitmen"
+      },
+      {
+        id: 2,
+        checklistId: 2,
+        subdirektorat: userSubDirektorat,
+        direktorat: userDirektorat,
+        divisi: userDivisi,
+        tahun: selectedYear,
+        namaFile: "Program_Implementasi_GCG_2024.pdf",
+        uploadDate: new Date(Date.now() - 86400000),
+        fileSize: 1536,
+        fileType: "application/pdf",
+        aspek: "Aspek 2 - Implementasi"
+      },
+      {
+        id: 3,
+        checklistId: 3,
+        subdirektorat: userSubDirektorat,
+        direktorat: userDirektorat,
+        divisi: userDivisi,
+        tahun: selectedYear,
+        namaFile: "Monitoring_GCG_Jan_2024.pdf",
+        uploadDate: new Date(Date.now() - 172800000),
+        fileSize: 1024,
+        fileType: "application/pdf",
+        aspek: "Aspek 3 - Monitoring"
+      }
+    ];
+
+    // Generate mock data for previous years
+    const previousYearsData = [];
+    const availableYearsList = availableYears.filter(year => year < selectedYear);
+    
+    availableYearsList.forEach(year => {
+      const yearDocuments = [];
+      const subDirektorats = [
+        "Sub Direktorat Keuangan",
+        "Sub Direktorat Operasional", 
+        "Sub Direktorat SDM",
+        "Sub Direktorat Teknologi",
+        "Sub Direktorat Pemasaran"
+      ];
+      
+      // Generate 8-15 documents per year
+      const numDocs = Math.floor(Math.random() * 8) + 8;
+      
+      for (let i = 1; i <= numDocs; i++) {
+        const randomSubDir = subDirektorats[Math.floor(Math.random() * subDirektorats.length)];
+        const randomAspek = [
+          "Aspek 1 - Komitmen",
+          "Aspek 2 - Implementasi", 
+          "Aspek 3 - Monitoring",
+          "Aspek 4 - Evaluasi",
+          "Aspek 5 - Pelaporan"
+        ][Math.floor(Math.random() * 5)];
+        
+        yearDocuments.push({
+          id: `${year}_${i}`,
+          checklistId: i,
+          subdirektorat: randomSubDir,
+          direktorat: "Direktorat Umum",
+          divisi: "Divisi Umum",
+          tahun: year,
+          namaFile: `Dokumen_${randomAspek.split(' ')[1]}_${year}_${i}.pdf`,
+          uploadDate: new Date(year, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+          fileSize: Math.floor(Math.random() * 2048) + 512,
+          fileType: "application/pdf",
+          aspek: randomAspek
+        });
+      }
+      
+      previousYearsData.push(...yearDocuments);
+    });
+
+    // Add mock data to localStorage
+    localStorage.setItem('checklistAssignments', JSON.stringify(mockChecklistAssignments));
+    localStorage.setItem('documents', JSON.stringify([...mockDocuments, ...previousYearsData]));
+    
+    // Refresh the component
+    setForceUpdate(prev => prev + 1);
+  };
+
+  // Clear mock data
+  const clearMockData = () => {
+    localStorage.removeItem('checklistAssignments');
+    localStorage.removeItem('documents');
+    setForceUpdate(prev => prev + 1);
+  };
+
   // Get user documents with memoization and force update
   const userDocuments = useMemo(() => {
     return getUserDocuments();
   }, [selectedYear, userSubDirektorat, forceUpdate]);
+
+
 
   // Listen for data updates
   useEffect(() => {
@@ -136,14 +405,29 @@ const AdminDashboard = () => {
     }
   }, [user, userSubDirektorat]);
 
+  // Debug: Log data for troubleshooting
+  useEffect(() => {
+    if (selectedYear && userSubDirektorat) {
+      console.log('Admin Dashboard Debug:', {
+        selectedYear,
+        userSubDirektorat,
+        assignments: getAssignedChecklists(),
+        documents: getUserDocuments(),
+        allAssignments: localStorage.getItem('checklistAssignments'),
+        allDocuments: localStorage.getItem('documents'),
+        checklist: checklist.filter(item => item.tahun === selectedYear)
+      });
+    }
+  }, [selectedYear, userSubDirektorat, forceUpdate, checklist]);
+
   // Calculate progress statistics
   const progressStats = useMemo(() => {
-    const assignedChecklists = getAssignedChecklists();
+    const assigned = getAssignedChecklists();
     
     // Group by aspect
     const aspectStats: { [key: string]: { total: number; completed: number; documents: any[] } } = {};
     
-    assignedChecklists.forEach(assignment => {
+    assigned.forEach(assignment => {
       if (!aspectStats[assignment.aspek]) {
         aspectStats[assignment.aspek] = { total: 0, completed: 0, documents: [] };
       }
@@ -159,7 +443,7 @@ const AdminDashboard = () => {
     });
 
     // Calculate overall progress
-    const totalAssigned = assignedChecklists.length;
+    const totalAssigned = assigned.length;
     const totalCompleted = userDocuments.length;
     const overallProgress = totalAssigned > 0 ? (totalCompleted / totalAssigned) * 100 : 0;
 
@@ -171,9 +455,7 @@ const AdminDashboard = () => {
     };
   }, [userDocuments, forceUpdate]);
 
-  const assignedChecklists = useMemo(() => {
-    return getAssignedChecklists();
-  }, [selectedYear, userSubDirektorat, forceUpdate]);
+
 
   // Helper: status upload per checklist (berdasarkan semua dokumen tahun ini)
   const isChecklistUploaded = React.useCallback((checklistId: number) => {
@@ -190,9 +472,12 @@ const AdminDashboard = () => {
   const getOverallProgress = useMemo(() => {
     if (!selectedYear) return null;
 
-    const totalItems = assignedChecklists.length;
+    const assigned = getAssignedChecklists();
+    const totalItems = assigned.length;
     const uploadedCount = userDocuments.length;
     const progress = totalItems > 0 ? Math.round((uploadedCount / totalItems) * 100) : 0;
+
+    console.log('Overall progress:', { totalItems, uploadedCount, progress });
 
     return {
       aspek: 'KESELURUHAN',
@@ -200,7 +485,7 @@ const AdminDashboard = () => {
       uploadedCount,
       progress
     };
-  }, [selectedYear, assignedChecklists, userDocuments, forceUpdate]);
+  }, [selectedYear, userDocuments, forceUpdate]);
 
   // Get aspect statistics for admin (showing all aspects like super admin)
   const getAspectStats = useMemo(() => {
@@ -208,16 +493,22 @@ const AdminDashboard = () => {
 
     // Get all aspects from checklist data (like super admin)
     const yearChecklist = checklist.filter(item => item.tahun === selectedYear);
+    console.log('Year checklist for', selectedYear, ':', yearChecklist);
+    
     const allAspects = [...new Set(yearChecklist.map(item => item.aspek))];
+    console.log('All aspects:', allAspects);
     
     // Group assigned checklists by aspect
     const aspectGroups: { [key: string]: any[] } = {};
-    assignedChecklists.forEach(assignment => {
+    const assigned = getAssignedChecklists();
+    assigned.forEach(assignment => {
       if (!aspectGroups[assignment.aspek]) {
         aspectGroups[assignment.aspek] = [];
       }
       aspectGroups[assignment.aspek].push(assignment);
     });
+
+    console.log('Aspect groups:', aspectGroups);
 
     // Return all aspects with their progress (including unassigned aspects)
     return allAspects.map(aspek => {
@@ -241,13 +532,16 @@ const AdminDashboard = () => {
       if (!a.isAssigned && b.isAssigned) return 1;
       return b.progress - a.progress;
     });
-  }, [selectedYear, assignedChecklists, checklist, userDocuments, forceUpdate]);
+  }, [selectedYear, checklist, userDocuments, forceUpdate]);
 
   // Get assigned checklists for table display
   const getAssignedChecklistsForTable = useMemo(() => {
     if (!selectedYear) return [];
 
-    return assignedChecklists.map(assignment => {
+    const assigned = getAssignedChecklists();
+    console.log('Assigned checklists for table:', assigned);
+
+    return assigned.map(assignment => {
       const checklistItem = checklist.find(c => c.id === assignment.checklistId);
       const hasDocument = userDocuments.some(doc => 
         doc.checklistId === assignment.checklistId
@@ -256,16 +550,19 @@ const AdminDashboard = () => {
         doc.checklistId === assignment.checklistId
       );
 
-      return {
+      const result = {
         ...assignment,
         checklistItem,
         status: hasDocument ? 'uploaded' : 'not_uploaded' as 'uploaded' | 'not_uploaded',
         uploadedDocument
       };
+      
+      console.log('Mapped checklist item:', result);
+      return result;
     });
-  }, [selectedYear, assignedChecklists, checklist, userDocuments, userSubDirektorat, forceUpdate]);
+  }, [selectedYear, checklist, userDocuments, userSubDirektorat, forceUpdate]);
 
-  // Get aspect colors
+  // Get aspect colors - Sinkronkan dengan super admin
   const getAspectColor = (aspect: string, progress: number = 0) => {
     const colors: { [key: string]: string } = {
       'Aspek 1 - Komitmen': 'bg-red-500',
@@ -274,7 +571,12 @@ const AdminDashboard = () => {
       'Aspek 4 - Evaluasi': 'bg-yellow-500',
       'Aspek 5 - Pelaporan': 'bg-purple-500'
     };
-    return colors[aspect] || 'bg-gray-500';
+    
+    // Fallback color berdasarkan progress (seperti super admin)
+    if (colors[aspect]) return colors[aspect];
+    if (progress >= 80) return 'bg-green-500';
+    if (progress >= 50) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
   // Get aspect icons
@@ -327,6 +629,62 @@ const AdminDashboard = () => {
             subtitle={`Selamat datang, ${user?.name} - ${userSubDirektorat}`}
           />
 
+          {/* Test Data Buttons - Hanya untuk development */}
+          {process.env.NODE_ENV === 'development' && (
+            <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-yellow-50 to-orange-50">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-orange-900">
+                  <span>🧪 Development Tools</span>
+                </CardTitle>
+                <CardDescription className="text-orange-700">
+                  Tombol untuk testing data (hanya muncul di development mode)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setupTestData();
+                      setForceUpdate(prev => prev + 1);
+                    }}
+                    className="border-orange-200 text-orange-600 hover:bg-orange-50"
+                  >
+                    Setup Test Data
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      clearTestData();
+                      setForceUpdate(prev => prev + 1);
+                    }}
+                    className="border-red-200 text-red-600 hover:bg-red-50"
+                  >
+                    Clear Test Data
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={generateMockData}
+                    className="border-green-200 text-green-600 hover:bg-green-50"
+                  >
+                    Generate Mock Data
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearMockData}
+                    className="border-purple-200 text-purple-600 hover:bg-purple-50"
+                  >
+                    Clear Mock Data
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Year Selector Panel */}
           <Card className="mb-6 border-0 shadow-lg">
             <CardHeader>
@@ -373,213 +731,347 @@ const AdminDashboard = () => {
           {/* Show content only when year is selected */}
           {selectedYear ? (
             <>
-              {/* Statistik Tahun Buku */}
-              {selectedYear && (
-                <YearStatisticsPanel 
-                  selectedYear={selectedYear}
-                  aspectStats={getAspectStats}
-                  overallProgress={getOverallProgress}
-                  getAspectIcon={getAspectIcon}
-                  getAspectColor={getAspectColor}
-                  onAspectClick={() => {}} // Admin tidak perlu click untuk filter
-                  isSidebarOpen={isSidebarOpen}
-                  title="Statistik Tahun Buku"
-                  description={`Overview dokumen dan checklist assessment tahun ${selectedYear} untuk ${userSubDirektorat}`}
-                  maxCardsInSlider={4}
-                  showViewAllButton={true}
-                  showOverallProgress={true}
-                />
-              )}
-
-              {/* Panel: Daftar Checklist GCG (integrated with upload functionality) */}
-              <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-indigo-50 mt-6">
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <CardTitle className="flex items-center space-x-2 text-indigo-900">
-                        <FileText className="w-5 h-5 text-indigo-600" />
-                        <span>Daftar Checklist GCG - Tahun {selectedYear}</span>
-                      </CardTitle>
-                      <CardDescription className="text-indigo-700 mt-2">
-                        Checklist yang ditugaskan untuk {userSubDirektorat} pada tahun {selectedYear}
-                      </CardDescription>
-                    </div>
+              {/* Current Year: Show all panels */}
+              {isCurrentYear ? (
+                <>
+                  {/* Statistik Tahun Buku */}
+                  <div className="border-0 shadow-lg bg-gradient-to-r from-white to-blue-50 rounded-lg">
+                    <YearStatisticsPanel 
+                      selectedYear={selectedYear}
+                      aspectStats={getAspectStats}
+                      overallProgress={getOverallProgress}
+                      getAspectIcon={getAspectIcon}
+                      getAspectColor={getAspectColor}
+                      onAspectClick={() => {}} // Admin tidak perlu click untuk filter
+                      isSidebarOpen={isSidebarOpen}
+                      title="Statistik Tahun Buku"
+                      description={`Overview dokumen dan checklist assessment tahun ${selectedYear} untuk ${userSubDirektorat}`}
+                      maxCardsInSlider={4}
+                      showViewAllButton={true}
+                      showOverallProgress={true}
+                    />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {getAssignedChecklistsForTable.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Belum ada checklist yang ditugaskan</h3>
-                      <p className="text-gray-600">Super Admin belum menugaskan checklist untuk {userSubDirektorat}</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-hidden rounded-lg border border-indigo-100">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100">
-                            <TableHead className="text-indigo-900 font-semibold">No</TableHead>
-                            <TableHead className="text-indigo-900 font-semibold">Aspek</TableHead>
-                            <TableHead className="text-indigo-900 font-semibold">Deskripsi Checklist</TableHead>
-                            <TableHead className="text-indigo-900 font-semibold">Status</TableHead>
-                            <TableHead className="text-indigo-900 font-semibold">File</TableHead>
-                            <TableHead className="text-indigo-900 font-semibold">Aksi</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getAssignedChecklistsForTable.map((item, index) => {
-                            const IconComponent = getAspectIcon(item.aspek);
-                            
-                            return (
-                              <TableRow key={item.id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-colors duration-200">
-                                <TableCell className="font-medium text-gray-700">{index + 1}</TableCell>
-                                <TableCell className="max-w-xs">
-                                  <div className="flex items-center space-x-2">
-                                    <div className="p-1.5 rounded-md bg-gray-100">
-                                      <IconComponent className="w-3 h-3 text-gray-600" />
-                                    </div>
-                                    <span className="text-xs text-gray-600 truncate">{item.aspek}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="max-w-md">
-                                  <div className="text-sm font-semibold text-gray-900 leading-relaxed" title={item.deskripsi}>
-                                    {item.deskripsi}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  {item.status === 'uploaded' ? (
-                                    <span className="flex items-center text-green-600 text-sm font-medium">
-                                      <CheckCircle className="w-4 h-4 mr-1" />
-                                      Sudah Upload
-                                    </span>
-                                  ) : (
-                                    <span className="flex items-center text-gray-400 text-sm">
-                                      <Clock className="w-4 h-4 mr-1" />
-                                      Belum Upload
-                                    </span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {item.uploadedDocument ? (
-                                    <div className="space-y-1">
-                                      <div className="flex items-center space-x-2">
-                                        <FileText className="w-4 h-4 text-blue-600" />
-                                        <span className="text-sm font-medium text-gray-900 truncate" title={item.uploadedDocument.namaFile || item.uploadedDocument.fileName}>
-                                          {item.uploadedDocument.namaFile || item.uploadedDocument.fileName}
-                                        </span>
-                                      </div>
-                                      <div className="text-xs text-gray-500">
-                                        Tanggal Upload: {new Date(item.uploadedDocument.uploadDate).toLocaleDateString('id-ID')}
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="text-sm text-gray-400 italic">Belum ada file</div>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex space-x-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => handleViewDocument(item.checklistId)}
-                                      disabled={!item.uploadedDocument}
-                                      className={`${item.uploadedDocument ? 'border-blue-200 text-blue-600 hover:bg-blue-50' : 'border-gray-200 text-gray-400 cursor-not-allowed'}`}
-                                      title={item.uploadedDocument ? 'Lihat dokumen' : 'Dokumen belum diupload'}
-                                    >
-                                      <Eye className="w-4 h-4" />
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => item.uploadedDocument && handleDownloadDocument(item.uploadedDocument)}
-                                      disabled={!item.uploadedDocument}
-                                      className={`${item.uploadedDocument ? 'border-green-200 text-green-600 hover:bg-green-50' : 'border-gray-200 text-gray-400 cursor-not-allowed'}`}
-                                      title={item.uploadedDocument ? 'Download dokumen' : 'Dokumen belum diupload'}
-                                    >
-                                      <Download className="w-4 h-4" />
-                                    </Button>
-                                    <Button 
-                                      variant="default" 
-                                      size="sm"
-                                      onClick={() => handleUploadDocument(item)}
-                                      disabled={item.status === 'uploaded'}
-                                      className={`${item.status === 'uploaded' ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-                                      title={item.status === 'uploaded' ? 'Dokumen sudah diupload' : 'Upload dokumen'}
-                                    >
-                                      <Upload className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
 
-              {/* Panel: Daftar Dokumen (displayed directly below without tabs) */}
-              <Card className="border-0 shadow-lg mt-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    <span>Daftar Dokumen - {userSubDirektorat}</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Dokumen yang telah diupload oleh {userSubDirektorat}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {userDocuments.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        Belum ada dokumen
-                      </h3>
-                      <p className="text-gray-600">
-                        Belum ada dokumen yang diupload oleh {userSubDirektorat}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {userDocuments.map((document: any, index: number) => (
-                        <Card key={index} className="border border-gray-200">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2 mb-2">
-                                  <Badge variant="default">Dokumen</Badge>
-                                  <Badge variant="outline" className="text-xs">
-                                    {document.aspek}
-                                  </Badge>
+                  {/* Panel: Daftar Checklist GCG (integrated with upload functionality) */}
+                  <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-indigo-50 mt-6">
+                    <CardHeader>
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <CardTitle className="flex items-center space-x-2 text-indigo-900">
+                            <FileText className="w-5 h-5 text-indigo-600" />
+                            <span>Daftar Checklist GCG - Tahun {selectedYear}</span>
+                          </CardTitle>
+                          <CardDescription className="text-indigo-700 mt-2">
+                            Checklist yang ditugaskan untuk {userSubDirektorat} pada tahun {selectedYear}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Cari checklist..."
+                              value={checklistSearchQuery}
+                              onChange={(e) => setChecklistSearchQuery(e.target.value)}
+                              className="pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm w-48"
+                            />
+                          </div>
+                          <select
+                            value={checklistSortField}
+                            onChange={(e) => setChecklistSortField(e.target.value)}
+                            className="p-2 border border-gray-300 rounded-md text-sm"
+                          >
+                            <option value="aspek">Aspek</option>
+                            <option value="deskripsi">Deskripsi</option>
+                          </select>
+                          <select
+                            value={checklistSortDirection}
+                            onChange={(e) => setChecklistSortDirection(e.target.value as 'asc' | 'desc')}
+                            className="p-2 border border-gray-300 rounded-md text-sm"
+                          >
+                            <option value="asc">A-Z</option>
+                            <option value="desc">Z-A</option>
+                          </select>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {getAssignedChecklistsForTable.length === 0 ? (
+                        <div className="text-center py-8">
+                          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            Belum ada checklist
+                          </h3>
+                          <p className="text-gray-600">
+                            Belum ada checklist yang ditugaskan untuk {userSubDirektorat} pada tahun {selectedYear}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[50px]">No.</TableHead>
+                                <TableHead>Aspek</TableHead>
+                                <TableHead>Deskripsi</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="w-[150px]">Aksi</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {getFilteredChecklistItems().map((item: any, index: number) => {
+                                const hasDocument = userDocuments.some(doc => doc.checklistId === item.checklistId);
+                                const uploadedDocument = userDocuments.find(doc => doc.checklistId === item.checklistId);
+                                
+                                return (
+                                  <TableRow key={item.id}>
+                                    <TableCell className="font-medium">{index + 1}</TableCell>
+                                    <TableCell>
+                                      <Badge 
+                                        variant="outline" 
+                                        className={`${getAspectColor(item.aspek, hasDocument ? 100 : 0)} text-white border-0`}
+                                      >
+                                        {item.aspek}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="max-w-[300px] truncate">
+                                      {item.deskripsi}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge 
+                                        variant={hasDocument ? "default" : "secondary"}
+                                        className={hasDocument ? "bg-green-500 hover:bg-green-600" : ""}
+                                      >
+                                        {hasDocument ? 'Uploaded' : 'Not Uploaded'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center space-x-2">
+                                        {hasDocument ? (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleDownloadDocument(uploadedDocument)}
+                                          >
+                                            <Download className="w-4 h-4 mr-2" />
+                                            Download
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            variant="default"
+                                            size="sm"
+                                            onClick={() => handleUploadDocument(item)}
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                          >
+                                            <Upload className="w-4 h-4 mr-2" />
+                                            Upload
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Panel: Daftar Dokumen (filtered by sub-direktorat for current year) */}
+                  <Card className="border-0 shadow-lg mt-6">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center space-x-2">
+                            <FileText className="w-5 h-5 text-blue-600" />
+                            <span>Daftar Dokumen - {userSubDirektorat}</span>
+                          </CardTitle>
+                          <CardDescription>
+                            Dokumen yang telah diupload oleh {userSubDirektorat} pada tahun {selectedYear}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Cari dokumen..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm w-48"
+                            />
+                          </div>
+                          <select
+                            value={sortField}
+                            onChange={(e) => setSortField(e.target.value)}
+                            className="p-2 border border-gray-300 rounded-md text-sm"
+                          >
+                            <option value="namaFile">Nama File</option>
+                            <option value="aspek">Aspek</option>
+                            <option value="uploadDate">Tanggal Upload</option>
+                          </select>
+                          <select
+                            value={sortDirection}
+                            onChange={(e) => setSortDirection(e.target.value as 'asc' | 'desc')}
+                            className="p-2 border border-gray-300 rounded-md text-sm"
+                          >
+                            <option value="asc">A-Z</option>
+                            <option value="desc">Z-A</option>
+                          </select>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {userDocuments.length === 0 ? (
+                        <div className="text-center py-8">
+                          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            Belum ada dokumen
+                          </h3>
+                          <p className="text-gray-600">
+                            Belum ada dokumen yang diupload oleh {userSubDirektorat}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {getFilteredUserDocuments().map((document: any, index: number) => (
+                            <Card key={index} className="border border-gray-200">
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                      <Badge variant="default">Dokumen</Badge>
+                                      <Badge variant="outline" className="text-xs">
+                                        {document.aspek}
+                                      </Badge>
+                                    </div>
+                                    <h4 className="font-medium text-gray-900 mb-1">
+                                      {document.namaFile}
+                                    </h4>
+                                    <p className="text-sm text-gray-600">
+                                      Upload pada: {new Date(document.uploadDate).toLocaleDateString('id-ID')}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDownloadDocument(document)}
+                                    >
+                                      <Download className="w-4 h-4 mr-2" />
+                                      Unduh
+                                    </Button>
+                                  </div>
                                 </div>
-                                <h4 className="font-medium text-gray-900 mb-1">
-                                  {document.namaFile}
-                                </h4>
-                                <p className="text-sm text-gray-600">
-                                  Upload pada: {new Date(document.uploadDate).toLocaleDateString('id-ID')}
-                                </p>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDownloadDocument(document)}
-                                >
-                                  <Download className="w-4 h-4 mr-2" />
-                                  Unduh
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                /* Previous Years: Show only Daftar Dokumen with all documents */
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center space-x-2">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                          <span>Daftar Dokumen - Tahun {selectedYear}</span>
+                        </CardTitle>
+                        <CardDescription>
+                          Semua dokumen yang tersedia untuk tahun {selectedYear} (hanya dapat diunduh)
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Cari dokumen..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm w-48"
+                          />
+                        </div>
+                        <select
+                          value={sortField}
+                          onChange={(e) => setSortField(e.target.value)}
+                          className="p-2 border border-gray-300 rounded-md text-sm"
+                        >
+                          <option value="namaFile">Nama File</option>
+                          <option value="aspek">Aspek</option>
+                          <option value="subdirektorat">Sub-direktorat</option>
+                          <option value="uploadDate">Tanggal Upload</option>
+                        </select>
+                        <select
+                          value={sortDirection}
+                          onChange={(e) => setSortDirection(e.target.value as 'asc' | 'desc')}
+                          className="p-2 border border-gray-300 rounded-md text-sm"
+                        >
+                          <option value="asc">A-Z</option>
+                          <option value="desc">Z-A</option>
+                        </select>
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent>
+                    {getFilteredAllDocuments().length === 0 ? (
+                      <div className="text-center py-8">
+                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          Belum ada dokumen
+                        </h3>
+                        <p className="text-gray-600">
+                          Belum ada dokumen yang tersedia untuk tahun {selectedYear}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {getFilteredAllDocuments().map((document: any, index: number) => (
+                          <Card key={index} className="border border-gray-200">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <Badge variant="default">Dokumen</Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {document.aspek}
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {document.subdirektorat}
+                                    </Badge>
+                                  </div>
+                                  <h4 className="font-medium text-gray-900 mb-1">
+                                    {document.namaFile}
+                                  </h4>
+                                  <p className="text-sm text-gray-600">
+                                    Upload pada: {new Date(document.uploadDate).toLocaleDateString('id-ID')}
+                                  </p>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDownloadDocument(document)}
+                                  >
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Unduh
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </>
           ) : (
             /* Empty State when no year selected */
