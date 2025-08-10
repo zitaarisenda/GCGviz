@@ -12,11 +12,50 @@ interface MonthlyTrendsProps {
   className?: string;
 }
 
+interface ChecklistAssignment {
+  id: number;
+  checklistId: number;
+  subdirektorat: string;
+  aspek: string;
+  deskripsi: string;
+  tahun: number;
+  assignedBy: string;
+  assignedAt: Date;
+  status: 'assigned' | 'in_progress' | 'completed';
+  notes?: string;
+}
+
 const MonthlyTrends: React.FC<MonthlyTrendsProps> = ({ className }) => {
   const { selectedYear } = useYear();
   const { documents, getDocumentsByYear } = useDocumentMetadata();
   const { subdirektorat } = useDirektorat();
   const { subdirektorat: subdirektoratByYear } = useStrukturPerusahaan();
+
+  // Get assignments data for the selected year
+  const assignments = useMemo(() => {
+    try {
+      const stored = localStorage.getItem('checklistAssignments');
+      if (!stored) return [];
+      const parsed = JSON.parse(stored) as ChecklistAssignment[];
+      return parsed.filter(a => a.tahun === selectedYear);
+    } catch (error) {
+      console.error('Error getting assignments:', error);
+      return [];
+    }
+  }, [selectedYear]);
+
+  // Listen for assignments updates
+  useEffect(() => {
+    const handleAssignmentsUpdate = () => {
+      // Force re-render when assignments change
+      window.location.reload();
+    };
+
+    window.addEventListener('assignmentsUpdated', handleAssignmentsUpdate);
+    return () => {
+      window.removeEventListener('assignmentsUpdated', handleAssignmentsUpdate);
+    };
+  }, []);
 
   // Data progres per subdirektorat (berdasarkan dokumen yang diupload)
   const chartData = useMemo(() => {
@@ -31,7 +70,15 @@ const MonthlyTrends: React.FC<MonthlyTrendsProps> = ({ className }) => {
     return subdirs.map((subName) => {
       // Hilangkan awalan "Sub Direktorat " agar rapi
       const cleanName = subName.replace(/^\s*Sub\s*Direktorat\s*/i, '').trim();
+      
+      // Hitung target dari assignments (berapa checklist yang ditugaskan)
+      const targetAssignments = assignments.filter(a => a.subdirektorat === subName);
+      const target = targetAssignments.length;
+      
+      // Hitung progress dari dokumen yang sudah diupload
       const subdirDocs = yearDocuments.filter(doc => (doc.subdirektorat || '').trim() === subName);
+      const progress = subdirDocs.length;
+      
       // Breakdown per divisi
       const divisionCounts: Record<string, number> = {};
       subdirDocs.forEach(doc => {
@@ -41,19 +88,19 @@ const MonthlyTrends: React.FC<MonthlyTrendsProps> = ({ className }) => {
       const divisions = Object.entries(divisionCounts)
         .sort((a, b) => b[1] - a[1])
         .map(([name, count]) => ({ name, count }));
-      // Target total: gunakan jumlah checklist yg memiliki dokumen subdir tsb sebagai proxy; jika 0, gunakan 1 agar x/x tidak 0/0
-      const totalAssigned = Math.max(subdirDocs.length, 1);
-      const completed = subdirDocs.length;
-      const percent = totalAssigned > 0 ? (completed / totalAssigned) * 100 : 0;
+      
+      // Hitung persentase berdasarkan target dan progress
+      const percent = target > 0 ? (progress / target) * 100 : 0;
+      
       return {
         subdirektorat: cleanName,
         percent,
-        documents: completed,
-        checklist: totalAssigned,
+        progress,
+        target,
         divisions
       };
     });
-  }, [selectedYear, documents, getDocumentsByYear, subdirektorat, subdirektoratByYear]);
+  }, [selectedYear, documents, getDocumentsByYear, subdirektorat, subdirektoratByYear, assignments]);
 
   if (!chartData.length) return (
     <Card className={`border-0 shadow-xl bg-white/80 backdrop-blur-sm ${className}`}>
@@ -305,7 +352,7 @@ const MonthlyTrends: React.FC<MonthlyTrendsProps> = ({ className }) => {
                 <div key={index} className="p-4 bg-gray-50 rounded-lg">
                   <div className="text-sm font-semibold text-gray-900 mb-1 text-center truncate">{data.subdirektorat}</div>
                   <div className="flex items-center justify-center space-x-2 mb-2">
-                    <span className="text-base font-bold text-blue-600">{data.documents}/{data.checklist}</span>
+                    <span className="text-base font-bold text-blue-600">{data.progress}/{data.target}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 

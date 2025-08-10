@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
 import { useYear } from '@/contexts/YearContext';
-import { Target, Eye, Shield, Heart, Users, Building2 } from 'lucide-react';
+import { Target, Eye, Shield, Heart, Users, Building2, PieChart } from 'lucide-react';
 
 interface SpiderChartProps {
   className?: string;
@@ -109,10 +109,38 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
     ];
 
     const data = aspects.map(aspect => {
+      // Get all checklist items for this aspect (total available items - Y)
+      const aspectChecklistItems = yearChecklist.filter(item => 
+        normalizeAspek(item.aspek) === normalizeAspek(aspect.name)
+      );
+
       // Get all assignments for this aspect
       const aspectAssignments = yearAssignments.filter(assignment => 
         normalizeAspek(assignment.aspek) === normalizeAspek(aspect.name)
       );
+
+      // Calculate total available checklist items for this aspect (Y - total items sesungguhnya)
+      const totalAvailableItems = aspectChecklistItems.length;
+
+      // Calculate distribution percentage for each sub-direktorat based on total available items
+      const subDirektoratDistribution = SUBDIREKTORAT_OPTIONS.map(subDir => {
+        const subDirAssignments = aspectAssignments.filter(assignment => 
+          assignment.subdirektorat === subDir.value
+        );
+        
+        // Calculate percentage based on total available items, not just assigned items
+        const percentage = totalAvailableItems > 0 
+          ? (subDirAssignments.length / totalAvailableItems) * 100 
+          : 0;
+
+        return {
+          subDirektorat: subDir.value,
+          label: subDir.label,
+          count: subDirAssignments.length,
+          percentage: Math.round(percentage * 100) / 100, // Round to 2 decimal places
+          totalAvailable: totalAvailableItems
+        };
+      });
 
       // Filter by selected sub-direktorat if any
       let filteredAssignments = aspectAssignments;
@@ -143,7 +171,8 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
         checklist: totalAssigned,
         uploaded: completedCount,
         assignedSubDirektorats,
-        totalAssignments: aspectAssignments.length
+        totalAssignments: totalAvailableItems, // Total sesungguhnya dari checklist yang tersedia
+        subDirektoratDistribution
       };
     });
 
@@ -152,14 +181,18 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
 
   if (!chartData) return null;
 
-  const maxValue = Math.max(...chartData.map(d => d.progress));
+  // Calculate max percentage for scaling the radar chart
+  const maxPercentage = Math.max(...chartData.map(d => 
+    Math.max(...d.subDirektoratDistribution.map(sd => sd.percentage))
+  ));
+  
   const radius = 120;
   const centerX = 150;
   const centerY = 150;
   const labelRadius = radius + 40; // Radius untuk label agar berada di sisi segi enam
 
   const getPoint = (angle: number, value: number) => {
-    const normalizedValue = value / 100;
+    const normalizedValue = value / (maxPercentage || 100);
     const x = centerX + Math.cos(angle) * radius * normalizedValue;
     const y = centerY + Math.sin(angle) * radius * normalizedValue;
     return { x, y };
@@ -172,9 +205,23 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
   };
 
   const generatePolygonPoints = () => {
-    const points = chartData.map((_, index) => {
+    const points = chartData.map((data, index) => {
       const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
-      const point = getPoint(angle, _.progress);
+      
+      // Use the percentage of the selected sub-direktorat for this aspect
+      let percentage = 0;
+      if (selectedSubDirektorat) {
+        const subDirData = data.subDirektoratDistribution.find(sd => 
+          sd.subDirektorat === selectedSubDirektorat
+        );
+        percentage = subDirData ? subDirData.percentage : 0;
+      } else {
+        // If no sub-direktorat selected, use average percentage
+        const avgPercentage = data.subDirektoratDistribution.reduce((sum, sd) => sum + sd.percentage, 0) / data.subDirektoratDistribution.length;
+        percentage = avgPercentage;
+      }
+      
+      const point = getPoint(angle, percentage);
       return `${point.x},${point.y}`;
     });
     return points.join(' ');
@@ -247,11 +294,11 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
     <Card className={`border-0 shadow-xl bg-white/80 backdrop-blur-sm ${className}`}>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Target className="w-6 h-6 text-blue-600" />
-          <span>Performance Radar - Penyebaran Penugasan</span>
+          <PieChart className="w-6 h-6 text-blue-600" />
+          <span>Performance Radar - Distribusi Penugasan</span>
         </CardTitle>
         <CardDescription>
-          Visualisasi penyebaran penugasan Super Admin ke Admin per aspek dan sub-direktorat
+          Visualisasi distribusi penugasan per aspek berdasarkan total item (Y) dan persentase penyebaran ke sub-direktorat
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -305,7 +352,21 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
               {/* Data Points */}
               {chartData.map((data, index) => {
                 const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
-                const point = getPoint(angle, data.progress);
+                
+                // Use the percentage of the selected sub-direktorat for this aspect
+                let percentage = 0;
+                if (selectedSubDirektorat) {
+                  const subDirData = data.subDirektoratDistribution.find(sd => 
+                    sd.subDirektorat === selectedSubDirektorat
+                  );
+                  percentage = subDirData ? subDirData.percentage : 0;
+                } else {
+                  // If no sub-direktorat selected, use average percentage
+                  const avgPercentage = data.subDirektoratDistribution.reduce((sum, sd) => sum + sd.percentage, 0) / data.subDirektoratDistribution.length;
+                  percentage = avgPercentage;
+                }
+                
+                const point = getPoint(angle, percentage);
                 return (
                   <circle
                     key={`point-${index}`}
@@ -327,8 +388,6 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
                 fill="rgb(59, 130, 246)"
               />
             </svg>
-
-
 
             {/* Aspect Labels at Corners */}
             {chartData.map((data, index) => {
@@ -372,6 +431,81 @@ const SpiderChart: React.FC<SpiderChartProps> = ({ className }) => {
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* Distribution Details */}
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Detail Distribusi Penugasan per Aspek:</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {chartData.map((aspect, index) => (
+              <div key={index} className="bg-gray-50 rounded-lg p-3 border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs font-medium ${aspect.color}`}>
+                    {aspect.name}
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    Total Tersedia: {aspect.totalAssignments} item
+                  </Badge>
+                </div>
+                
+                {selectedSubDirektorat ? (
+                  // Show distribution for selected sub-direktorat
+                  <div className="space-y-1">
+                    {aspect.subDirektoratDistribution
+                      .filter(sd => sd.subDirektorat === selectedSubDirektorat)
+                      .map((subDir, sdIndex) => (
+                        <div key={sdIndex} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600 truncate">
+                            {subDir.label.replace(/^\s*Sub\s*Direktorat\s*/i, '')}
+                          </span>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-gray-500">{subDir.count} item</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {subDir.percentage}% dari {subDir.totalAvailable}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  // Show distribution for all sub-direktorats
+                  <div className="space-y-1">
+                    {aspect.subDirektoratDistribution
+                      .filter(sd => sd.count > 0)
+                      .slice(0, 3) // Show only top 3
+                      .map((subDir, sdIndex) => (
+                        <div key={sdIndex} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600 truncate">
+                            {subDir.label.replace(/^\s*Sub\s*Direktorat\s*/i, '')}
+                          </span>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-gray-500">{subDir.count} item</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {subDir.percentage}% dari {subDir.totalAvailable}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    {aspect.subDirektoratDistribution.filter(sd => sd.count > 0).length > 3 && (
+                      <div className="text-xs text-gray-500 text-center pt-1">
+                        +{aspect.subDirektoratDistribution.filter(sd => sd.count > 0).length - 3} sub-direktorat lainnya
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Show unassigned items if any */}
+                {aspect.totalAssignments > 0 && (
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Belum dibagikan:</span>
+                      <span>{aspect.totalAssignments - aspect.subDirektoratDistribution.reduce((sum, sd) => sum + sd.count, 0)} item</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
