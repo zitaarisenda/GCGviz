@@ -1,37 +1,37 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
-import { useSidebar } from '@/contexts/SidebarContext';
-import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
-import { useChecklist } from '@/contexts/ChecklistContext';
-import { useStrukturPerusahaan } from '@/contexts/StrukturPerusahaanContext';
-import { YearSelectorPanel, PageHeaderPanel } from '@/components/panels';
-import DocumentList from '@/components/dashboard/DocumentList';
+import { PageHeaderPanel } from '@/components/panels';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useDocumentMetadata } from '@/contexts/DocumentMetadataContext';
+import { useYear } from '@/contexts/YearContext';
+import { useSidebar } from '@/contexts/SidebarContext';
+import { useChecklist } from '@/contexts/ChecklistContext';
+import { useStrukturPerusahaan } from '@/contexts/StrukturPerusahaanContext';
+import { YearSelectorPanel } from '@/components/panels';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import DocumentList from '@/components/dashboard/DocumentList';
 import { 
-  Calendar,
   FileText, 
   Download,
   Archive,
+  CheckCircle,
   Building2,
   Users,
-  User,
-  FileDown,
+  AlertCircle,
+  Calendar,
   FolderOpen,
-  CheckCircle,
-  Clock,
-  AlertCircle
+  Clock
 } from 'lucide-react';
 
 const DocumentManagement = () => {
   const { isSidebarOpen } = useSidebar();
-  const { documents } = useDocumentMetadata();
+  const { selectedYear, setSelectedYear, availableYears } = useYear();
+  const { documents, getDocumentsByYear } = useDocumentMetadata();
   const { checklist } = useChecklist();
   const { direktorat: direktorats, subdirektorat: subDirektorats } = useStrukturPerusahaan();
-  const [selectedYear, setSelectedYear] = useState<number>(2024);
   const [downloadType, setDownloadType] = useState<'all' | 'aspect' | 'direktorat' | 'subdirektorat'>('all');
   const [selectedAspect, setSelectedAspect] = useState<string>('');
   const [selectedDirektorat, setSelectedDirektorat] = useState<string>('');
@@ -205,7 +205,7 @@ const DocumentManagement = () => {
             <YearSelectorPanel
               selectedYear={selectedYear}
               onYearChange={setSelectedYear}
-              availableYears={[2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014]}
+              availableYears={availableYears}
               title="Tahun Buku"
               description="Pilih tahun buku untuk mengelola dokumen GCG"
             />

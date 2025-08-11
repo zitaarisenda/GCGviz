@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AdminSidebar from '@/components/layout/AdminSidebar';
 import Topbar from '@/components/layout/Topbar';
@@ -378,32 +378,122 @@ const AdminDashboard = () => {
     return getUserDocuments();
   }, [selectedYear, userSubDirektorat, forceUpdate]);
 
+  // Manual refresh function for statistics
+  const refreshStatistics = useCallback(() => {
+    console.log('Manual refresh triggered');
+    setForceUpdate(prev => prev + 1);
+  }, []);
 
+  // Enhanced data update handler
+  const handleDataUpdate = useCallback(() => {
+    console.log('Enhanced data update triggered');
+    // Force immediate re-render
+    setForceUpdate(prev => prev + 1);
+    
+    // Also trigger a delayed update to ensure all data is processed
+    setTimeout(() => {
+      setForceUpdate(prev => prev + 1);
+    }, 100);
+  }, []);
+
+  // Specific handler for file uploads
+  const handleFileUploadSuccess = useCallback(() => {
+    console.log('File upload success detected, updating statistics');
+    // Force immediate update
+    setForceUpdate(prev => prev + 1);
+    
+    // Additional updates to ensure all data is processed
+    setTimeout(() => {
+      setForceUpdate(prev => prev + 1);
+    }, 200);
+    
+    setTimeout(() => {
+      setForceUpdate(prev => prev + 1);
+    }, 500);
+  }, []);
 
   // Listen for data updates
   useEffect(() => {
-    const handleDataUpdate = () => {
-      // Force re-render when data changes
-      setForceUpdate(prev => prev + 1);
+    const handleDataUpdateEvent = () => {
+      console.log('Data update event triggered, forcing re-render');
+      handleDataUpdate();
     };
 
-    window.addEventListener('assignmentsUpdated', handleDataUpdate);
-    window.addEventListener('documentsUpdated', handleDataUpdate);
-    window.addEventListener('fileUploaded', handleDataUpdate);
+    const handleFileUpload = () => {
+      console.log('File upload event triggered, forcing re-render');
+      handleFileUploadSuccess();
+    };
+
+    const handleAssignmentUpdate = () => {
+      console.log('Assignment update event triggered, forcing re-render');
+      handleDataUpdate();
+    };
+
+    // Listen to all relevant events
+    window.addEventListener('assignmentsUpdated', handleAssignmentUpdate);
+    window.addEventListener('documentsUpdated', handleDataUpdateEvent);
+    window.addEventListener('fileUploaded', handleFileUpload);
+    window.addEventListener('checklistUpdated', handleDataUpdateEvent);
+    window.addEventListener('userDataUpdated', handleDataUpdateEvent);
+
+    // Also listen to storage changes for real-time updates
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'checklistAssignments' || e.key === 'documents' || e.key === 'checklist') {
+        console.log('Storage change detected:', e.key, 'forcing re-render');
+        handleDataUpdate();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      window.removeEventListener('assignmentsUpdated', handleDataUpdate);
-      window.removeEventListener('documentsUpdated', handleDataUpdate);
-      window.removeEventListener('fileUploaded', handleDataUpdate);
+      window.removeEventListener('assignmentsUpdated', handleAssignmentUpdate);
+      window.removeEventListener('documentsUpdated', handleDataUpdateEvent);
+      window.removeEventListener('fileUploaded', handleFileUpload);
+      window.removeEventListener('checklistUpdated', handleDataUpdateEvent);
+      window.removeEventListener('userDataUpdated', handleDataUpdateEvent);
+      window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [handleDataUpdate, handleFileUploadSuccess]);
 
   // Force update when user data changes
   useEffect(() => {
     if (user && userSubDirektorat) {
+      console.log('User data changed, forcing re-render');
       setForceUpdate(prev => prev + 1);
     }
   }, [user, userSubDirektorat]);
+
+  // Force update when year changes
+  useEffect(() => {
+    if (selectedYear) {
+      console.log('Year changed to', selectedYear, 'forcing re-render');
+      setForceUpdate(prev => prev + 1);
+    }
+  }, [selectedYear]);
+
+  // Periodic refresh for real-time updates (every 5 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Check if there are any changes in localStorage
+      const currentAssignments = localStorage.getItem('checklistAssignments');
+      const currentDocuments = localStorage.getItem('documents');
+      
+      // Compare with previous values and update if changed
+      if (currentAssignments !== localStorage.getItem('checklistAssignments_prev') ||
+          currentDocuments !== localStorage.getItem('documents_prev')) {
+        
+        console.log('Periodic check detected changes, updating statistics');
+        setForceUpdate(prev => prev + 1);
+        
+        // Store current values for next comparison
+        localStorage.setItem('checklistAssignments_prev', currentAssignments || '');
+        localStorage.setItem('documents_prev', currentDocuments || '');
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Debug: Log data for troubleshooting
   useEffect(() => {
@@ -415,7 +505,8 @@ const AdminDashboard = () => {
         documents: getUserDocuments(),
         allAssignments: localStorage.getItem('checklistAssignments'),
         allDocuments: localStorage.getItem('documents'),
-        checklist: checklist.filter(item => item.tahun === selectedYear)
+        checklist: checklist.filter(item => item.tahun === selectedYear),
+        forceUpdate
       });
     }
   }, [selectedYear, userSubDirektorat, forceUpdate, checklist]);
@@ -453,20 +544,18 @@ const AdminDashboard = () => {
       totalCompleted,
       aspectStats
     };
-  }, [userDocuments, forceUpdate]);
-
-
+  }, [userDocuments, forceUpdate, selectedYear, userSubDirektorat]);
 
   // Helper: status upload per checklist (berdasarkan semua dokumen tahun ini)
   const isChecklistUploaded = React.useCallback((checklistId: number) => {
     const yearFiles = getFilesByYear(selectedYear);
     return yearFiles.some(file => file.checklistId === checklistId);
-  }, [getFilesByYear, selectedYear]);
+  }, [getFilesByYear, selectedYear, forceUpdate]);
 
   const getUploadedDocumentByYear = React.useCallback((checklistId: number) => {
     const yearFiles = getFilesByYear(selectedYear);
     return yearFiles.find(file => file.checklistId === checklistId);
-  }, [getFilesByYear, selectedYear]);
+  }, [getFilesByYear, selectedYear, forceUpdate]);
 
   // Get overall progress for admin (based on assigned checklists)
   const getOverallProgress = useMemo(() => {
@@ -485,7 +574,7 @@ const AdminDashboard = () => {
       uploadedCount,
       progress
     };
-  }, [selectedYear, userDocuments, forceUpdate]);
+  }, [selectedYear, userDocuments, forceUpdate, userSubDirektorat]);
 
   // Get aspect statistics for admin (showing all aspects like super admin)
   const getAspectStats = useMemo(() => {
@@ -532,7 +621,7 @@ const AdminDashboard = () => {
       if (!a.isAssigned && b.isAssigned) return 1;
       return b.progress - a.progress;
     });
-  }, [selectedYear, checklist, userDocuments, forceUpdate]);
+  }, [selectedYear, checklist, userDocuments, forceUpdate, userSubDirektorat]);
 
   // Get assigned checklists for table display
   const getAssignedChecklistsForTable = useMemo(() => {
@@ -738,6 +827,25 @@ const AdminDashboard = () => {
                 <>
                   {/* Statistik Tahun Buku */}
                   <div className="border-0 shadow-lg bg-gradient-to-r from-white to-blue-50 rounded-lg">
+                    <div className="flex items-center justify-between p-4 border-b border-blue-100">
+                      <div>
+                        <h3 className="text-lg font-semibold text-blue-900">Statistik Tahun Buku</h3>
+                        <p className="text-sm text-blue-700">
+                          Overview dokumen dan checklist assessment tahun {selectedYear} untuk {userSubDirektorat}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={refreshStatistics}
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                      </Button>
+                    </div>
                     <YearStatisticsPanel 
                       selectedYear={selectedYear}
                       aspectStats={getAspectStats}
@@ -746,8 +854,8 @@ const AdminDashboard = () => {
                       getAspectColor={getAspectColor}
                       onAspectClick={() => {}} // Admin tidak perlu click untuk filter
                       isSidebarOpen={isSidebarOpen}
-                      title="Statistik Tahun Buku"
-                      description={`Overview dokumen dan checklist assessment tahun ${selectedYear} untuk ${userSubDirektorat}`}
+                      title=""
+                      description=""
                       maxCardsInSlider={4}
                       showViewAllButton={true}
                       showOverallProgress={true}
