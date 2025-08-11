@@ -63,7 +63,7 @@ const Topbar = () => {
   const pageInfo = getPageInfo();
 
   return (
-    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-50 shadow-sm">
+    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-[60] shadow-sm">
       {/* Left side - Logo, Title, and Hamburger */}
       <div className="flex items-center space-x-4">
         {/* Hamburger Menu */}

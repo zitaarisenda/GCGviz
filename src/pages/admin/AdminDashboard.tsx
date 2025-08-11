@@ -620,7 +620,9 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <div className={`
         transition-all duration-300 ease-in-out pt-16
-        ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'}
+        ${isSidebarOpen ? 'ml-72' : 'ml-0'}
+        lg:ml-72
+        relative z-10
       `}>
         <div className="p-6">
           {/* Header */}
