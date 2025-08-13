@@ -46,7 +46,7 @@ interface AccountFormData {
   email: string;
   password: string;
   name: string;
-  role: 'admin' | 'user' | 'superadmin';
+  role: 'admin' | 'user';
   direktorat: string;
   subdirektorat: string;
   divisi: string;
@@ -88,7 +88,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
         email: account.email,
         password: '', // Password kosong untuk edit
         name: account.name,
-        role: account.role,
+        role: account.role === 'superadmin' ? 'admin' : account.role, // Convert superadmin to admin for editing
         direktorat: account.direktorat || '',
         subdirektorat: account.subdirektorat || '',
         divisi: account.divisi || ''
@@ -190,8 +190,6 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'superadmin':
-        return <Shield className="w-4 h-4" />;
       case 'admin':
         return <UserCheck className="w-4 h-4" />;
       default:
@@ -201,8 +199,6 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'superadmin':
-        return 'bg-red-100 text-red-800 border-red-200';
       case 'admin':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       default:
@@ -345,6 +341,99 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
             </div>
           </div>
 
+          {/* Super Admin Password Section - Only show if editing super admin account */}
+          {account && account.role === 'superadmin' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Shield className="w-5 h-5 text-yellow-600" />
+                  <h3 className="text-lg font-semibold text-yellow-800">
+                    Super Admin Password Change
+                  </h3>
+                </div>
+                <p className="text-sm text-yellow-700 mb-3">
+                  Anda sedang mengedit akun Super Admin. Password yang diisi akan langsung mengganti password Super Admin.
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="superadmin-password">
+                      Password Baru untuk Super Admin
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={generateStrongPassword}
+                      disabled={isLoading}
+                      className="text-xs bg-yellow-100 border-yellow-300 text-yellow-700 hover:bg-yellow-200"
+                    >
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Generate
+                    </Button>
+                  </div>
+                  
+                  <div className="relative">
+                    <Input
+                      id="superadmin-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      placeholder="Masukkan password baru untuk Super Admin"
+                      disabled={isLoading}
+                      className="pr-10 border-yellow-300 focus:border-yellow-500"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-0 top-0 h-full px-3 text-yellow-600 hover:text-yellow-700"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+
+                  {/* Password Strength Indicator for Super Admin */}
+                  {formData.password && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-yellow-700 font-medium">Kekuatan Password:</span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${passwordStrength.color} text-white`}>
+                          {passwordStrength.label}
+                        </span>
+                      </div>
+                      <Progress value={(passwordStrength.score / 5) * 100} className="h-2" />
+                      <div className="text-xs text-yellow-600 space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className={`w-3 h-3 ${formData.password.length >= 8 ? 'text-green-500' : 'text-yellow-400'}`} />
+                          <span>Minimal 8 karakter</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className={`w-3 h-3 ${/[a-z]/.test(formData.password) ? 'text-green-500' : 'text-yellow-400'}`} />
+                          <span>Huruf kecil (a-z)</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className={`w-3 h-3 ${/[A-Z]/.test(formData.password) ? 'text-green-500' : 'text-yellow-400'}`} />
+                          <span>Huruf besar (A-Z)</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className={`w-3 h-3 ${/[0-9]/.test(formData.password) ? 'text-green-500' : 'text-yellow-400'}`} />
+                          <span>Angka (0-9)</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className={`w-3 h-3 ${/[^A-Za-z0-9]/.test(formData.password) ? 'text-green-500' : 'text-yellow-400'}`} />
+                          <span>Karakter khusus (!@#$%^&*)</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Role Selection */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
@@ -358,7 +447,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                 </Label>
                 <Select 
                   value={formData.role} 
-                  onValueChange={(value: 'admin' | 'user' | 'superadmin') => handleInputChange('role', value)}
+                  onValueChange={(value: 'admin' | 'user') => handleInputChange('role', value)}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
@@ -377,12 +466,6 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                         <span>Admin</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="superadmin">
-                      <div className="flex items-center space-x-2">
-                        <Shield className="w-4 h-4" />
-                        <span>Super Admin</span>
-                      </div>
-                    </SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -391,9 +474,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                   <Badge variant="outline" className={getRoleColor(formData.role)}>
                     {getRoleIcon(formData.role)}
                     <span className="ml-1">
-                      {formData.role === 'superadmin' ? 'Akses penuh sistem' :
-                       formData.role === 'admin' ? 'Akses admin terbatas' :
-                       'Akses user standar'}
+                      {formData.role === 'admin' ? 'Akses admin terbatas' : 'Akses user standar'}
                     </span>
                   </Badge>
                 </div>

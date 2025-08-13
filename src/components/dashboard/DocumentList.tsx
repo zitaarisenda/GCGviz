@@ -31,7 +31,6 @@ import {
   CheckCircle,
   Circle,
   Lock,
-  Mail,
   Save,
   Users
 } from 'lucide-react';
@@ -397,24 +396,25 @@ ${senderEmail}
 Dikirim dari GCG Document Hub
 Tahun: ${doc.year || new Date().getFullYear()}`);
 
-      // Open default email client
-      const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
-      window.open(mailtoLink, '_blank');
+      // Open Gmail web directly (default behavior)
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=&su=${subject}&body=${body}`;
+      window.open(gmailUrl, '_blank');
       
-      // Show success toast
       toast({
-        title: "Email revisi dibuka",
-        description: `Draft email revisi untuk "${doc.title}" telah dibuka di aplikasi email Anda`,
+        title: "Gmail Web dibuka",
+        description: `Draft email revisi untuk "${doc.title}" telah dibuka di Gmail Web`,
       });
     } catch (error) {
       console.error('Email revision error:', error);
       toast({
-        title: "Gagal membuka email",
-        description: "Terjadi kesalahan saat membuka aplikasi email",
+        title: "Gagal membuka Gmail",
+        description: "Terjadi kesalahan saat membuka Gmail Web",
         variant: "destructive"
       });
     }
   };
+
+
 
   // Download functionality
   const handleDownloadDocument = useCallback((doc: any) => {
@@ -629,14 +629,16 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                   </Button>
                   
                   <Button 
-                    variant="outline" 
-                    size="sm"
+                    variant="outline"
                     onClick={() => handleRevisionEmail(doc)}
-                    className="hover:bg-purple-50 hover:border-purple-200"
+                    className="hover:bg-blue-50 hover:border-blue-200"
+                    title="Buka Gmail Web untuk revisi dokumen"
                   >
-                    <Mail className="w-4 h-4 mr-1" />
-                    Revisi
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Revisi (Gmail)
                   </Button>
+                  
+                  
                   
                   <Button 
                     variant="outline" 
@@ -955,10 +957,11 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                   <Button 
                     variant="outline"
                     onClick={() => handleRevisionEmail(selectedDocument)}
-                    className="hover:bg-purple-50 hover:border-purple-200"
+                    className="hover:bg-blue-50 hover:border-blue-200"
+                    title="Buka Gmail Web untuk revisi dokumen"
                   >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Revisi
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Revisi (Gmail)
                   </Button>
                 </div>
               </div>

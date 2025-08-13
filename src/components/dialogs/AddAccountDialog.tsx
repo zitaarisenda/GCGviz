@@ -34,7 +34,7 @@ interface AccountFormData {
   email: string;
   password: string;
   name: string;
-  role: 'admin' | 'user' | 'superadmin';
+  role: 'admin' | 'user';
   direktorat: string;
   subdirektorat: string;
   divisi: string;
@@ -169,8 +169,6 @@ const AddAccountDialog: React.FC<AddAccountDialogProps> = ({
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'superadmin':
-        return <Shield className="w-4 h-4" />;
       case 'admin':
         return <UserCheck className="w-4 h-4" />;
       default:
@@ -180,8 +178,6 @@ const AddAccountDialog: React.FC<AddAccountDialogProps> = ({
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'superadmin':
-        return 'bg-red-100 text-red-800 border-red-200';
       case 'admin':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       default:
@@ -335,7 +331,7 @@ const AddAccountDialog: React.FC<AddAccountDialogProps> = ({
                 </Label>
                 <Select 
                   value={formData.role} 
-                  onValueChange={(value: 'admin' | 'user' | 'superadmin') => handleInputChange('role', value)}
+                  onValueChange={(value: 'admin' | 'user') => handleInputChange('role', value)}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
@@ -354,12 +350,6 @@ const AddAccountDialog: React.FC<AddAccountDialogProps> = ({
                         <span>Admin</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="superadmin">
-                      <div className="flex items-center space-x-2">
-                        <Shield className="w-4 h-4" />
-                        <span>Super Admin</span>
-                      </div>
-                    </SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -368,8 +358,7 @@ const AddAccountDialog: React.FC<AddAccountDialogProps> = ({
                   <Badge variant="outline" className={getRoleColor(formData.role)}>
                     {getRoleIcon(formData.role)}
                     <span className="ml-1">
-                      {formData.role === 'superadmin' ? 'Akses penuh sistem' :
-                       formData.role === 'admin' ? 'Akses admin terbatas' :
+                      {formData.role === 'admin' ? 'Akses admin terbatas' :
                        'Akses user standar'}
                     </span>
                   </Badge>
