@@ -16,7 +16,8 @@ export interface DocumentMetadata {
   documentCategory: string;
   
   // Organizational Information
-  direksi: string;
+  direktorat: string;
+  subdirektorat: string;
   division: string;
   
   // File Information
@@ -46,7 +47,7 @@ interface DocumentMetadataContextType {
   deleteDocument: (id: string) => void;
   getDocumentsByYear: (year: number) => DocumentMetadata[];
   getDocumentsByAspect: (aspect: string) => DocumentMetadata[];
-  getDocumentsByDireksi: (direksi: string) => DocumentMetadata[];
+  getDocumentsByDirektorat: (direktorat: string) => DocumentMetadata[];
   getDocumentsByPrinciple: (principle: string) => DocumentMetadata[];
   getDocumentById: (id: string) => DocumentMetadata | undefined;
   getYearStats: (year: number) => {
@@ -54,7 +55,7 @@ interface DocumentMetadataContextType {
     totalSize: number;
     byPrinciple: { [key: string]: number };
     byType: { [key: string]: number };
-    byDireksi: { [key: string]: number };
+    byDirektorat: { [key: string]: number };
   };
   refreshDocuments: () => void;
 }
@@ -114,8 +115,8 @@ export const DocumentMetadataProvider: React.FC<{ children: ReactNode }> = ({ ch
     return documents.filter(doc => doc.aspect === aspect);
   };
 
-  const getDocumentsByDireksi = (direksi: string) => {
-    return documents.filter(doc => doc.direksi === direksi);
+  const getDocumentsByDirektorat = (direktorat: string) => {
+    return documents.filter(doc => doc.direktorat === direktorat);
   };
 
   const getDocumentsByPrinciple = (principle: string) => {
@@ -132,12 +133,12 @@ export const DocumentMetadataProvider: React.FC<{ children: ReactNode }> = ({ ch
     
     const byPrinciple: { [key: string]: number } = {};
     const byType: { [key: string]: number } = {};
-    const byDireksi: { [key: string]: number } = {};
+    const byDirektorat: { [key: string]: number } = {};
 
     yearDocuments.forEach(doc => {
       byPrinciple[doc.gcgPrinciple] = (byPrinciple[doc.gcgPrinciple] || 0) + 1;
       byType[doc.documentType] = (byType[doc.documentType] || 0) + 1;
-      byDireksi[doc.direksi] = (byDireksi[doc.direksi] || 0) + 1;
+      byDirektorat[doc.direktorat] = (byDirektorat[doc.direktorat] || 0) + 1;
     });
 
     return {
@@ -145,7 +146,7 @@ export const DocumentMetadataProvider: React.FC<{ children: ReactNode }> = ({ ch
       totalSize,
       byPrinciple,
       byType,
-      byDireksi
+      byDirektorat
     };
   };
 
@@ -170,7 +171,7 @@ export const DocumentMetadataProvider: React.FC<{ children: ReactNode }> = ({ ch
       deleteDocument,
       getDocumentsByYear,
       getDocumentsByAspect,
-      getDocumentsByDireksi,
+      getDocumentsByDirektorat,
       getDocumentsByPrinciple,
       getDocumentById,
       getYearStats,

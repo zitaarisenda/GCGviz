@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Shield, Eye, EyeOff, Mail, Lock, ArrowRight, Building2, User, CheckCircle, AlertCircle, Users, Award, Globe } from 'lucide-react';
 
 const Register = () => {
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
@@ -24,12 +23,6 @@ const Register = () => {
 
     if (!name.trim()) {
       newErrors.name = 'Nama lengkap wajib diisi';
-    }
-
-    if (!username.trim()) {
-      newErrors.username = 'Username wajib diisi';
-    } else if (username.length < 3) {
-      newErrors.username = 'Username minimal 3 karakter';
     }
 
     if (!email.trim()) {
@@ -66,20 +59,19 @@ const Register = () => {
       try {
         // Simple registration logic
         const users = JSON.parse(localStorage.getItem("users") || "[]");
-        const existingUser = users.find((u: any) => u.username === username);
+        const existingUser = users.find((u: any) => u.email === email);
         
         if (existingUser) {
-          setErrors({ username: 'Username sudah digunakan!' });
+          setErrors({ email: 'Email sudah digunakan!' });
           setIsLoading(false);
           return;
         }
 
         const newUser = {
           id: Date.now(),
-          username,
+          email,
           password,
           name,
-          email,
           role: 'user' as const,
           createdAt: new Date().toISOString()
         };
@@ -99,9 +91,9 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-amber-50 to-emerald-50">
       {/* Navigation Header */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+      <nav className="bg-white/80 backdrop-blur-md border-b border-blue-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -111,20 +103,20 @@ const Register = () => {
                 className="h-10 w-auto"
               />
               <div className="hidden md:block">
-                <h1 className="text-xl font-bold text-gray-900">GCG Document Hub</h1>
-                <p className="text-sm text-gray-600">Sistem Manajemen Dokumen GCG</p>
+                <h1 className="text-xl font-bold text-blue-900">GCG Document Hub</h1>
+                <p className="text-sm text-blue-600">Sistem Manajemen Dokumen GCG</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <Link 
                 to="/register" 
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Daftar
               </Link>
               <Link 
                 to="/login" 
-                className="text-gray-600 hover:text-red-600 font-medium transition-colors"
+                className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
               >
                 Masuk
               </Link>
@@ -135,7 +127,7 @@ const Register = () => {
 
       <div className="flex min-h-[calc(100vh-4rem)]">
         {/* Left Side - Landing Content */}
-        <div className="hidden lg:flex flex-1 bg-gradient-to-br from-red-600 via-red-700 to-gray-800 relative overflow-hidden">
+        <div className="hidden lg:flex flex-1 bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
           {/* Background Pattern */}
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent"></div>
@@ -148,9 +140,9 @@ const Register = () => {
               <div className="mb-8">
                 <h2 className="text-5xl font-bold mb-6 leading-tight">
                   Bergabung dengan Tim
-                  <span className="block text-red-200">Good Corporate Governance</span>
+                  <span className="block text-blue-200">Good Corporate Governance</span>
                 </h2>
-                <p className="text-xl text-red-100 mb-8 leading-relaxed">
+                <p className="text-xl text-blue-100 mb-8 leading-relaxed">
                   Dapatkan akses ke sistem manajemen dokumen GCG yang terintegrasi dan aman. 
                   Dukung implementasi Good Corporate Governance yang transparan dan akuntabel bersama POS Indonesia.
                 </p>
@@ -165,7 +157,7 @@ const Register = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Akses Terbatas & Aman</h3>
-                      <p className="text-red-100 text-sm leading-relaxed">
+                      <p className="text-blue-100 text-sm leading-relaxed">
                         Akses sesuai dengan role dan tanggung jawab Anda dengan sistem keamanan tingkat tinggi.
                       </p>
                     </div>
@@ -177,7 +169,7 @@ const Register = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Compliance GCG</h3>
-                      <p className="text-red-100 text-sm leading-relaxed">
+                      <p className="text-blue-100 text-sm leading-relaxed">
                         Dukung implementasi Good Corporate Governance yang sesuai dengan standar dan regulasi.
                       </p>
                     </div>
@@ -189,7 +181,7 @@ const Register = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Kolaborasi Tim</h3>
-                      <p className="text-red-100 text-sm leading-relaxed">
+                      <p className="text-blue-100 text-sm leading-relaxed">
                         Bekerja sama dengan tim dalam mengelola dan mengakses dokumen GCG secara efisien.
                       </p>
                     </div>
@@ -201,27 +193,11 @@ const Register = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Keamanan Terjamin</h3>
-                      <p className="text-red-100 text-sm leading-relaxed">
+                      <p className="text-blue-100 text-sm leading-relaxed">
                         Data dan dokumen Anda terlindungi dengan sistem keamanan yang kuat dan terpercaya.
                       </p>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Statistics */}
-              <div className="mt-12 grid grid-cols-3 gap-8 pt-8 border-t border-white/20">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-red-200 mb-1">500+</div>
-                  <div className="text-sm text-red-100">User Aktif</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-red-200 mb-1">10K+</div>
-                  <div className="text-sm text-red-100">Dokumen GCG</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-red-200 mb-1">99.9%</div>
-                  <div className="text-sm text-red-100">Uptime</div>
                 </div>
               </div>
             </div>
@@ -243,32 +219,32 @@ const Register = () => {
                 alt="POS Indonesia" 
                 className="h-12 w-auto mx-auto mb-4"
               />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">GCG Document Hub</h2>
-              <p className="text-gray-600">Sistem Manajemen Dokumen GCG</p>
+              <h2 className="text-2xl font-bold text-blue-900 mb-2">GCG Document Hub</h2>
+              <p className="text-blue-600">Sistem Manajemen Dokumen GCG</p>
             </div>
 
             {/* Register Form */}
             <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
               <CardContent className="p-8">
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Daftar Akun User</h2>
-                  <p className="text-gray-600">Buat akun baru untuk mengakses sistem GCG</p>
+                  <h2 className="text-2xl font-bold text-blue-900 mb-2">Daftar Akun User</h2>
+                  <p className="text-blue-600">Buat akun baru untuk mengakses sistem GCG</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="name" className="text-sm font-medium text-blue-700">
                       Nama Lengkap
                     </Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-5 h-5" />
                       <Input
                         id="name"
                         type="text"
                         placeholder="Masukkan nama lengkap"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className={`pl-10 h-12 border-gray-200 focus:border-red-500 focus:ring-red-500 ${
+                        className={`pl-10 h-12 border-blue-200 focus:border-blue-500 focus:ring-blue-500 ${
                           errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
                         }`}
                         required
@@ -283,18 +259,18 @@ const Register = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="email" className="text-sm font-medium text-blue-700">
                       Email
                     </Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-5 h-5" />
                       <Input
                         id="email"
                         type="email"
                         placeholder="Masukkan email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className={`pl-10 h-12 border-gray-200 focus:border-red-500 focus:ring-red-500 ${
+                        className={`pl-10 h-12 border-blue-200 focus:border-blue-500 focus:ring-blue-500 ${
                           errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
                         }`}
                         required
@@ -307,46 +283,20 @@ const Register = () => {
                       </p>
                     )}
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-medium text-gray-700">
-                      Username
-                    </Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Input
-                        id="username"
-                        type="text"
-                        placeholder="Masukkan username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className={`pl-10 h-12 border-gray-200 focus:border-red-500 focus:ring-red-500 ${
-                          errors.username ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
-                        }`}
-                        required
-                      />
-                    </div>
-                    {errors.username && (
-                      <p className="text-sm text-red-600 flex items-center space-x-1">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>{errors.username}</span>
-                      </p>
-                    )}
-                  </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="password" className="text-sm font-medium text-blue-700">
                       Password
                     </Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-5 h-5" />
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Masukkan password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className={`pl-10 pr-12 h-12 border-gray-200 focus:border-red-500 focus:ring-red-500 ${
+                        className={`pl-10 pr-12 h-12 border-blue-200 focus:border-blue-500 focus:ring-blue-500 ${
                           errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
                         }`}
                         required
@@ -355,7 +305,7 @@ const Register = () => {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-gray-600"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-blue-400 hover:text-blue-600"
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
@@ -374,18 +324,18 @@ const Register = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-blue-700">
                       Konfirmasi Password
                     </Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 w-5 h-5" />
                       <Input
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Konfirmasi password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className={`pl-10 pr-12 h-12 border-gray-200 focus:border-red-500 focus:ring-red-500 ${
+                        className={`pl-10 pr-12 h-12 border-blue-200 focus:border-blue-500 focus:ring-blue-500 ${
                           errors.confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
                         }`}
                         required
@@ -394,7 +344,7 @@ const Register = () => {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-gray-600"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-blue-400 hover:text-blue-600"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       >
                         {showConfirmPassword ? (
@@ -421,7 +371,7 @@ const Register = () => {
 
                   <Button 
                     type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -439,13 +389,13 @@ const Register = () => {
                 </form>
 
                 {/* Info Box */}
-                <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-start space-x-3">
-                    <CheckCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div>
-                      <h4 className="text-sm font-medium text-red-900 mb-1">Registrasi User Only</h4>
-                      <p className="text-sm text-red-800">
-                        Registrasi ini hanya untuk User. Akun Admin dan Super Admin dibuat oleh Super Admin melalui menu Kelola Akun.
+                      <h4 className="text-sm font-medium text-blue-900 mb-1">Registrasi User Only</h4>
+                      <p className="text-sm text-blue-800">
+                        Registrasi ini hanya untuk User. Akun Admin dan Super Admin dibuat oleh Super Admin melalui menu Manajemen User.
                       </p>
                     </div>
                   </div>
@@ -453,9 +403,9 @@ const Register = () => {
 
                 {/* Login Link */}
                 <div className="mt-6 text-center">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-blue-600">
                     Sudah punya akun?{' '}
-                    <Link to="/login" className="text-red-600 hover:text-red-700 font-medium">
+                    <Link to="/login" className="text-blue-600 hover:text-blue-800 font-medium">
                       Masuk ke sistem
                     </Link>
                   </p>
@@ -464,7 +414,7 @@ const Register = () => {
             </Card>
 
             {/* Footer */}
-            <div className="mt-8 text-center text-sm text-gray-500">
+            <div className="mt-8 text-center text-sm text-blue-500">
               <p>© 2024 POS Indonesia. All rights reserved.</p>
               <p className="mt-1">Sistem Manajemen Dokumen GCG</p>
             </div>

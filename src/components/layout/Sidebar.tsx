@@ -11,13 +11,6 @@ import {
   BarChart3,
   PanelLeft,
   FileText,
-  Calendar,
-  TrendingUp,
-  Upload,
-  ChevronDown,
-  ChevronRight,
-  Target,
-  Users,
   Settings,
   Building2,
   Folder,
@@ -34,116 +27,27 @@ interface MenuItem {
   path: string;
   badge?: string | null;
   badgeIcon?: any;
-  subItems?: SubMenuItem[];
 }
 
-interface SubMenuItem {
-  name: string;
-  icon: any;
-  path: string;
-  anchor?: string;
-  description?: string;
-}
+// No longer need SubMenuItem interface since there are no submenus
 
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useUser();
   const { isSidebarOpen, closeSidebar } = useSidebar();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  // No longer need expandedMenus state since there are no submenus
 
-  // Load expanded menus from localStorage on component mount
-  useEffect(() => {
-    const savedExpandedMenus = localStorage.getItem('sidebarExpandedMenus');
-    if (savedExpandedMenus) {
-      setExpandedMenus(JSON.parse(savedExpandedMenus));
-    }
-  }, []);
-
-  // Save expanded menus to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('sidebarExpandedMenus', JSON.stringify(expandedMenus));
-  }, [expandedMenus]);
-
-  // Auto-expand menu when navigating to a page
-  useEffect(() => {
-    const currentPath = location.pathname;
-    const menuItem = menuItems.find(item => 
-      currentPath === item.path || currentPath.startsWith(item.path + '/')
-    );
-    
-    if (menuItem && menuItem.subItems) {
-      // Close other menus and open only the current menu
-      setExpandedMenus([menuItem.name]);
-    }
-  }, [location.pathname]);
+  // No longer need auto-expand logic since there are no submenus
 
   const menuItems: MenuItem[] = [
     { 
       name: 'Dashboard', 
       icon: LayoutDashboard, 
       path: '/dashboard',
-      badge: null,
-      subItems: [
-        {
-          name: 'Tahun Buku',
-          icon: Calendar,
-          path: '/dashboard',
-          anchor: '#year-selector',
-          description: 'Pilih tahun buku'
-        },
-        {
-          name: 'Statistik Tahun',
-          icon: TrendingUp,
-          path: '/dashboard',
-          anchor: '#dashboard-stats',
-          description: 'Statistik dashboard'
-        },
-        {
-          name: 'Daftar Dokumen',
-          icon: FileText,
-          path: '/dashboard',
-          anchor: '#document-list',
-          description: 'Daftar dokumen'
-        }
-      ]
+      badge: null
     },
-    { 
-      name: 'List GCG', 
-      icon: PanelLeft, 
-      path: '/list-gcg',
-      badge: null,
-      subItems: [
-        {
-          name: 'Tahun Buku',
-          icon: Calendar,
-          path: '/list-gcg',
-          anchor: '#year-selector',
-          description: 'Pilih tahun buku'
-        },
-        {
-          name: 'Progress Keseluruhan',
-          icon: BarChart3,
-          path: '/list-gcg',
-          anchor: '#overall-progress',
-          description: 'Progress upload'
-        },
-        {
-          name: 'Progress per Aspek',
-          icon: TrendingUp,
-          path: '/list-gcg',
-          anchor: '#aspect-progress',
-          description: 'Progress per aspek'
-        },
-        {
-          name: 'Daftar Checklist',
-          icon: ListTodo,
-          path: '/list-gcg',
-          anchor: '#checklist-table',
-          description: 'Daftar checklist GCG'
-        }
-      ]
-    },
+
     { 
       name: 'Penilaian GCG', 
       icon: BarChart3, 
@@ -154,30 +58,7 @@ const Sidebar = () => {
       name: 'Graph View', 
       icon: Network, 
       path: '/graph-view',
-      badge: null,
-      subItems: [
-        {
-          name: 'Data Explorer',
-          icon: Network,
-          path: '/graph-view',
-          anchor: '#graph-area',
-          description: 'Interactive graph visualization'
-        },
-        {
-          name: 'Filter & Search',
-          icon: Settings,
-          path: '/graph-view',
-          anchor: '#controls',
-          description: 'Filter by year, status, or search'
-        },
-        {
-          name: 'Node Details',
-          icon: FileText,
-          path: '/graph-view',
-          anchor: '#info-panel',
-          description: 'View file and document details'
-        }
-      ]
+      badge: null
     }
   ];
 
@@ -185,33 +66,40 @@ const Sidebar = () => {
   if (user?.role === 'superadmin') {
     menuItems.push(
       {
-        name: 'Management Dokumen',
+        name: 'Monitoring & Upload GCG',
+        icon: PanelLeft,
+        path: '/list-gcg',
+        badgeIcon: Lock
+      },
+      {
+        name: 'Kelola Dokumen',
         icon: FileText,
         path: '/admin/document-management',
         badgeIcon: Lock
       },
       {
-        name: 'Kelola Akun',
+        name: 'Manajemen User',
         icon: UserCog,
         path: '/admin/kelola-akun',
         badgeIcon: Lock
       },
       {
-        name: 'Struktur Perusahaan',
+        name: 'Struktur Organisasi',
         icon: Building2,
         path: '/admin/struktur-perusahaan',
         badgeIcon: Lock
       },
+
       {
-        name: 'Checklist GCG',
-        icon: ListTodo,
-        path: '/admin/checklist-gcg',
+        name: 'Pengaturan Metadata',
+        icon: Settings,
+        path: '/admin/meta-data',
         badgeIcon: Lock
       },
       {
-        name: 'Meta Data',
-        icon: Settings,
-        path: '/admin/meta-data',
+        name: 'Kelola Aspek',
+        icon: ListTodo,
+        path: '/admin/checklist-gcg',
         badgeIcon: Lock
       }
     );
@@ -225,24 +113,9 @@ const Sidebar = () => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
-  const toggleMenu = (menuName: string) => {
-    setExpandedMenus(prev => {
-      const isCurrentlyExpanded = prev.includes(menuName);
-      if (isCurrentlyExpanded) {
-        // If currently expanded, just close this menu
-        return prev.filter(name => name !== menuName);
-      } else {
-        // If not expanded, close other menus and open this one
-        return [menuName];
-      }
-    });
-  };
-
   const handleMainMenuClick = (item: MenuItem) => {
-    // If menu has sub-items, toggle expansion (auto-close logic is in toggleMenu)
-    if (item.subItems && item.subItems.length > 0) {
-      toggleMenu(item.name);
-    }
+    // Navigate directly to the page
+    navigate(item.path);
     
     // Close sidebar on mobile
     if (window.innerWidth < 1024) {
@@ -250,32 +123,9 @@ const Sidebar = () => {
     }
   };
 
-  const handleSubItemClick = (path: string, anchor?: string) => {
-    // Navigate to the page first
-    navigate(path);
-    
-    // Close sidebar on mobile
-    if (window.innerWidth < 1024) {
-      closeSidebar();
-    }
-    
-    // Scroll to anchor after a short delay to ensure page is loaded
-    if (anchor) {
-      setTimeout(() => {
-        const element = document.querySelector(anchor);
-        if (element) {
-          element.scrollIntoView({ 
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
-      }, 100);
-    }
-  };
+  // No longer need handleSubItemClick since there are no submenus
 
-  const isMenuExpanded = (menuName: string) => {
-    return expandedMenus.includes(menuName);
-  };
+  // No longer need isMenuExpanded since there are no submenus
 
   return (
     <>
@@ -306,11 +156,17 @@ const Sidebar = () => {
         {/* Menu Items */}
         <nav className="mt-6 pb-20">
           <div className="px-4 space-y-1">
-            {menuItems.map((item) => {
+            {menuItems
+              .filter(item => {
+                // Hide Penilaian GCG menu if user is not superadmin
+                if (item.name === 'Penilaian GCG' && user?.role !== 'superadmin') {
+                  return false;
+                }
+                return true;
+              })
+              .map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
-              const hasSubItems = item.subItems && item.subItems.length > 0;
-              const expanded = isMenuExpanded(item.name);
               
               return (
                 <div key={item.name}>
@@ -338,69 +194,9 @@ const Sidebar = () => {
                             {item.badge}
                           </span>
                         )}
-                        {hasSubItems && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleMenu(item.name);
-                            }}
-                            className={`transition-transform duration-300 ease-in-out ${
-                              expanded ? 'rotate-180' : 'rotate-0'
-                            }`}
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </button>
-                        )}
                       </div>
                     </Link>
                   </div>
-
-                  {/* Sub Menu Items */}
-                  {hasSubItems && (
-                    <div 
-                      className={`ml-4 mt-1 space-y-1 overflow-hidden transition-all duration-500 ease-out ${
-                        expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                      }`}
-                      style={{
-                        transform: expanded ? 'translateY(0)' : 'translateY(-10px)',
-                        transition: expanded 
-                          ? 'max-height 0.5s ease-out, opacity 0.3s ease-out 0.1s, transform 0.3s ease-out 0.1s'
-                          : 'max-height 0.3s ease-in, opacity 0.2s ease-in, transform 0.2s ease-in'
-                      }}
-                    >
-                      {item.subItems!.map((subItem, index) => {
-                        const SubIcon = subItem.icon;
-                        return (
-                          <button
-                            key={subItem.name}
-                            onClick={() => handleSubItemClick(subItem.path, subItem.anchor)}
-                            className={`w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-300 ease-out group transform ${
-                              expanded 
-                                ? 'translate-x-0 opacity-100' 
-                                : 'translate-x-4 opacity-0'
-                            }`}
-                            style={{
-                              transitionDelay: expanded ? `${index * 75}ms` : '0ms',
-                              transition: expanded
-                                ? `all 0.3s ease-out ${index * 75}ms`
-                                : 'all 0.2s ease-in'
-                            }}
-                          >
-                            <SubIcon className="w-4 h-4" />
-                            <div className="flex-1 text-left">
-                              <div className="font-medium">{subItem.name}</div>
-                              {subItem.description && (
-                                <div className="text-xs text-gray-500 group-hover:text-gray-300">
-                                  {subItem.description}
-                                </div>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
               );
             })}

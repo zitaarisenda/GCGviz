@@ -1,10 +1,8 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Plus } from 'lucide-react';
-import { useFileUpload } from '@/contexts/FileUploadContext';
+import { Calendar } from 'lucide-react';
 import { useYear } from '@/contexts/YearContext';
-import FileUploadDialog from './FileUploadDialog';
 
 interface YearSelectorProps {
   initialYear?: number;
@@ -12,8 +10,6 @@ interface YearSelectorProps {
 
 const YearSelector: React.FC<YearSelectorProps> = ({ initialYear }) => {
   const { selectedYear, setSelectedYear, availableYears } = useYear();
-  const { getFilesByYear } = useFileUpload();
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
   // Set initial year if provided
   useEffect(() => {
@@ -49,24 +45,15 @@ const YearSelector: React.FC<YearSelectorProps> = ({ initialYear }) => {
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Tahun Buku</h2>
             <p className="text-sm text-gray-600">
-              Pilih tahun buku untuk mengakses data dan upload dokumen
+              Pilih tahun buku untuk mengakses data
             </p>
           </div>
         </div>
         
         <div className="flex items-center space-x-2">
-          {selectedYear && (
-            <Button
-              onClick={() => setIsUploadDialogOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Upload Dokumen Baru
-            </Button>
-          )}
-            <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600">
             Tahun yang dipilih: <span className="font-semibold text-blue-600">{selectedYear || 'Belum dipilih'}</span>
-            </span>
+          </span>
         </div>
       </div>
 
@@ -100,11 +87,7 @@ const YearSelector: React.FC<YearSelectorProps> = ({ initialYear }) => {
 
       </div>
 
-      {/* File Upload Dialog */}
-      <FileUploadDialog
-        isOpen={isUploadDialogOpen}
-        onOpenChange={setIsUploadDialogOpen}
-      />
+      {/* File Upload Dialog removed */}
     </div>
   );
 };

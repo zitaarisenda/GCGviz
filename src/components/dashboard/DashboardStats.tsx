@@ -176,7 +176,8 @@ const DashboardStats = () => {
     }
 
     const yearStats = getYearStats(selectedYear);
-    const totalChecklist = checklist.length;
+    const yearChecklist = checklist.filter(item => item.tahun === selectedYear);
+    const totalChecklist = yearChecklist.length;
     const progress = totalChecklist > 0 ? Math.round((yearStats.uploadedCount / totalChecklist) * 100) : 0;
 
     return {
@@ -311,6 +312,35 @@ const DashboardStats = () => {
         <p className="text-gray-600">
           Overview dokumen dan checklist assessment tahun {selectedYear}
         </p>
+      </div>
+
+      {/* Overall Progress Bar */}
+      <div className="mb-6">
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-md p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-1.5 bg-white/20 rounded-md">
+                <TrendingUp className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Progress Keseluruhan</h3>
+                <p className="text-purple-100 text-xs">Progress Keseluruhan Tahun {selectedYear}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold">{stats.uploadedFiles}/{stats.totalChecklist}</div>
+              <div className="text-purple-100 text-xs">
+                {stats.progress}% selesai
+              </div>
+            </div>
+          </div>
+          <div className="w-full bg-white/20 rounded-full h-2 mt-3">
+            <div 
+              className="bg-white rounded-full h-2 transition-all duration-1000 ease-out"
+              style={{ width: `${stats.progress}%` }}
+            ></div>
+          </div>
+        </div>
       </div>
 
       {/* Analysis Cards Grid / Swiper */}

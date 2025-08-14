@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { FormDialog, ActionButton } from "@/components/panels";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from '@/contexts/AuthContext';
@@ -270,63 +271,14 @@ const AdminDashboard = () => {
                   Unggah dokumen baru untuk divisi {profile?.divisi}
                 </CardDescription>
               </div>
-              <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Unggah Dokumen
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Unggah Dokumen Baru</DialogTitle>
-                    <DialogDescription>
-                      Isi informasi dokumen yang akan diunggah
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleFileUpload} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Judul Dokumen</Label>
-                      <Input
-                        id="title"
-                        value={formData.title}
-                        onChange={(e) => setFormData({...formData, title: e.target.value})}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Deskripsi</Label>
-                      <Textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        rows={3}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="file">File Dokumen</Label>
-                      <Input
-                        id="file"
-                        type="file"
-                        onChange={(e) => setFormData({...formData, file: e.target.files?.[0] || null})}
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="flex space-x-2 pt-4">
-                      <Button type="submit" disabled={loading}>
-                        {loading ? 'Mengunggah...' : 'Unggah Dokumen'}
-                      </Button>
-                      <Button type="button" variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
-                        Batal
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <ActionButton
+                onClick={() => setIsUploadDialogOpen(true)}
+                variant="default"
+                icon={<Plus className="w-4 h-4" />}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Unggah Dokumen
+              </ActionButton>
             </div>
           </CardHeader>
         </Card>
@@ -432,6 +384,54 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+};
+
+      {/* FormDialog untuk Upload */}
+      <FormDialog
+        isOpen={isUploadDialogOpen}
+        onClose={() => setIsUploadDialogOpen(false)}
+        onSubmit={handleFileUpload}
+        title="Unggah Dokumen Baru"
+        description="Isi informasi dokumen yang akan diunggah"
+        variant="add"
+        submitText={loading ? 'Mengunggah...' : 'Unggah Dokumen'}
+        isLoading={loading}
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Judul Dokumen</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description">Deskripsi</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              rows={3}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="file">File Dokumen</Label>
+            <Input
+              id="file"
+              type="file"
+              onChange={(e) => setFormData({...formData, file: e.target.files?.[0] || null})}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+              required
+            />
+          </div>
+        </div>
+      </FormDialog>
     </div>
   );
 };

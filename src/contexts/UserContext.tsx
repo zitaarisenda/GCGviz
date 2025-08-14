@@ -4,15 +4,19 @@ import { seedUser } from "@/lib/seed/seedUser";
 export type UserRole = "superadmin" | "admin" | "user";
 export interface User {
   id: number;
-  username: string;
+  email: string;
   password: string;
   role: UserRole;
   name: string;
+  direktorat?: string;
+  subDirektorat?: string; // mempertahankan casing historis jika ada penggunaan lama
+  subdirektorat?: string; // normalisasi baru
+  divisi?: string;
 }
 
 interface UserContextType {
   user: User | null;
-  login: (username: string, password: string) => boolean;
+  login: (email: string, password: string) => boolean;
   logout: () => void;
 }
 
@@ -23,24 +27,29 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   // Inisialisasi user dari localStorage atau seed
   useEffect(() => {
-    const users = JSON.parse(localStorage.getItem("users") || "null");
-    if (!users) {
-      localStorage.setItem("users", JSON.stringify(seedUser));
-    }
+    // Selalu update dengan data seed terbaru
+    localStorage.setItem("users", JSON.stringify(seedUser));
+    
     const currentUser = localStorage.getItem("currentUser");
     if (currentUser) {
       setUser(JSON.parse(currentUser));
     }
   }, []);
 
-  const login = (username: string, password: string) => {
+  const login = (email: string, password: string) => {
     const users: User[] = JSON.parse(localStorage.getItem("users") || "[]");
     const found = users.find(
-      (u) => u.username === username && u.password === password
+      (u) => u.email === email && u.password === password
     );
     if (found) {
+      // Normalisasi field nama organisasi
+      const normalized: User = {
+        ...found,
+        subdirektorat: (found as any).subdirektorat || (found as any).subDirektorat || '',
+        subDirektorat: (found as any).subDirektorat || (found as any).subdirektorat || ''
+      };
       setUser(found);
-      localStorage.setItem("currentUser", JSON.stringify(found));
+      localStorage.setItem("currentUser", JSON.stringify(normalized));
       return true;
     }
     return false;

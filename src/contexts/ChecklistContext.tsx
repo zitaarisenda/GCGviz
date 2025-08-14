@@ -34,23 +34,26 @@ export const ChecklistProvider = ({ children }: { children: ReactNode }) => {
       allYears.push(year);
     }
     
-    let hasChanges = false;
-    const updatedChecklist = [...checklist];
-    
-    allYears.forEach(year => {
-      const existingData = checklist.filter(item => item.tahun === year);
-      if (existingData.length === 0) {
-        const yearData = seedChecklistGCG.map(item => ({ ...item, tahun: year }));
-        updatedChecklist.push(...yearData);
-        hasChanges = true;
+    setChecklist(prevChecklist => {
+      let hasChanges = false;
+      const updatedChecklist = [...prevChecklist];
+      
+      allYears.forEach(year => {
+        const existingData = prevChecklist.filter(item => item.tahun === year);
+        if (existingData.length === 0) {
+          const yearData = seedChecklistGCG.map(item => ({ ...item, tahun: year }));
+          updatedChecklist.push(...yearData);
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        localStorage.setItem("checklistGCG", JSON.stringify(updatedChecklist));
+        return updatedChecklist;
       }
+      return prevChecklist;
     });
-    
-    if (hasChanges) {
-      setChecklist(updatedChecklist);
-      localStorage.setItem("checklistGCG", JSON.stringify(updatedChecklist));
-    }
-  }, [checklist]);
+  }, []);
 
   useEffect(() => {
     const data = JSON.parse(localStorage.getItem("checklistGCG") || "null");
@@ -77,7 +80,7 @@ export const ChecklistProvider = ({ children }: { children: ReactNode }) => {
         ensureAllYearsHaveData();
       }, 100);
     }
-  }, [ensureAllYearsHaveData]);
+  }, []);
 
   const getChecklistByYear = (year: number): ChecklistGCG[] => {
     return checklist.filter(item => item.tahun === year);
