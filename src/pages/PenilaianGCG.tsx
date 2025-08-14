@@ -1798,13 +1798,6 @@ const PenilaianGCG = () => {
             </div>
             <div className="space-x-2">
               <Button 
-                onClick={addNewRow}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Tambah Baris
-              </Button>
-              <Button 
                 className="bg-blue-600 hover:bg-blue-700"
                 disabled={tableData.length === 0 || isSaving}
                 onClick={handleSave}
@@ -2144,18 +2137,6 @@ const PenilaianGCG = () => {
               </TableBody>
             </Table>
             
-            {/* Add Row Button at Bottom of Table */}
-            {tableData.length > 0 && (
-              <div className="mt-4 text-center">
-                <Button 
-                  onClick={addNewRow}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Tambah Baris
-                </Button>
-              </div>
-            )}
             
             {/* Mode Info */}
             {isDetailedMode && tableData.length > 0 && (
@@ -2177,16 +2158,9 @@ const PenilaianGCG = () => {
                   Belum ada data {isDetailedMode ? 'indikator detail' : 'penilaian'}
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  Klik "Tambah Baris" untuk mulai menambahkan data {isDetailedMode ? 'indikator detail' : 'penilaian GCG'}
+                  Data akan diisi otomatis berdasarkan aspek dari halaman Kelola Aspek
                   {isDetailedMode && ' (kolom No dan Jumlah Parameter tersedia)'}
                 </p>
-                <Button 
-                  onClick={addNewRow}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Tambah Baris Pertama
-                </Button>
               </div>
             )}
           </div>
