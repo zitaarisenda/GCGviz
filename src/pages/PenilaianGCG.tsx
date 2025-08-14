@@ -829,7 +829,7 @@ const PenilaianGCG = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Penilaian GCG
+              Performa GCG
             </h1>
             <p className="text-gray-600 mt-1">
               Pilih metode input data penilaian Good Corporate Governance
@@ -1788,7 +1788,7 @@ const PenilaianGCG = () => {
                 <span>
                   {isDetailedMode 
                     ? `Data Indikator Detail - Tahun Buku ${selectedYear}` 
-                    : `Data Penilaian GCG - Tahun Buku ${selectedYear}`
+                    : `Data Performa GCG - Tahun Buku ${selectedYear}`
                   }
                 </span>
               </CardTitle>
