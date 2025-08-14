@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useYear } from '@/contexts/YearContext';
-import { Users, Briefcase, Plus, Edit, Trash2, Calendar } from 'lucide-react';
+import { Users, Briefcase, Plus, Edit, Trash2, Calendar, Building2 } from 'lucide-react';
 import { seedSubdirektorat } from '@/lib/seed/seedDirektorat';
 import { triggerStrukturPerusahaanUpdate } from '@/lib/strukturPerusahaan';
 import { YearSelectorPanel, ConfirmDialog, FormDialog, ActionButton, IconButton, PageHeaderPanel } from '@/components/panels';
@@ -44,17 +44,36 @@ interface Divisi {
   isActive: boolean;
 }
 
+interface EntitasPerusahaan {
+  id: number;
+  nama: string;
+  tahun: number;
+  jenis: 'Anak Perusahaan' | 'Badan Afiliasi';
+  kategori: string;
+  createdAt: Date;
+  isActive: boolean;
+}
+
 // Use years from global context instead of local function
 
+const DEFAULT_ENTITAS_PERUSAHAAN = [
+  // Anak Perusahaan
+  { nama: 'PT Pos Logistik', jenis: 'Anak Perusahaan', kategori: 'Anak Perusahaan' },
+  { nama: 'PT Pos Finansial', jenis: 'Anak Perusahaan', kategori: 'Anak Perusahaan' },
+  { nama: 'PT Pos Properti', jenis: 'Anak Perusahaan', kategori: 'Anak Perusahaan' },
+  { nama: 'Dapen Pos', jenis: 'Anak Perusahaan', kategori: 'Anak Perusahaan' },
+  { nama: 'Dapensi Trio Usaha', jenis: 'Anak Perusahaan', kategori: 'Anak Perusahaan' },
+  { nama: 'Dapensi Dwikarya', jenis: 'Anak Perusahaan', kategori: 'Anak Perusahaan' },
+  { nama: 'Yayasan Bhakti Pendidikan Pos Indonesia', jenis: 'Anak Perusahaan', kategori: 'Yayasan' },
+  // Badan Afiliasi
+  { nama: 'PT Bank Mandiri', jenis: 'Badan Afiliasi', kategori: 'Bank' },
+  { nama: 'PT Bank BNI', jenis: 'Badan Afiliasi', kategori: 'Bank' },
+  { nama: 'PT Bank BRI', jenis: 'Badan Afiliasi', kategori: 'Bank' },
+  { nama: 'PT Bank BCA', jenis: 'Badan Afiliasi', kategori: 'Bank' },
+  { nama: 'PT Bank CIMB Niaga', jenis: 'Badan Afiliasi', kategori: 'Bank' },
+];
+
 const DEFAULT_DIVISI = [
-  // Anak Usaha
-  { nama: 'PT Pos Logistik', kategori: 'Anak Perusahaan' },
-  { nama: 'PT Pos Finansial', kategori: 'Anak Perusahaan' },
-  { nama: 'PT Pos Properti', kategori: 'Anak Perusahaan' },
-  { nama: 'Dapen Pos', kategori: 'Anak Perusahaan' },
-  { nama: 'Dapensi Trio Usaha', kategori: 'Anak Perusahaan' },
-  { nama: 'Dapensi Dwikarya', kategori: 'Anak Perusahaan' },
-  { nama: 'Yayasan Bhakti Pendidikan Pos Indonesia', kategori: 'Anak Perusahaan' },
   // Divisi Operasional
   { nama: 'Courier', kategori: 'Divisi Operasional' },
   { nama: 'Digital Service', kategori: 'Divisi Operasional' },
@@ -73,6 +92,7 @@ const StrukturPerusahaan = () => {
   const { toast } = useToast();
   const [direktorat, setDirektorat] = useState<Direktorat[]>([]);
   const [subdirektorat, setSubdirektorat] = useState<Subdirektorat[]>([]);
+  const [entitasPerusahaan, setEntitasPerusahaan] = useState<EntitasPerusahaan[]>([]);
   const [divisi, setDivisi] = useState<Divisi[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
@@ -88,21 +108,32 @@ const StrukturPerusahaan = () => {
   const [subdirektoratToDelete, setSubdirektoratToDelete] = useState<Subdirektorat | null>(null);
   const [subdirektoratForm, setSubdirektoratForm] = useState({ nama: '' });
 
+  // Entitas Perusahaan states
+  const [isEntitasPerusahaanDialogOpen, setIsEntitasPerusahaanDialogOpen] = useState(false);
+  const [editingEntitasPerusahaan, setEditingEntitasPerusahaan] = useState<EntitasPerusahaan | null>(null);
+  const [entitasPerusahaanToDelete, setEntitasPerusahaanToDelete] = useState<EntitasPerusahaan | null>(null);
+  const [entitasPerusahaanForm, setEntitasPerusahaanForm] = useState({ 
+    nama: '', 
+    jenis: 'Anak Perusahaan' as 'Anak Perusahaan' | 'Badan Afiliasi',
+    kategori: 'Anak Perusahaan' 
+  });
+
   // Divisi states
   const [isDivisiDialogOpen, setIsDivisiDialogOpen] = useState(false);
   const [editingDivisi, setEditingDivisi] = useState<Divisi | null>(null);
   const [divisiToDelete, setDivisiToDelete] = useState<Divisi | null>(null);
-  const [divisiForm, setDivisiForm] = useState({ nama: '' });
+  const [divisiForm, setDivisiForm] = useState({ nama: '', kategori: 'Divisi Operasional' });
 
   // Tambahkan state untuk trigger reload data per tahun
   const [reloadFlag, setReloadFlag] = useState(0);
 
   // Helper function untuk toast notification
-  const showUpdateToast = (type: 'direktorat' | 'subdirektorat' | 'divisi') => {
+  const showUpdateToast = (type: 'direktorat' | 'subdirektorat' | 'divisi' | 'entitasPerusahaan') => {
     const labels = {
       direktorat: 'Direktorat',
       subdirektorat: 'Sub Direktorat',
-      divisi: 'Divisi'
+      divisi: 'Divisi',
+      entitasPerusahaan: 'Entitas Perusahaan'
     };
     
     toast({
@@ -113,39 +144,50 @@ const StrukturPerusahaan = () => {
 
   // Load data dari localStorage setiap kali tahun berubah atau reloadFlag berubah
   useEffect(() => {
-    const direktoratData = localStorage.getItem('direktorat');
-    const subdirektoratData = localStorage.getItem('subdirektorat');
-    const divisiData = localStorage.getItem('divisi');
-    
-    if (direktoratData) {
-      const direktoratList = JSON.parse(direktoratData);
-      setDirektorat(direktoratList.map((d: any) => ({
-        ...d,
-        createdAt: new Date(d.createdAt || Date.now())
-      })));
-    } else {
-      setDirektorat([]);
-    }
-    
-    if (subdirektoratData) {
-      const subdirektoratList = JSON.parse(subdirektoratData);
-      setSubdirektorat(subdirektoratList.map((d: any) => ({
-        ...d,
-        createdAt: new Date(d.createdAt || Date.now())
-      })));
-    } else {
-      setSubdirektorat([]);
-    }
-    
-    if (divisiData) {
-      const divisiList = JSON.parse(divisiData);
-      setDivisi(divisiList.map((d: any) => ({
-        ...d,
-        createdAt: new Date(d.createdAt || Date.now())
-      })));
-    } else {
-      setDivisi([]);
-    }
+         const direktoratData = localStorage.getItem('direktorat');
+     const subdirektoratData = localStorage.getItem('subdirektorat');
+     const entitasPerusahaanData = localStorage.getItem('entitasPerusahaan');
+     const divisiData = localStorage.getItem('divisi');
+     
+     if (direktoratData) {
+       const direktoratList = JSON.parse(direktoratData);
+       setDirektorat(direktoratList.map((d: any) => ({
+         ...d,
+         createdAt: new Date(d.createdAt || Date.now())
+       })));
+     } else {
+       setDirektorat([]);
+     }
+     
+     if (subdirektoratData) {
+       const subdirektoratList = JSON.parse(subdirektoratData);
+       setSubdirektorat(subdirektoratList.map((d: any) => ({
+         ...d,
+         createdAt: new Date(d.createdAt || Date.now())
+       })));
+     } else {
+       setSubdirektorat([]);
+     }
+     
+     if (entitasPerusahaanData) {
+       const entitasPerusahaanList = JSON.parse(entitasPerusahaanData);
+       setEntitasPerusahaan(entitasPerusahaanList.map((d: any) => ({
+         ...d,
+         createdAt: new Date(d.createdAt || Date.now())
+       })));
+     } else {
+       setEntitasPerusahaan([]);
+     }
+     
+     if (divisiData) {
+       const divisiList = JSON.parse(divisiData);
+       setDivisi(divisiList.map((d: any) => ({
+         ...d,
+         createdAt: new Date(d.createdAt || Date.now())
+       })));
+     } else {
+       setDivisi([]);
+     }
   }, [selectedYear, reloadFlag]);
 
   // Direktorat handlers
@@ -277,6 +319,7 @@ const StrukturPerusahaan = () => {
       const updatedDivisi: Divisi = {
         ...editingDivisi,
         nama: divisiForm.nama,
+        kategori: divisiForm.kategori,
         tahun: selectedYear
       };
       const updatedDivisiList = divisi.map(d => d.id === editingDivisi.id ? updatedDivisi : d);
@@ -290,6 +333,7 @@ const StrukturPerusahaan = () => {
       const newDivisi: Divisi = {
         id: Date.now(),
         nama: divisiForm.nama,
+        kategori: divisiForm.kategori,
         tahun: selectedYear,
         createdAt: new Date(),
         isActive: true
@@ -301,7 +345,7 @@ const StrukturPerusahaan = () => {
       triggerStrukturPerusahaanUpdate(); // Trigger update
       showUpdateToast('divisi');
     }
-    setDivisiForm({ nama: '' });
+    setDivisiForm({ nama: '', kategori: 'Divisi Operasional' });
     setIsDivisiDialogOpen(false);
   };
   const handleDeleteDivisi = () => {
@@ -316,18 +360,97 @@ const StrukturPerusahaan = () => {
   };
   const openEditDivisi = (divisi: Divisi) => {
     setEditingDivisi(divisi);
-    setDivisiForm({ nama: divisi.nama });
+    setDivisiForm({ nama: divisi.nama, kategori: divisi.kategori || 'Divisi Operasional' });
     setIsDivisiDialogOpen(true);
   };
   const openAddDivisi = () => {
     setEditingDivisi(null);
-    setDivisiForm({ nama: '' });
+    setDivisiForm({ nama: '', kategori: 'Divisi Operasional' });
     setIsDivisiDialogOpen(true);
+  };
+
+    // Entitas Perusahaan handlers
+  const handleEntitasPerusahaanSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!entitasPerusahaanForm.nama) {
+      alert('Nama entitas wajib diisi!');
+      return;
+    }
+    if (editingEntitasPerusahaan) {
+      const updatedEntitasPerusahaan: EntitasPerusahaan = {
+        ...editingEntitasPerusahaan,
+        nama: entitasPerusahaanForm.nama,
+        jenis: entitasPerusahaanForm.jenis,
+        kategori: entitasPerusahaanForm.kategori,
+        tahun: selectedYear
+      };
+      const updatedEntitasPerusahaanList = entitasPerusahaan.map(d => d.id === editingEntitasPerusahaan.id ? updatedEntitasPerusahaan : d);
+      setEntitasPerusahaan(updatedEntitasPerusahaanList);
+      localStorage.setItem('entitasPerusahaan', JSON.stringify(updatedEntitasPerusahaanList));
+      setEditingEntitasPerusahaan(null);
+      alert('Entitas Perusahaan berhasil diupdate!');
+      triggerStrukturPerusahaanUpdate(); // Trigger update
+      showUpdateToast('entitasPerusahaan');
+    } else {
+      const newEntitasPerusahaan: EntitasPerusahaan = {
+        id: Date.now(),
+        nama: entitasPerusahaanForm.nama,
+        jenis: entitasPerusahaanForm.jenis,
+        kategori: entitasPerusahaanForm.kategori,
+        tahun: selectedYear,
+        createdAt: new Date(),
+        isActive: true
+      };
+      const updatedEntitasPerusahaanList = [...entitasPerusahaan, newEntitasPerusahaan];
+      setEntitasPerusahaan(updatedEntitasPerusahaanList);
+      localStorage.setItem('entitasPerusahaan', JSON.stringify(updatedEntitasPerusahaanList));
+      alert('Entitas Perusahaan berhasil ditambahkan!');
+      triggerStrukturPerusahaanUpdate(); // Trigger update
+      showUpdateToast('entitasPerusahaan');
+    }
+    setEntitasPerusahaanForm({ 
+      nama: '', 
+      jenis: 'Anak Perusahaan' as 'Anak Perusahaan' | 'Badan Afiliasi',
+      kategori: 'Anak Perusahaan' 
+    });
+    setIsEntitasPerusahaanDialogOpen(false);
+  };
+
+  const handleDeleteEntitasPerusahaan = () => {
+    if (!entitasPerusahaanToDelete) return;
+    const updatedEntitasPerusahaanList = entitasPerusahaan.filter(d => d.id !== entitasPerusahaanToDelete.id);
+    setEntitasPerusahaan(updatedEntitasPerusahaanList);
+    localStorage.setItem('entitasPerusahaan', JSON.stringify(updatedEntitasPerusahaanList));
+    setEntitasPerusahaanToDelete(null);
+    alert('Entitas Perusahaan berhasil dihapus!');
+    triggerStrukturPerusahaanUpdate(); // Trigger update
+    showUpdateToast('entitasPerusahaan');
+  };
+
+  const openEditEntitasPerusahaan = (entitasPerusahaan: EntitasPerusahaan) => {
+    setEditingEntitasPerusahaan(entitasPerusahaan);
+    setEntitasPerusahaanForm({ 
+      nama: entitasPerusahaan.nama, 
+      jenis: entitasPerusahaan.jenis,
+      kategori: entitasPerusahaan.kategori 
+    });
+    setIsEntitasPerusahaanDialogOpen(true);
+  };
+
+  const openAddEntitasPerusahaan = () => {
+    setEditingEntitasPerusahaan(null);
+    setEntitasPerusahaanForm({ 
+      nama: '', 
+      jenis: 'Anak Perusahaan' as 'Anak Perusahaan' | 'Badan Afiliasi',
+      kategori: 'Anak Perusahaan' 
+    });
+    setIsEntitasPerusahaanDialogOpen(true);
   };
 
   // Filter data by selected year
   const filteredDirektorat = direktorat.filter(d => d.tahun === selectedYear);
   const filteredSubdirektorat = subdirektorat.filter(d => d.tahun === selectedYear);
+  const filteredEntitasPerusahaan = entitasPerusahaan.filter(d => d.tahun === selectedYear);
   const filteredDivisi = divisi.filter(d => d.tahun === selectedYear);
 
   // Handler untuk data default direktorat
@@ -404,6 +527,26 @@ const StrukturPerusahaan = () => {
     showUpdateToast('divisi');
   };
 
+  // Handler untuk data default entitas perusahaan
+  const handleUseDefaultEntitasPerusahaan = () => {
+    const entitasPerusahaanData = localStorage.getItem('entitasPerusahaan');
+    const entitasPerusahaanList = entitasPerusahaanData ? JSON.parse(entitasPerusahaanData) : [];
+    const newEntitasPerusahaan = DEFAULT_ENTITAS_PERUSAHAAN.map((item) => ({
+      id: Date.now() + Math.random(),
+      nama: item.nama,
+      tahun: selectedYear,
+      jenis: item.jenis,
+      kategori: item.kategori,
+      createdAt: new Date(),
+      isActive: true
+    }));
+    const updatedEntitasPerusahaanList = [...entitasPerusahaanList, ...newEntitasPerusahaan];
+    localStorage.setItem('entitasPerusahaan', JSON.stringify(updatedEntitasPerusahaanList));
+    setReloadFlag(f => f + 1);
+    triggerStrukturPerusahaanUpdate(); // Trigger update
+    showUpdateToast('entitasPerusahaan');
+  };
+
   return (
     <div className="min-h-screen bg-blue-50">
       <Sidebar />
@@ -426,7 +569,7 @@ const StrukturPerusahaan = () => {
           />
 
           <Tabs defaultValue="direktorat" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="direktorat" className="flex items-center space-x-2">
                 <Users className="w-4 h-4" />
                 <span>Direktorat</span>
@@ -434,6 +577,10 @@ const StrukturPerusahaan = () => {
               <TabsTrigger value="subdirektorat" className="flex items-center space-x-2">
                 <Briefcase className="w-4 h-4" />
                 <span>Subdirektorat</span>
+              </TabsTrigger>
+              <TabsTrigger value="anak-perusahaan" className="flex items-center space-x-2">
+                <Building2 className="w-4 h-4" />
+                <span>Anak Perusahaan & Badan Afiliasi</span>
               </TabsTrigger>
               <TabsTrigger value="divisi" className="flex items-center space-x-2">
                 <Briefcase className="w-4 h-4" />
@@ -575,6 +722,93 @@ const StrukturPerusahaan = () => {
               </Card>
             </TabsContent>
 
+            {/* Entitas Perusahaan Tab */}
+            <TabsContent value="anak-perusahaan" id="anak-perusahaan-list">
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Building2 className="w-5 h-5 text-purple-600" />
+                        <span>Daftar Entitas Perusahaan</span>
+                      </CardTitle>
+                      <CardDescription>
+                        {filteredEntitasPerusahaan.length} entitas ditemukan untuk tahun {selectedYear}
+                      </CardDescription>
+                    </div>
+                    <Button onClick={openAddEntitasPerusahaan} className="bg-purple-600 hover:bg-purple-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tambah Entitas
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {filteredEntitasPerusahaan.length === 0 && (
+                    <div className="mb-4 flex justify-end">
+                      <Button onClick={handleUseDefaultEntitasPerusahaan} className="bg-amber-600 hover:bg-amber-700">
+                        Gunakan Data Default Entitas Perusahaan
+                      </Button>
+                    </div>
+                  )}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>No</TableHead>
+                        <TableHead>Nama</TableHead>
+                        <TableHead>Jenis</TableHead>
+                        <TableHead>Kategori</TableHead>
+                        <TableHead>Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredEntitasPerusahaan
+                        .sort((a, b) => a.nama.localeCompare(b.nama))
+                        .map((item, index) => {
+                          const badgeColor = item.jenis === 'Anak Perusahaan' 
+                            ? 'bg-purple-100 text-purple-800' 
+                            : 'bg-indigo-100 text-indigo-800';
+                          
+                          return (
+                            <TableRow key={item.id}>
+                              <TableCell>{index + 1}</TableCell>
+                              <TableCell className="font-medium">{item.nama}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={badgeColor}>
+                                  {item.jenis}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="bg-gray-100 text-gray-700">
+                                  {item.kategori}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => openEditEntitasPerusahaan(item)}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => setEntitasPerusahaanToDelete(item)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* Divisi Tab */}
             <TabsContent value="divisi" id="divisi-list">
               <Card className="border-0 shadow-lg">
@@ -603,41 +837,47 @@ const StrukturPerusahaan = () => {
                       </Button>
                     </div>
                   )}
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>No</TableHead>
-                        <TableHead>Nama Divisi</TableHead>
-                        <TableHead>Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredDivisi.map((item, index) => (
-                        <TableRow key={item.id}>
-                          <TableCell>{index + 1}</TableCell>
-                          <TableCell className="font-medium">{item.nama}</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => openEditDivisi(item)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => setDivisiToDelete(item)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                                      <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>No</TableHead>
+                          <TableHead>Nama Divisi</TableHead>
+                          <TableHead>Kategori</TableHead>
+                          <TableHead>Aksi</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredDivisi.map((item, index) => (
+                          <TableRow key={item.id}>
+                            <TableCell>{index + 1}</TableCell>
+                            <TableCell className="font-medium">{item.nama}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                                {item.kategori}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => openEditDivisi(item)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setDivisiToDelete(item)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -736,6 +976,93 @@ const StrukturPerusahaan = () => {
          confirmText="Hapus"
        />
 
+       {/* Entitas Perusahaan Dialog */}
+       <Dialog open={isEntitasPerusahaanDialogOpen} onOpenChange={setIsEntitasPerusahaanDialogOpen}>
+         <DialogContent className="max-w-md">
+           <DialogHeader>
+             <DialogTitle>
+               {editingEntitasPerusahaan ? 'Edit Entitas Perusahaan' : 'Tambah Entitas Perusahaan Baru'}
+             </DialogTitle>
+             <DialogDescription>
+               {editingEntitasPerusahaan ? 'Edit data entitas perusahaan' : 'Tambahkan entitas perusahaan baru ke struktur perusahaan'}
+             </DialogDescription>
+           </DialogHeader>
+           <form onSubmit={handleEntitasPerusahaanSubmit} className="space-y-4">
+             <div>
+               <Label htmlFor="nama">Nama Entitas *</Label>
+               <Input
+                 id="nama"
+                 value={entitasPerusahaanForm.nama}
+                 onChange={(e) => setEntitasPerusahaanForm({ ...entitasPerusahaanForm, nama: e.target.value })}
+                 placeholder="Masukkan nama entitas"
+                 required
+               />
+             </div>
+             <div>
+               <Label htmlFor="jenis">Jenis *</Label>
+               <select
+                 id="jenis"
+                 value={entitasPerusahaanForm.jenis}
+                 onChange={(e) => setEntitasPerusahaanForm({ 
+                   ...entitasPerusahaanForm, 
+                   jenis: e.target.value as 'Anak Perusahaan' | 'Badan Afiliasi',
+                   kategori: e.target.value === 'Anak Perusahaan' ? 'Anak Perusahaan' : 'Badan Afiliasi'
+                 })}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 required
+               >
+                 <option value="Anak Perusahaan">Anak Perusahaan</option>
+                 <option value="Badan Afiliasi">Badan Afiliasi</option>
+               </select>
+             </div>
+             <div>
+               <Label htmlFor="kategori">Kategori *</Label>
+               <select
+                 id="kategori"
+                 value={entitasPerusahaanForm.kategori}
+                 onChange={(e) => setEntitasPerusahaanForm({ ...entitasPerusahaanForm, kategori: e.target.value })}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 required
+               >
+                 {entitasPerusahaanForm.jenis === 'Anak Perusahaan' ? (
+                   <>
+                     <option value="Anak Perusahaan">Anak Perusahaan</option>
+                     <option value="Badan Usaha">Badan Usaha</option>
+                     <option value="Yayasan">Yayasan</option>
+                   </>
+                 ) : (
+                   <>
+                     <option value="Badan Afiliasi">Badan Afiliasi</option>
+                     <option value="Bank">Bank</option>
+                     <option value="Lembaga Keuangan">Lembaga Keuangan</option>
+                     <option value="Perusahaan Mitra">Perusahaan Mitra</option>
+                   </>
+                 )}
+               </select>
+             </div>
+             <div className="flex justify-end space-x-2">
+               <Button type="button" variant="outline" onClick={() => setIsEntitasPerusahaanDialogOpen(false)}>
+                 Batal
+               </Button>
+               <Button type="submit">
+                 {editingEntitasPerusahaan ? 'Update' : 'Simpan'}
+               </Button>
+             </div>
+           </form>
+         </DialogContent>
+       </Dialog>
+
+       {/* Delete Entitas Perusahaan Dialog */}
+       <ConfirmDialog
+         isOpen={!!entitasPerusahaanToDelete}
+         onClose={() => setEntitasPerusahaanToDelete(null)}
+         onConfirm={handleDeleteEntitasPerusahaan}
+         title="Hapus Entitas Perusahaan"
+         description={`Apakah Anda yakin ingin menghapus entitas "${entitasPerusahaanToDelete?.nama}"? Tindakan ini tidak dapat dibatalkan.`}
+         variant="danger"
+         confirmText="Hapus"
+       />
+
        {/* Divisi Dialog */}
        <Dialog open={isDivisiDialogOpen} onOpenChange={setIsDivisiDialogOpen}>
          <DialogContent className="max-w-md">
@@ -757,6 +1084,20 @@ const StrukturPerusahaan = () => {
                  placeholder="Masukkan nama divisi"
                  required
                />
+             </div>
+             <div>
+               <Label htmlFor="kategori">Kategori *</Label>
+               <select
+                 id="kategori"
+                 value={divisiForm.kategori}
+                 onChange={(e) => setDivisiForm({ ...divisiForm, kategori: e.target.value })}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 required
+               >
+                 <option value="Divisi Operasional">Divisi Operasional</option>
+                 <option value="Divisi Pendukung">Divisi Pendukung</option>
+                 <option value="Divisi Strategis">Divisi Strategis</option>
+               </select>
              </div>
              <div className="flex justify-end space-x-2">
                <Button type="button" variant="outline" onClick={() => setIsDivisiDialogOpen(false)}>
