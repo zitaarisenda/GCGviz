@@ -72,7 +72,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [selectedSubDirektorat, setSelectedSubDirektorat] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [aspectFilter, setAspectFilter] = useState<string | null>(null);
-  // Checklist GCG filter state
+  // Dokumen GCG filter state
   const [filterChecklistStatus, setFilterChecklistStatus] = useState<'all' | 'with' | 'without'>('all');
   const [filterChecklistAspect, setFilterChecklistAspect] = useState<string>('all');
   
@@ -160,14 +160,14 @@ const DocumentList: React.FC<DocumentListProps> = ({
       filtered = filtered.filter(doc => doc.status === selectedStatus);
     }
 
-    // Checklist GCG status filter
+    // Dokumen GCG status filter
     if (filterChecklistStatus === 'with') {
       filtered = filtered.filter(doc => !!doc.checklistId);
     } else if (filterChecklistStatus === 'without') {
       filtered = filtered.filter(doc => !doc.checklistId);
     }
 
-    // Checklist GCG aspect filter
+    // Dokumen GCG aspect filter
     if (filterChecklistAspect !== 'all') {
       filtered = filtered.filter(doc => {
         if (!doc.checklistId) return false;
@@ -509,7 +509,7 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
         <div className="flex items-center space-x-3">
           <FileText className="w-6 h-6 text-blue-600" />
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Daftar Dokumen</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Daftar Arsip Dokumen</h2>
             <p className="text-sm text-gray-600">
               {filteredDocuments.length} dokumen ditemukan untuk tahun {targetYear}
             </p>
@@ -705,7 +705,7 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                 </div>
               </div>
               
-              {/* Upload Info & Checklist GCG */}
+              {/* Upload Info & Dokumen GCG */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
@@ -727,11 +727,11 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                 </div>
               </div>
               
-              {/* Checklist GCG */}
+              {/* Dokumen GCG */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                  <span className="text-xs font-medium text-gray-700">Checklist GCG</span>
+                  <span className="text-xs font-medium text-gray-700">Dokumen GCG</span>
                 </div>
                 <div className="space-y-1">
                   {doc.checklistId ? (
@@ -755,7 +755,7 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                   ) : (
                     <Badge variant="outline" className="text-xs text-gray-500 border-gray-300">
                       <Circle className="w-3 h-3 mr-1" />
-                      Tanpa Checklist
+                      Tanpa Dokumen GCG
                     </Badge>
                   )}
                 </div>
@@ -840,16 +840,16 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                       </div>
                     </div>
                   </div>
-                  {/* Checklist GCG Info */}
+                  {/* Dokumen GCG Info */}
                   <div className="mt-4">
-                    <Label className="text-sm font-medium text-gray-700 mb-1 block">Checklist GCG</Label>
+                    <Label className="text-sm font-medium text-gray-700 mb-1 block">Dokumen GCG</Label>
                     {selectedDocument.checklistId ? (() => {
                       const checklistItem = checklist.find(item => item.id === selectedDocument.checklistId);
                       return checklistItem ? (
                         <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                           <div className="flex items-center space-x-2 mb-2">
                             <CheckCircle className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-800">Checklist Terpilih</span>
+                            <span className="text-sm font-medium text-green-800">Dokumen GCG Terpilih</span>
                           </div>
                           <div className="text-sm text-green-700">
                             <div className="font-medium">{checklistItem.aspek}</div>
@@ -862,7 +862,7 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                     })() : (
                       <Badge variant="outline" className="text-xs text-gray-500 border-gray-300">
                         <Circle className="w-3 h-3 mr-1" />
-                        Tanpa Checklist
+                        Tanpa Dokumen GCG
                       </Badge>
                     )}
                   </div>
@@ -1222,15 +1222,15 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                     </div>
                   </div>
 
-                                    {/* Checklist GCG */}
+                                    {/* Dokumen GCG */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                      Pilih Checklist GCG (Opsional)
+                      Pilih Dokumen GCG (Opsional)
                     </h3>
                     <div className="space-y-2">
                       <p className="text-sm text-gray-600">
-                        Pilih satu checklist GCG yang sesuai dengan dokumen. 
-                        Checklist yang sudah digunakan di tahun {editingDocument.year} tidak akan muncul di daftar.
+                        Pilih satu dokumen GCG yang sesuai dengan dokumen. 
+                        Dokumen GCG yang sudah digunakan di tahun {editingDocument.year} tidak akan muncul di daftar.
                       </p>
                       {/* Aspect Filter */}
                       <div className="space-y-2">
@@ -1308,15 +1308,15 @@ Tahun: ${doc.year || new Date().getFullYear()}`);
                           ) : (
                             <p className="text-center text-gray-500 py-4">
                               {aspectFilter 
-                                ? `Tidak ada checklist tersedia untuk ${aspectFilter.replace(/^Aspek\s+/i, '')}`
-                                : `Semua checklist GCG untuk tahun ${editingDocument.year} sudah digunakan`
+                                ? `Tidak ada dokumen GCG tersedia untuk ${aspectFilter.replace(/^Aspek\s+/i, '')}`
+                                : `Semua dokumen GCG untuk tahun ${editingDocument.year} sudah digunakan`
                               }
                             </p>
                           );
                         })()}
                       </div>
                       
-                      {/* Selected Checklist Info */}
+                      {/* Selected Dokumen GCG Info */}
                       {editFormData.checklistId && (() => {
                         const selectedItem = checklist.find(item => item.id === editFormData.checklistId);
                         return selectedItem ? (

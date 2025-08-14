@@ -9,7 +9,7 @@ GCG Document Hub adalah aplikasi web untuk **manajemen dokumen Good Corporate Go
 - **Digitalisasi** manajemen dokumen GCG
 - **Standardisasi** proses upload dan klasifikasi dokumen
 - **Tracking** progress implementasi GCG per tahun
-- **Compliance** monitoring terhadap checklist GCG
+- **Compliance** monitoring terhadap dokumen GCG
 - **Collaboration** antar divisi dalam pengelolaan dokumen
 
 ---
@@ -85,7 +85,7 @@ UserProvider
    - **Komponen:** `DocumentList`
 
 #### **B. List GCG** (`/list-gcg`)
-**Fungsi:** Monitoring progress checklist GCG
+**Fungsi:** Monitoring progress dokumen GCG
 
 **Panel-panel:**
 1. **Tahun Buku** (`#year-selector`)
@@ -134,7 +134,7 @@ UserProvider
    - **Komponen:** `YearStatisticsPanel` dengan real-time updates
    - **Performance:** Multiple update triggers (immediate + delayed) untuk data consistency
 
-3. **Daftar Checklist GCG** (`#checklist-panel`)
+3. **Daftar Dokumen GCG** (`#dokumen-gcg-panel`)
    - **Fungsi:** Checklist yang ditugaskan untuk sub-direktorat admin
    - **Fitur:** 
      - Search dan sorting berdasarkan aspek dan deskripsi
@@ -231,8 +231,8 @@ window.addEventListener('storage', handleStorageChange);
    - **Fitur:** Default data jika tahun kosong
    - **Kaitan:** Suggestions di `FileUploadDialog` dan `KelolaAkun`
 
-#### **D. Checklist GCG** (`/admin/checklist-gcg`)
-**Fungsi:** Manajemen checklist GCG
+#### **D. Dokumen GCG** (`/admin/checklist-gcg`)
+**Fungsi:** Manajemen dokumen GCG
 
 **Panel-panel:**
 1. **Overview**
@@ -279,7 +279,7 @@ User → Dashboard → Upload Dialog →
 
 ### **B. Alur Checklist Management:**
 ```
-Super Admin → Checklist GCG → 
+Super Admin → Dokumen GCG → 
 ├── Kelola Aspek → Sync ke semua menu
 ├── Kelola Checklist → Sync ke Dashboard & ListGCG
 └── Year Management → Sync ke semua menu
@@ -633,7 +633,7 @@ src/
 1. **Setup System:** Inisialisasi tahun, aspek, dan klasifikasi
 2. **User Management:** Membuat dan mengelola akun user/admin
 3. **Structure Setup:** Setup direksi dan divisi per tahun
-4. **Checklist Management:** Membuat dan mengelola checklist GCG
+4. **Dokumen GCG Management:** Membuat dan mengelola dokumen GCG
 5. **Document Oversight:** Monitoring semua dokumen sistem
 
 ### **B. Admin:**
@@ -839,7 +839,7 @@ useEffect(() => {
 - **v0.9.0:** Initial GCG Document Hub implementation
 - **v0.8.0:** Role-based access control implementation
 - **v0.7.0:** Document management features
-- **v0.6.0:** Checklist GCG system
+- **v0.6.0:** Dokumen GCG system
 - **v0.5.0:** Basic authentication system
 
 ---

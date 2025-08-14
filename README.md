@@ -5,7 +5,7 @@ Aplikasi web untuk **manajemen dokumen Good Corporate Governance (GCG)** yang me
 ## 🎯 **Fitur Utama**
 
 - **📊 Dashboard** - Overview lengkap dengan statistik dan document list
-- **📋 List GCG** - Monitoring progress checklist GCG
+- **📋 List GCG** - Monitoring progress dokumen GCG
 - **👥 Role-based Access** - Super Admin, Admin, dan User
 - **📁 Document Management** - Upload, edit, delete, dan download dokumen
 - **🔍 Advanced Filtering** - Filter berdasarkan aspek, status, dan metadata

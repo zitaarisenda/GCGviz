@@ -62,9 +62,9 @@ const Sidebar = () => {
         badgeIcon: Lock
       },
       {
-        name: 'Kelola Dokumen',
+        name: 'Arsip Dokumen',
         icon: FileText,
-        path: '/admin/document-management',
+        path: '/admin/arsip-dokumen',
         badgeIcon: Lock
       },
       {

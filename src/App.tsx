@@ -14,12 +14,12 @@ import { Toaster } from './components/ui/toaster';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/auth/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/dashboard/Dashboard';
-import ListGCG from './pages/ListGCG';
+import DashboardMain from './pages/dashboard/DashboardMain';
+import MonitoringUploadGCG from './pages/MonitoringUploadGCG';
 
-import AdminDocumentManagement from './pages/admin/DocumentManagement';
+import ArsipDokumen from './pages/admin/ArsipDokumen';
 import StrukturPerusahaan from './pages/admin/StrukturPerusahaan';
-import AdminDashboard from './pages/admin/AdminDashboard';
+import DashboardAdmin from './pages/admin/DashboardAdmin';
 import KelolaAkun from './pages/admin/KelolaAkun';
 import MetaData from './pages/admin/MetaData';
 import NotFound from './pages/NotFound';
@@ -80,7 +80,7 @@ const AppRoutes = () => {
           path="/dashboard" 
           element={
             <ProtectedRoute>
-              {user.role === 'admin' ? <AdminDashboard /> : <Dashboard />}
+              {user.role === 'admin' ? <DashboardAdmin /> : <DashboardMain />}
             </ProtectedRoute>
           } 
         />
@@ -90,7 +90,7 @@ const AppRoutes = () => {
           path="/admin/dashboard" 
           element={
             <AdminRoute>
-              <AdminDashboard />
+              <DashboardAdmin />
             </AdminRoute>
           } 
         />
@@ -99,7 +99,7 @@ const AppRoutes = () => {
         path="/list-gcg" 
         element={
           <SuperAdminRoute>
-            <ListGCG />
+            <MonitoringUploadGCG />
           </SuperAdminRoute>
         } 
       />
@@ -141,10 +141,10 @@ const AppRoutes = () => {
         } 
       />
       <Route 
-        path="/admin/document-management" 
+        path="/admin/arsip-dokumen" 
         element={
           <SuperAdminRoute>
-            <AdminDocumentManagement />
+            <ArsipDokumen />
           </SuperAdminRoute>
         } 
       />

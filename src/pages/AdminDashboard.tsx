@@ -288,7 +288,7 @@ const AdminDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Search className="w-5 h-5 text-blue-600" />
-              <span>Pencarian Dokumen</span>
+              <span>Pencarian Arsip Dokumen</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
