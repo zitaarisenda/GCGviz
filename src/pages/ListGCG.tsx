@@ -43,6 +43,7 @@ const ListGCG = () => {
   const { selectedYear, setSelectedYear } = useYear();
   const [selectedAspek, setSelectedAspek] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedPenjelasan, setSelectedPenjelasan] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedChecklistItem, setSelectedChecklistItem] = useState<{

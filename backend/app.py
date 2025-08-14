@@ -251,6 +251,104 @@ def upload_file():
                             'penjelasan': str(row['Penjelasan']) if pd.notna(row['Penjelasan']) else 'Sangat Kurang'
                         })
                     extracted_data['sample_indicators'] = all_indicators
+                    
+                # Add sheet analysis for XLSX files and extract BRIEF data for aspect summary
+                if file_type == 'excel':
+                    try:
+                        # Read Excel file to analyze sheets
+                        excel_file = pd.ExcelFile(str(input_path))
+                        sheet_names = excel_file.sheet_names
+                        
+                        sheet_analysis = {
+                            'total_sheets': len(sheet_names),
+                            'sheet_names': sheet_names,
+                            'sheet_types': {}
+                        }
+                        
+                        brief_sheet_data = None
+                        
+                        # Analyze each sheet to determine if it's BRIEF or DETAILED
+                        for sheet_name in sheet_names:
+                            try:
+                                sheet_df = pd.read_excel(str(input_path), sheet_name=sheet_name)
+                                
+                                # Debug: Print sheet info
+                                print(f"🔧 DEBUG: Analyzing sheet '{sheet_name}' with {len(sheet_df)} rows")
+                                print(f"🔧 DEBUG: Sheet columns: {list(sheet_df.columns)}")
+                                print(f"🔧 DEBUG: First few rows:\n{sheet_df.head()}")
+                                
+                                # Simple heuristic: BRIEF has fewer rows, DETAILED has more
+                                if len(sheet_df) <= 15:
+                                    sheet_type = 'BRIEF'
+                                    
+                                    # Try to extract BRIEF data from any sheet with reasonable data
+                                    if len(sheet_df) >= 3 and len(sheet_df) <= 20:  # More flexible range
+                                        brief_sheet_data = []
+                                        
+                                        print(f"🔧 DEBUG: Attempting BRIEF extraction from sheet '{sheet_name}'")
+                                        
+                                        for idx, row in sheet_df.iterrows():
+                                            # Extract BRIEF data for aspect summary
+                                            brief_row = {}
+                                            
+                                            # More flexible column matching
+                                            for col in sheet_df.columns:
+                                                col_str = str(col).strip()
+                                                col_lower = col_str.lower()
+                                                
+                                                # Match various column patterns
+                                                if any(keyword in col_lower for keyword in ['aspek', 'section', 'aspect']):
+                                                    brief_row['aspek'] = str(row[col]).strip() if pd.notna(row[col]) else ''
+                                                elif any(keyword in col_lower for keyword in ['deskripsi', 'description', 'desc']):
+                                                    brief_row['deskripsi'] = str(row[col]).strip() if pd.notna(row[col]) else ''
+                                                elif any(keyword in col_lower for keyword in ['bobot', 'weight', 'berat']):
+                                                    try:
+                                                        brief_row['bobot'] = float(row[col]) if pd.notna(row[col]) else 0.0
+                                                    except (ValueError, TypeError):
+                                                        brief_row['bobot'] = 0.0
+                                                elif any(keyword in col_lower for keyword in ['skor', 'score', 'nilai']):
+                                                    try:
+                                                        brief_row['skor'] = float(row[col]) if pd.notna(row[col]) else 0.0
+                                                    except (ValueError, TypeError):
+                                                        brief_row['skor'] = 0.0
+                                                elif any(keyword in col_lower for keyword in ['capaian', 'achievement', 'pencapaian']):
+                                                    try:
+                                                        brief_row['capaian'] = float(row[col]) if pd.notna(row[col]) else 0.0
+                                                    except (ValueError, TypeError):
+                                                        brief_row['capaian'] = 0.0
+                                                elif any(keyword in col_lower for keyword in ['penjelasan', 'explanation', 'keterangan']):
+                                                    brief_row['penjelasan'] = str(row[col]).strip() if pd.notna(row[col]) else ''
+                                            
+                                            # Debug: show what we extracted for this row
+                                            print(f"🔧 DEBUG: Row {idx}: {brief_row}")
+                                            
+                                            # Add row if it has meaningful data (aspek is required)
+                                            if brief_row.get('aspek') and brief_row.get('aspek').strip() and brief_row.get('aspek') != 'nan':
+                                                brief_sheet_data.append(brief_row)
+                                        
+                                        print(f"🔧 DEBUG: Successfully extracted {len(brief_sheet_data)} BRIEF summary rows from sheet '{sheet_name}'")
+                                        
+                                else:
+                                    sheet_type = 'DETAILED'
+                                    
+                                sheet_analysis['sheet_types'][sheet_name] = {
+                                    'type': sheet_type,
+                                    'row_count': len(sheet_df),
+                                    'contains_summary_data': len(sheet_df) <= 10 and len(sheet_df) >= 5
+                                }
+                            except Exception as e:
+                                sheet_analysis['sheet_types'][sheet_name] = {
+                                    'type': 'UNKNOWN',
+                                    'error': str(e)
+                                }
+                        
+                        extracted_data['sheet_analysis'] = sheet_analysis
+                        extracted_data['brief_sheet_data'] = brief_sheet_data
+                        
+                    except Exception as e:
+                        extracted_data['sheet_analysis'] = {
+                            'error': f'Could not analyze sheets: {str(e)}'
+                        }
                 
             except Exception as read_error:
                 extracted_data = {
@@ -383,25 +481,39 @@ def save_assessment():
         
         output_xlsx_path = Path(project_root) / 'data' / 'output' / 'web-output' / 'output.xlsx'
         
-        # Load existing XLSX data or create new structure
+        # Load existing XLSX data and COMPLETELY REPLACE year's data (including deletions)
         all_rows = []
         if output_xlsx_path.exists():
             try:
                 existing_df = pd.read_excel(output_xlsx_path)
-                # Remove existing data for this year to prevent duplicates
                 current_year = data.get('year')
+                
+                print(f"🔧 DEBUG: Loading existing XLSX with {len(existing_df)} rows")
+                print(f"🔧 DEBUG: Current year to save: {current_year}")
+                print(f"🔧 DEBUG: Existing years in file: {existing_df['Tahun'].unique().tolist()}")
+                
+                # COMPLETELY REMOVE all existing data for this year (this handles deletions)
                 if current_year:
-                    existing_df = existing_df[existing_df['Year'] != current_year]
-                # Convert existing data back to list format
+                    original_count = len(existing_df)
+                    existing_df = existing_df[existing_df['Tahun'] != current_year]
+                    removed_count = original_count - len(existing_df)
+                    print(f"🔧 DEBUG: COMPLETELY REMOVED {removed_count} rows for year {current_year} (including deletions)")
+                    print(f"🔧 DEBUG: Preserved {len(existing_df)} rows from other years")
+                
+                # Convert remaining data back to list format
                 for _, row in existing_df.iterrows():
                     all_rows.append(row.to_dict())
+                    
+                print(f"🔧 DEBUG: Starting with {len(all_rows)} rows from other years")
             except Exception as e:
                 print(f"⚠️ Could not read existing XLSX: {e}")
         
         # Process new data and add to all_rows
         year = data.get('year', 'unknown')
         auditor = data.get('auditor', 'unknown')
+        jenis_asesmen = data.get('jenis_asesmen', 'Internal')
         
+        # Process main indicator data
         for row in data.get('data', []):
             # Map frontend data structure to XLSX format
             row_id = row.get('id', row.get('no', ''))
@@ -426,27 +538,103 @@ def save_assessment():
                 'Skor': row.get('skor', ''),
                 'Capaian': row.get('capaian', ''),
                 'Penjelasan': row.get('penjelasan', ''),
-                'Year': year,
-                'Auditor': auditor,
+                'Tahun': year,
+                'Penilai': auditor,
+                'Jenis_Asesmen': jenis_asesmen,
                 'Export_Date': saved_at[:10]
             }
             all_rows.append(xlsx_row)
+        
+        # Process aspect summary data (if provided)
+        aspect_summary_data = data.get('aspectSummaryData', [])
+        if aspect_summary_data:
+            print(f"🔧 DEBUG: Processing {len(aspect_summary_data)} aspect summary rows")
+            
+            for summary_row in aspect_summary_data:
+                section = summary_row.get('aspek', '')
+                deskripsi = summary_row.get('deskripsi', '')
+                bobot = summary_row.get('bobot', 0)
+                skor = summary_row.get('skor', 0)
+                
+                # Skip empty aspects or meaningless default data
+                if not section or not deskripsi or (bobot == 0 and skor == 0):
+                    continue
+                    
+                # Skip if this looks like an unedited default row (just roman numerals with no real data)
+                if section in ['I', 'II', 'III', 'IV', 'V', 'VI'] and not deskripsi.strip():
+                    continue
+                    
+                # Row 1: Header for this aspect
+                header_row = {
+                    'Level': "1",
+                    'Type': 'header',
+                    'Section': section,
+                    'No': '',
+                    'Deskripsi': summary_row.get('deskripsi', ''),
+                    'Jumlah_Parameter': '',
+                    'Bobot': '',
+                    'Skor': '',
+                    'Capaian': '',
+                    'Penjelasan': '',
+                    'Tahun': year,
+                    'Penilai': auditor,
+                    'Jenis_Asesmen': jenis_asesmen,
+                    'Export_Date': saved_at[:10]
+                }
+                all_rows.append(header_row)
+                
+                # Row 2: Subtotal for this aspect
+                subtotal_row = {
+                    'Level': "1", 
+                    'Type': 'subtotal',
+                    'Section': section,
+                    'No': '',
+                    'Deskripsi': f'JUMLAH {section}',
+                    'Jumlah_Parameter': '',
+                    'Bobot': summary_row.get('bobot', ''),
+                    'Skor': summary_row.get('skor', ''),
+                    'Capaian': summary_row.get('capaian', ''),
+                    'Penjelasan': summary_row.get('penjelasan', ''),
+                    'Tahun': year,
+                    'Penilai': auditor,
+                    'Jenis_Asesmen': jenis_asesmen,
+                    'Export_Date': saved_at[:10]
+                }
+                all_rows.append(subtotal_row)
         
         # Convert to DataFrame and save XLSX
         if all_rows:
             df = pd.DataFrame(all_rows)
             
             # Remove any duplicate rows
-            df_unique = df.drop_duplicates(subset=['Year', 'Section', 'No', 'Deskripsi'], keep='last')
+            df_unique = df.drop_duplicates(subset=['Tahun', 'Section', 'No', 'Deskripsi'], keep='last')
             print(f"🔧 DEBUG: Removed {len(df) - len(df_unique)} duplicate rows")
             
-            # Sort by Year, Section, No for proper ordering
-            df_unique = df_unique.sort_values(['Year', 'Section', 'No'], na_position='last')
+            # Custom sorting: year → aspek → no, then organize headers and subtotals properly
+            def sort_key(row):
+                year = row['Tahun']
+                section = row['Section']
+                no = row['No']
+                row_type = row['Type']
+                
+                # Convert 'no' to numeric for proper sorting, handle empty values
+                try:
+                    no_numeric = int(no) if str(no).isdigit() else 9999
+                except (ValueError, TypeError):
+                    no_numeric = 9999
+                
+                # Type priority: header=0, indicators=1, subtotal=2
+                type_priority = {'header': 0, 'indicator': 1, 'subtotal': 2}.get(row_type, 1)
+                
+                return (year, section, type_priority, no_numeric)
+            
+            # Apply custom sorting
+            df_sorted = df_unique.loc[df_unique.apply(sort_key, axis=1).sort_values().index]
             
             # Create directory and save XLSX
             os.makedirs(output_xlsx_path.parent, exist_ok=True)
-            df_unique.to_excel(output_xlsx_path, index=False)
-            print(f"✅ Saved directly to output.xlsx with {len(df_unique)} rows at: {output_xlsx_path}")
+            df_sorted.to_excel(output_xlsx_path, index=False)
+            print(f"✅ Saved to output.xlsx with {len(df_sorted)} rows (sorted: year→aspek→no→type) at: {output_xlsx_path}")
             
         return jsonify({
             'success': True,
@@ -485,34 +673,89 @@ def load_assessment_by_year(year):
         df = pd.read_excel(output_xlsx_path)
         
         # Filter for the requested year
-        year_df = df[df['Year'] == year]
+        year_df = df[df['Tahun'] == year]
         
         if len(year_df) > 0:
-            # Convert to frontend format
-            table_data = []
-            for _, row in year_df.iterrows():
-                table_row = {
-                    'id': str(row.get('No', '')),
-                    'aspek': row.get('Section', ''),
-                    'deskripsi': row.get('Deskripsi', ''),
+            print(f"🔧 DEBUG: Processing {len(year_df)} rows for year {year}")
+            
+            # Detect format: BRIEF or DETAILED based on data types
+            indicator_rows = year_df[year_df['Type'] == 'indicator']
+            subtotal_rows = year_df[year_df['Type'] == 'subtotal'] 
+            header_rows = year_df[year_df['Type'] == 'header']
+            
+            is_detailed = len(indicator_rows) > 10 and len(subtotal_rows) > 0
+            format_type = 'DETAILED' if is_detailed else 'BRIEF'
+            
+            print(f"🔧 DEBUG: Detected format: {format_type}")
+            print(f"🔧 DEBUG: Found {len(indicator_rows)} indicators, {len(subtotal_rows)} subtotals, {len(header_rows)} headers")
+            
+            # Process indicator data for main table (both BRIEF and DETAILED)
+            main_table_data = []
+            for _, row in indicator_rows.iterrows():
+                row_id = row.get('No', '')
+                if pd.isna(row_id) or str(row_id).lower() in ['nan', '', 'none']:
+                    continue
+                    
+                aspek = str(row.get('Section', ''))
+                deskripsi = str(row.get('Deskripsi', ''))
+                if not aspek or not deskripsi:
+                    continue
+                
+                penjelasan = row.get('Penjelasan', '')
+                if pd.isna(penjelasan) or str(penjelasan).lower() == 'nan':
+                    penjelasan = 'Tidak Baik'
+                
+                main_table_data.append({
+                    'id': str(row_id),
+                    'aspek': aspek,
+                    'deskripsi': deskripsi,
                     'jumlah_parameter': int(row.get('Jumlah_Parameter', 0)) if pd.notna(row.get('Jumlah_Parameter')) else 0,
                     'bobot': float(row.get('Bobot', 0)) if pd.notna(row.get('Bobot')) else 0,
                     'skor': float(row.get('Skor', 0)) if pd.notna(row.get('Skor')) else 0,
                     'capaian': float(row.get('Capaian', 0)) if pd.notna(row.get('Capaian')) else 0,
-                    'penjelasan': row.get('Penjelasan', '')
-                }
-                table_data.append(table_row)
+                    'penjelasan': str(penjelasan)
+                })
             
-            # Get auditor from first row
-            auditor = year_df.iloc[0].get('Auditor', 'Unknown') if len(year_df) > 0 else 'Unknown'
+            # Process aspek summary data (subtotals) for DETAILED mode
+            aspek_summary_data = []
+            if is_detailed and len(subtotal_rows) > 0:
+                for _, row in subtotal_rows.iterrows():
+                    aspek = str(row.get('Section', ''))
+                    if not aspek:
+                        continue
+                        
+                    penjelasan = row.get('Penjelasan', '')
+                    if pd.isna(penjelasan) or str(penjelasan).lower() == 'nan':
+                        penjelasan = 'Tidak Baik'
+                    
+                    aspek_summary_data.append({
+                        'id': f'summary-{aspek}',
+                        'aspek': aspek,
+                        'deskripsi': str(row.get('Deskripsi', '')),
+                        'jumlah_parameter': int(row.get('Jumlah_Parameter', 0)) if pd.notna(row.get('Jumlah_Parameter')) else 0,
+                        'bobot': float(row.get('Bobot', 0)) if pd.notna(row.get('Bobot')) else 0,
+                        'skor': float(row.get('Skor', 0)) if pd.notna(row.get('Skor')) else 0,
+                        'capaian': float(row.get('Capaian', 0)) if pd.notna(row.get('Capaian')) else 0,
+                        'penjelasan': str(penjelasan)
+                    })
+            
+            print(f"🔧 DEBUG: Processed {len(main_table_data)} indicators, {len(aspek_summary_data)} aspect summaries")
+            
+            # Get auditor and jenis_asesmen from first row
+            auditor = year_df.iloc[0].get('Penilai', 'Unknown') if len(year_df) > 0 else 'Unknown'
+            jenis_asesmen = year_df.iloc[0].get('Jenis_Asesmen', 'Internal') if len(year_df) > 0 else 'Internal'
             
             return jsonify({
                 'success': True,
-                'data': table_data,
+                'data': main_table_data,
+                'aspek_summary_data': aspek_summary_data,
+                'format_type': format_type,
+                'is_detailed': is_detailed,
                 'auditor': auditor,
+                'jenis_asesmen': jenis_asesmen,
                 'method': 'xlsx_load',
                 'saved_at': year_df.iloc[0].get('Export_Date', '') if len(year_df) > 0 else '',
-                'message': f'Loaded {len(table_data)} rows for year {year}'
+                'message': f'Loaded {len(main_table_data)} indicators + {len(aspek_summary_data)} summaries for year {year} ({format_type} format)'
             })
         else:
             return jsonify({
@@ -548,20 +791,41 @@ def get_dashboard_data():
         # Read XLSX data
         df = pd.read_excel(output_xlsx_path)
         
+        print(f"🔧 DEBUG: Dashboard loading {len(df)} rows from output.xlsx")
+        print(f"🔧 DEBUG: Years in file: {df['Tahun'].unique().tolist()}")
+        print(f"🔧 DEBUG: Sample rows: {df[['Tahun', 'Section', 'Skor']].head().to_dict('records')}")
+        
         # Convert to dashboard format
         dashboard_data = []
         for _, row in df.iterrows():
+            # Handle NaN values properly
+            bobot = row.get('Bobot', 0)
+            skor = row.get('Skor', 0)
+            capaian = row.get('Capaian', 0)
+            jumlah_param = row.get('Jumlah_Parameter', 0)
+            
+            # Convert NaN to 0 for numeric fields
+            if pd.isna(bobot):
+                bobot = 0
+            if pd.isna(skor):
+                skor = 0
+            if pd.isna(capaian):
+                capaian = 0
+            if pd.isna(jumlah_param):
+                jumlah_param = 0
+                
             dashboard_item = {
                 'id': str(row.get('No', '')),
-                'aspek': row.get('Section', ''),
-                'deskripsi': row.get('Deskripsi', ''),
-                'jumlah_parameter': float(row.get('Jumlah_Parameter', 0)),
-                'bobot': float(row.get('Bobot', 0)),
-                'skor': float(row.get('Skor', 0)),
-                'capaian': float(row.get('Capaian', 0)),
-                'penjelasan': row.get('Penjelasan', ''),
-                'year': int(row.get('Year', 2022)),
-                'auditor': row.get('Auditor', 'Unknown')
+                'aspek': str(row.get('Section', '')),
+                'deskripsi': str(row.get('Deskripsi', '')),
+                'jumlah_parameter': float(jumlah_param),
+                'bobot': float(bobot),
+                'skor': float(skor),
+                'capaian': float(capaian),
+                'penjelasan': str(row.get('Penjelasan', '')),
+                'year': int(row.get('Tahun', 2022)),
+                'auditor': str(row.get('Penilai', 'Unknown')),
+                'jenis_asesmen': str(row.get('Jenis_Asesmen', 'Internal'))
             }
             dashboard_data.append(dashboard_item)
         
@@ -572,7 +836,8 @@ def get_dashboard_data():
             if year not in years_data:
                 years_data[year] = {
                     'year': year,
-                    'auditor': item['auditor'], 
+                    'auditor': item['auditor'],
+                    'jenis_asesmen': item['jenis_asesmen'],
                     'data': []
                 }
             years_data[year]['data'].append(item)
@@ -587,6 +852,59 @@ def get_dashboard_data():
         
     except Exception as e:
         print(f"❌ Error loading dashboard data: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'data': []
+        }), 500
+
+
+@app.route('/api/gcg-mapping', methods=['GET'])
+def get_gcg_mapping():
+    """
+    Get GCG mapping data for autocomplete suggestions
+    """
+    try:
+        # Path to GCG mapping CSV file
+        gcg_mapping_path = Path(project_root) / 'GCG_MAPPING.csv'
+        
+        if not gcg_mapping_path.exists():
+            print(f"⚠️ GCG_MAPPING.csv not found at: {gcg_mapping_path}")
+            return jsonify({
+                'success': False,
+                'error': 'GCG mapping file not found',
+                'data': []
+            }), 404
+        
+        # Read GCG mapping CSV
+        df = pd.read_csv(gcg_mapping_path)
+        
+        # Convert to list of dictionaries for JSON response
+        gcg_data = []
+        for _, row in df.iterrows():
+            gcg_item = {
+                'level': str(row.get('Level', '')),
+                'type': str(row.get('Type', '')),
+                'section': str(row.get('Section', '')),
+                'no': str(row.get('No', '')),
+                'deskripsi': str(row.get('Deskripsi', '')),
+                'jumlah_parameter': str(row.get('Jumlah_Parameter', '')),
+                'bobot': str(row.get('Bobot', ''))
+            }
+            gcg_data.append(gcg_item)
+        
+        # Return all items for flexible filtering on frontend
+        return jsonify({
+            'success': True,
+            'data': gcg_data,
+            'total_items': len(gcg_data),
+            'headers': len([item for item in gcg_data if item['type'] == 'header']),
+            'indicators': len([item for item in gcg_data if item['type'] == 'indicator']),
+            'message': f'Loaded {len(gcg_data)} GCG items for autocomplete'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error loading GCG mapping: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e),

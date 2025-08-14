@@ -62,12 +62,14 @@ interface CSVPoweredDashboardProps {
   selectedYear?: number;
   tableData?: TableDataItem[];
   auditor?: string;
+  jenisAsesmen?: string;
 }
 
 const CSVPoweredDashboard: React.FC<CSVPoweredDashboardProps> = ({ 
   selectedYear, 
   tableData = [], 
-  auditor = 'Manual Input' 
+  auditor = 'Manual Input',
+  jenisAsesmen = 'Internal'
 }) => {
   const [csvData, setCsvData] = useState<Record<number, DashboardDataItem[]>>({});
   const [loading, setLoading] = useState(true);
@@ -125,38 +127,61 @@ const CSVPoweredDashboard: React.FC<CSVPoweredDashboardProps> = ({
         // Group by aspek and calculate totals
         const aspekGroups: Record<string, DashboardDataItem[]> = {};
         yearData.forEach(item => {
-          if (!aspekGroups[item.aspek]) {
-            aspekGroups[item.aspek] = [];
+          const aspekKey = item.aspek?.trim() || 'Unknown';
+          if (!aspekGroups[aspekKey]) {
+            aspekGroups[aspekKey] = [];
           }
-          aspekGroups[item.aspek].push(item);
+          aspekGroups[aspekKey].push(item);
         });
+        
+        // Remove empty or invalid aspek groups
+        console.log(`🔍 Before filtering - aspek groups:`, Object.keys(aspekGroups));
+        Object.keys(aspekGroups).forEach(key => {
+          if (!key || key === 'Unknown' || key === '' || key === 'undefined' || key === 'null') {
+            console.log(`🗑️ Removing invalid aspek group: '${key}'`);
+            delete aspekGroups[key];
+          }
+        });
+        console.log(`🔍 After filtering - aspek groups:`, Object.keys(aspekGroups));
 
         console.log(`🔍 Year ${yearNumber} aspek groups:`, Object.keys(aspekGroups));
-        console.log(`📊 Sample data:`, yearData.slice(0, 3).map(item => ({ aspek: item.aspek, skor: item.skor })));
+        console.log(`📊 ALL Year ${yearNumber} data (first 5):`, yearData.slice(0, 5).map(item => ({ aspek: item.aspek, skor: item.skor, bobot: item.bobot, type: item.id })));
+        console.log(`📊 Year ${yearNumber} total items: ${yearData.length}`);
+        
+        // DEBUG: Check for empty or invalid aspek values
+        const invalidAspeks = yearData.filter(item => !item.aspek || item.aspek.trim() === '' || item.aspek === 'Unknown');
+        if (invalidAspeks.length > 0) {
+          console.log(`⚠️ Year ${yearNumber} has ${invalidAspeks.length} items with invalid aspek values:`, invalidAspeks.slice(0, 3));
+        }
 
         // Create sections data
         const sections: SectionData[] = [];
         let totalScore = 0;
 
         Object.entries(aspekGroups).forEach(([aspek, items]) => {
-          const totalBobot = items.reduce((sum, item) => sum + item.bobot, 0);
-          const totalSkor = items.reduce((sum, item) => sum + item.skor, 0);
-          const avgCapaian = items.reduce((sum, item) => sum + item.capaian, 0) / items.length;
+          const totalBobot = items.reduce((sum, item) => sum + (item.bobot || 0), 0);
+          const totalSkor = items.reduce((sum, item) => sum + (item.skor || 0), 0);
+          const avgCapaian = items.reduce((sum, item) => sum + (item.capaian || 0), 0) / items.length;
           
           console.log(`📊 Aspek ${aspek}: ${items.length} items, totalSkor: ${totalSkor}, avgCapaian: ${avgCapaian}`);
           
-          sections.push({
-            name: aspek,
-            romanNumeral: aspek,
-            capaian: avgCapaian,
-            height: totalSkor, // Use total score for height (proportional stacking)
-            color: aspekColorMap[aspek] || '#cccccc',
-            bobot: totalBobot,
-            skor: totalSkor,
-            jumlah_parameter: items.reduce((sum, item) => sum + item.jumlah_parameter, 0)
-          });
+          // Only add sections that have meaningful data (relaxed condition for debugging)
+          if (totalSkor >= 0 || items.length > 0) {
+            sections.push({
+              name: aspek,
+              romanNumeral: aspek,
+              capaian: avgCapaian,
+              height: Math.max(totalSkor, 1), // Ensure minimum height for visibility
+              color: aspekColorMap[aspek] || '#cccccc',
+              bobot: totalBobot,
+              skor: totalSkor,
+              jumlah_parameter: items.reduce((sum, item) => sum + (item.jumlah_parameter || 0), 0)
+            });
 
-          totalScore += totalSkor;
+            totalScore += totalSkor;
+          } else {
+            console.log(`⚠️ Skipping aspek ${aspek} - no meaningful data (skor=${totalSkor}, items=${items.length})`);
+          }
         });
 
         // Sort sections by Roman numeral
@@ -175,6 +200,12 @@ const CSVPoweredDashboard: React.FC<CSVPoweredDashboardProps> = ({
         });
         
         console.log('📊 Using CSV data for year', yearNumber, ':', sections.length, 'sections');
+        console.log('📊 Sections created:', sections.map(s => ({ aspek: s.romanNumeral, skor: s.skor, height: s.height })));
+      });
+      
+      console.log(`🎯 FINAL RESULTS: Created ${results.length} year data objects`);
+      results.forEach(result => {
+        console.log(`  Year ${result.year}: ${result.sections.length} sections, totalScore=${result.totalScore}`);
       });
       
       if (results.length > 0) {
@@ -313,16 +344,20 @@ const CSVPoweredDashboard: React.FC<CSVPoweredDashboardProps> = ({
   }
 
   // Dynamic Y axis calculation for multi-year comparison
-  const rawMinScore = Math.min(...processedData.map(d => d.totalScore));
-  const rawMaxScore = Math.max(...processedData.map(d => d.totalScore));
+  const allScores = processedData.map(d => d.totalScore).filter(score => score > 0);
+  const rawMinScore = allScores.length > 0 ? Math.min(...allScores) : 0;
+  const rawMaxScore = allScores.length > 0 ? Math.max(...allScores) : 100;
   let minScore = Math.max(0, rawMinScore - 10);
-  let maxScore = Math.min(100, rawMaxScore + 10);
+  let maxScore = Math.min(300, rawMaxScore + 20); // Increased max for better visibility
   
   // If min and max are equal, force a range
   if (minScore === maxScore) {
-    minScore = Math.max(0, minScore - 10);
-    maxScore = Math.min(100, maxScore + 10);
+    minScore = Math.max(0, minScore - 20);
+    maxScore = Math.min(300, maxScore + 20);
   }
+  
+  console.log(`📊 Dashboard Y-axis: min=${minScore}, max=${maxScore}, processed data count=${processedData.length}`);
+  console.log(`📊 Processed years for rendering:`, processedData.map(d => ({ year: d.year, sections: d.sections.length, totalScore: d.totalScore })));
   
   const chartHeight = Math.max(window.innerHeight - 300, 450);
 
@@ -348,7 +383,8 @@ const CSVPoweredDashboard: React.FC<CSVPoweredDashboardProps> = ({
         <CardContent className="p-6">
           {/* Multi-Year Bar Chart */}
           <div className="w-full overflow-x-auto">
-            <div className="relative" style={{ minWidth: `${processedData.length * 140}px`, minHeight: `${chartHeight + 100}px` }}>
+            <div className="relative" style={{ minWidth: `${Math.max(processedData.length * 160, 800)}px`, minHeight: `${chartHeight + 100}px` }}>
+              {console.log(`🎨 Rendering ${processedData.length} bars with minWidth: ${Math.max(processedData.length * 160, 800)}px`)}
               {/* Y-axis labels */}
               <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-500" style={{height: `${chartHeight}px`}}>
                 {[...Array(6)].map((_, i) => {
@@ -377,6 +413,7 @@ const CSVPoweredDashboard: React.FC<CSVPoweredDashboardProps> = ({
 
                 {/* Multiple Year Bars */}
                 <div className="relative h-full flex items-end justify-center space-x-6">
+                  {console.log(`🎯 About to render ${processedData.length} year bars:`, processedData.map(d => ({ year: d.year, sections: d.sections.length, totalScore: d.totalScore })))}
                   {processedData.map((yearData) => {
                     const barHeight = ((yearData.totalScore - minScore) / (maxScore - minScore)) * chartHeight;
                     const isHovered = hoveredBar === yearData.year;
@@ -409,7 +446,7 @@ const CSVPoweredDashboard: React.FC<CSVPoweredDashboardProps> = ({
                             {/* Individual section stacks */}
                             {yearData.sections.map((section, sectionIndex) => {
                               const sectionColor = aspekColorMap[section.romanNumeral] || section.color;
-                              const sectionHeight = (section.height / yearData.totalScore) * barHeight;
+                              const sectionHeight = Math.max((section.height / yearData.totalScore) * barHeight, 5); // Minimum 5px visibility
                               const bottomOffset = yearData.sections
                                 .slice(0, sectionIndex)
                                 .reduce((sum, s) => sum + (s.height / yearData.totalScore) * barHeight, 0);
