@@ -39,7 +39,7 @@ interface ChecklistAssignment {
   notes?: string;
 }
 
-const ChecklistGCG = () => {
+const DokumenGCG = () => {
   const { 
     checklist, 
     getChecklistByYear, 
@@ -62,7 +62,7 @@ const ChecklistGCG = () => {
   const [editingAspek, setEditingAspek] = useState<{ id: number; nama: string } | null>(null);
   const [aspekForm, setAspekForm] = useState({ nama: '' });
   
-  // State untuk checklist item
+  // State untuk dokumen GCG item
   const [isChecklistDialogOpen, setIsChecklistDialogOpen] = useState(false);
   const [editingChecklist, setEditingChecklist] = useState<ChecklistItem | null>(null);
   const [checklistForm, setChecklistForm] = useState({ aspek: '', deskripsi: '' });
@@ -70,7 +70,7 @@ const ChecklistGCG = () => {
   // State untuk filter aspek
   const [selectedAspek, setSelectedAspek] = useState('all');
   
-  // State untuk assignment checklist
+  // State untuk assignment dokumen GCG
   const [assignments, setAssignments] = useState<ChecklistAssignment[]>([]);
   const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
   const [selectedChecklistForAssignment, setSelectedChecklistForAssignment] = useState<ChecklistItem | null>(null);
@@ -88,7 +88,7 @@ const ChecklistGCG = () => {
     initializeYearData(selectedYear);
   }, [selectedYear, initializeYearData]);
 
-  // Filter checklist berdasarkan tahun
+  // Filter dokumen GCG berdasarkan tahun
   const filteredChecklist = useMemo(() => {
     const yearData = getChecklistByYear(selectedYear);
     return yearData.map(item => ({
@@ -97,7 +97,7 @@ const ChecklistGCG = () => {
     }));
   }, [getChecklistByYear, selectedYear]);
 
-  // Group checklist berdasarkan aspek
+  // Group dokumen GCG berdasarkan aspek
   const groupedChecklist = useMemo(() => {
     const grouped: { [key: string]: ChecklistItem[] } = {};
     filteredChecklist.forEach(item => {
@@ -159,11 +159,11 @@ const ChecklistGCG = () => {
     if (editingChecklist) {
       // Update existing checklist
       editChecklist(editingChecklist.id, checklistForm.aspek, checklistForm.deskripsi, selectedYear);
-      alert('Checklist berhasil diupdate!');
+              alert('Dokumen GCG berhasil diupdate!');
     } else {
       // Add new checklist
       addChecklist(checklistForm.aspek, checklistForm.deskripsi, selectedYear);
-      alert('Checklist berhasil ditambahkan!');
+              alert('Dokumen GCG berhasil ditambahkan!');
     }
 
     setChecklistForm({ aspek: '', deskripsi: '' });
@@ -203,16 +203,16 @@ const ChecklistGCG = () => {
     }
   };
 
-  const handleEditChecklist = (item: ChecklistItem) => {
+  const handleEditDokumenGCG = (item: ChecklistItem) => {
     setEditingChecklist(item);
     setChecklistForm({ aspek: item.aspek, deskripsi: item.deskripsi });
     setIsChecklistDialogOpen(true);
   };
 
-  const handleDeleteChecklist = (item: ChecklistItem) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus checklist ini?`)) {
+  const handleDeleteDokumenGCG = (item: ChecklistItem) => {
+            if (confirm(`Apakah Anda yakin ingin menghapus dokumen GCG ini?`)) {
       deleteChecklist(item.id, selectedYear);
-      alert('Checklist berhasil dihapus!');
+              alert('Dokumen GCG berhasil dihapus!');
     }
   };
 
@@ -229,8 +229,8 @@ const ChecklistGCG = () => {
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Checklist GCG</h1>
-            <p className="text-gray-600 mt-2">Manajemen checklist Good Corporate Governance per tahun</p>
+            <h1 className="text-3xl font-bold text-gray-900">Dokumen GCG</h1>
+            <p className="text-gray-600 mt-2">Manajemen dokumen Good Corporate Governance per tahun</p>
           </div>
 
           {/* Year Selection */}
@@ -241,7 +241,7 @@ const ChecklistGCG = () => {
                   <Calendar className="w-5 h-5 text-blue-600" />
                   <span>Tahun Buku</span>
                 </CardTitle>
-                <CardDescription>Pilih tahun buku untuk mengelola checklist GCG</CardDescription>
+                <CardDescription>Pilih tahun buku untuk mengelola dokumen GCG</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
@@ -270,9 +270,9 @@ const ChecklistGCG = () => {
                 <FileText className="w-4 h-4" />
                 <span>Kelola Aspek</span>
               </TabsTrigger>
-              <TabsTrigger value="checklist" className="flex items-center space-x-2">
-                <ListTodo className="w-4 h-4" />
-                <span>Kelola Checklist</span>
+              <TabsTrigger value="dokumen" className="flex items-center space-x-2">
+                <ListTodo className="w-4 h-2" />
+                <span>Kelola Dokumen</span>
               </TabsTrigger>
             </TabsList>
 
@@ -281,10 +281,10 @@ const ChecklistGCG = () => {
               <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <Target className="w-5 h-5 text-blue-600" />
-                  <span className="font-semibold text-blue-900">Assignment Checklist - Tahun {selectedYear}</span>
+                  <span className="font-semibold text-blue-900">Assignment Dokumen GCG - Tahun {selectedYear}</span>
                 </div>
                 <p className="text-blue-700 text-sm mt-1">
-                  Atur assignment checklist GCG untuk setiap subdirektorat pada tahun {selectedYear}
+                  Atur assignment dokumen GCG untuk setiap subdirektorat pada tahun {selectedYear}
                 </p>
               </div>
               
@@ -424,7 +424,7 @@ const ChecklistGCG = () => {
                   <span className="font-semibold text-green-900">Kelola Aspek GCG - Tahun {selectedYear}</span>
                 </div>
                 <p className="text-green-700 text-sm mt-1">
-                  Tambah, edit, atau hapus aspek checklist GCG untuk tahun {selectedYear}
+                  Tambah, edit, atau hapus aspek dokumen GCG untuk tahun {selectedYear}
                 </p>
               </div>
               <Card className="border-0 shadow-lg">
@@ -495,15 +495,15 @@ const ChecklistGCG = () => {
               </Card>
             </TabsContent>
 
-            {/* Checklist Tab */}
-            <TabsContent value="checklist" id="checklist-tab">
+                          {/* Dokumen Tab */}
+            <TabsContent value="dokumen" id="dokumen-tab">
               <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <ListTodo className="w-5 h-5 text-purple-600" />
-                  <span className="font-semibold text-purple-900">Kelola Checklist Item - Tahun {selectedYear}</span>
+                                          <span className="font-semibold text-purple-900">Kelola Dokumen Item - Tahun {selectedYear}</span>
                 </div>
                 <p className="text-purple-700 text-sm mt-1">
-                  Tambah, edit, atau hapus item checklist GCG untuk tahun {selectedYear}
+                  Tambah, edit, atau hapus item dokumen GCG untuk tahun {selectedYear}
                 </p>
               </div>
               <Card className="border-0 shadow-lg">
@@ -515,7 +515,7 @@ const ChecklistGCG = () => {
                         <span>Daftar Checklist</span>
                       </CardTitle>
                       <CardDescription>
-                        {filteredChecklist.length} item checklist ditemukan untuk tahun {selectedYear}
+                        {filteredChecklist.length} item dokumen GCG ditemukan untuk tahun {selectedYear}
                       </CardDescription>
                     </div>
                     <ActionButton
@@ -610,7 +610,7 @@ const ChecklistGCG = () => {
                                     <Button 
                                       variant="outline" 
                                       size="sm"
-                                      onClick={() => handleEditChecklist(item)}
+                                      onClick={() => handleEditDokumenGCG(item)}
                                     >
                                       <Edit className="w-4 h-4" />
                                     </Button>
@@ -618,7 +618,7 @@ const ChecklistGCG = () => {
                                       variant="outline" 
                                       size="sm" 
                                       className="text-red-600 border-red-200 hover:bg-red-50"
-                                      onClick={() => handleDeleteChecklist(item)}
+                                      onClick={() => handleDeleteDokumenGCG(item)}
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </Button>
@@ -657,7 +657,7 @@ const ChecklistGCG = () => {
                                     <Button 
                                       variant="outline" 
                                       size="sm"
-                                      onClick={() => handleEditChecklist(item)}
+                                      onClick={() => handleEditDokumenGCG(item)}
                                     >
                                       <Edit className="w-4 h-4" />
                                     </Button>
@@ -665,7 +665,7 @@ const ChecklistGCG = () => {
                                       variant="outline" 
                                       size="sm" 
                                       className="text-red-600 border-red-200 hover:bg-red-50"
-                                      onClick={() => handleDeleteChecklist(item)}
+                                      onClick={() => handleDeleteDokumenGCG(item)}
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </Button>
@@ -694,7 +694,7 @@ const ChecklistGCG = () => {
           handleAspekSubmit(event);
         }}
         title={`${editingAspek ? 'Edit Aspek' : 'Tambah Aspek Baru'} - Tahun ${selectedYear}`}
-        description={editingAspek ? `Edit aspek checklist GCG untuk tahun ${selectedYear}` : `Tambahkan aspek baru untuk checklist GCG tahun ${selectedYear}`}
+                        description={editingAspek ? `Edit aspek dokumen GCG untuk tahun ${selectedYear}` : `Tambahkan aspek baru untuk dokumen GCG tahun ${selectedYear}`}
         variant={editingAspek ? 'edit' : 'add'}
         submitText={editingAspek ? 'Update' : 'Simpan'}
       >
@@ -718,8 +718,8 @@ const ChecklistGCG = () => {
           const event = { preventDefault: () => {} } as React.FormEvent;
           handleChecklistSubmit(event);
         }}
-        title={`${editingChecklist ? 'Edit Checklist' : 'Tambah Checklist Baru'} - Tahun ${selectedYear}`}
-        description={editingChecklist ? `Edit item checklist GCG untuk tahun ${selectedYear}` : `Tambahkan item baru untuk checklist GCG tahun ${selectedYear}`}
+        title={`${editingChecklist ? 'Edit Dokumen GCG' : 'Tambah Dokumen GCG Baru'} - Tahun ${selectedYear}`}
+                        description={editingChecklist ? `Edit item dokumen GCG untuk tahun ${selectedYear}` : `Tambahkan item baru untuk dokumen GCG tahun ${selectedYear}`}
         variant={editingChecklist ? 'edit' : 'add'}
         submitText={editingChecklist ? 'Update' : 'Simpan'}
         size="lg"
@@ -741,12 +741,12 @@ const ChecklistGCG = () => {
             </Select>
           </div>
           <div>
-            <Label htmlFor="deskripsi">Deskripsi Checklist</Label>
+            <Label htmlFor="deskripsi">Deskripsi Dokumen GCG</Label>
             <Textarea
               id="deskripsi"
               value={checklistForm.deskripsi}
               onChange={(e) => setChecklistForm({ ...checklistForm, deskripsi: e.target.value })}
-              placeholder="Masukkan deskripsi checklist"
+              placeholder="Masukkan deskripsi dokumen GCG"
               rows={4}
               required
             />
@@ -782,15 +782,15 @@ const ChecklistGCG = () => {
           setAssignmentForm({ subdirektorat: '', notes: '' });
           alert('Assignment berhasil dibuat!');
         }}
-        title="Assign Checklist"
-        description="Tugaskan checklist ini kepada subdirektorat tertentu"
+        title="Assign Dokumen GCG"
+        description="Tugaskan dokumen GCG ini kepada subdirektorat tertentu"
         variant="custom"
-        submitText="Assign Checklist"
+        submitText="Assign Dokumen GCG"
       >
         {selectedChecklistForAssignment && (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="checklist-info">Checklist Info</Label>
+              <Label htmlFor="checklist-info">Dokumen GCG Info</Label>
               <div className="p-3 bg-gray-50 rounded-lg text-sm">
                 <p><strong>Aspek:</strong> {selectedChecklistForAssignment.aspek}</p>
                 <p><strong>Deskripsi:</strong> {selectedChecklistForAssignment.deskripsi}</p>
@@ -836,4 +836,4 @@ const ChecklistGCG = () => {
   );
 };
 
-export default ChecklistGCG; 
+export default DokumenGCG; 

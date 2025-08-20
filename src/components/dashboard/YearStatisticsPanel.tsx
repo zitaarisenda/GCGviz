@@ -164,7 +164,7 @@ const YearStatisticsPanel: React.FC<YearStatisticsPanelProps> = ({
           {title || `Statistik Tahun Buku ${selectedYear}`}
         </h2>
         <p className="text-gray-600">
-          {description || `Overview dokumen dan checklist assessment tahun ${selectedYear}`}
+          {description || `Overview dokumen dan assessment dokumen GCG tahun ${selectedYear}`}
         </p>
       </div>
 
@@ -234,7 +234,7 @@ const YearStatisticsPanel: React.FC<YearStatisticsPanelProps> = ({
               Tidak ada data aspek
             </h3>
             <p className="text-gray-600">
-              Belum ada aspek checklist yang tersedia untuk tahun {selectedYear}
+              Belum ada aspek dokumen GCG yang tersedia untuk tahun {selectedYear}
             </p>
           </div>
         )}

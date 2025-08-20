@@ -310,7 +310,7 @@ const DashboardStats = () => {
           Statistik Tahun Buku {selectedYear}
         </h2>
         <p className="text-gray-600">
-          Overview dokumen dan checklist assessment tahun {selectedYear}
+          Overview dokumen dan assessment dokumen GCG tahun {selectedYear}
         </p>
       </div>
 

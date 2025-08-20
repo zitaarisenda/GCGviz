@@ -35,7 +35,7 @@ interface Document {
   category_id: number;
 }
 
-const UserDashboard = () => {
+const DashboardUser = () => {
   const { user, profile, logout } = useAuth();
   const { toast } = useToast();
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -190,7 +190,7 @@ const UserDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Search className="w-5 h-5 text-green-600" />
-              <span>Pencarian Dokumen</span>
+              <span>Pencarian Arsip Dokumen</span>
             </CardTitle>
             <CardDescription>
               Cari dokumen yang tersedia dalam sistem
@@ -353,4 +353,4 @@ const UserDashboard = () => {
   );
 };
 
-export default UserDashboard;
+export default DashboardUser;

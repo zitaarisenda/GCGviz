@@ -14,6 +14,7 @@ import { Toaster } from './components/ui/toaster';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/auth/Login';
 import Register from './pages/Register';
+<<<<<<< HEAD
 import Dashboard from './pages/dashboard/Dashboard';
 import ListGCG from './pages/ListGCG';
 import DocumentManagement from './pages/DocumentManagement';
@@ -21,8 +22,14 @@ import PenilaianGCG from './pages/PenilaianGCG';
 import GraphView from './pages/GraphView';
 import GraphViewTest from './pages/GraphViewTest';
 import AdminDocumentManagement from './pages/admin/DocumentManagement';
+=======
+import DashboardMain from './pages/dashboard/DashboardMain';
+import MonitoringUploadGCG from './pages/MonitoringUploadGCG';
+
+import ArsipDokumen from './pages/admin/ArsipDokumen';
+>>>>>>> upstream/progres-3
 import StrukturPerusahaan from './pages/admin/StrukturPerusahaan';
-import AdminDashboard from './pages/admin/AdminDashboard';
+import DashboardAdmin from './pages/admin/DashboardAdmin';
 import KelolaAkun from './pages/admin/KelolaAkun';
 import MetaData from './pages/admin/MetaData';
 import ChecklistGCG from './pages/admin/ChecklistGCG';
@@ -84,7 +91,7 @@ const AppRoutes = () => {
           path="/dashboard" 
           element={
             <ProtectedRoute>
-              {user.role === 'admin' ? <AdminDashboard /> : <Dashboard />}
+              {user.role === 'admin' ? <DashboardAdmin /> : <DashboardMain />}
             </ProtectedRoute>
           } 
         />
@@ -94,7 +101,7 @@ const AppRoutes = () => {
           path="/admin/dashboard" 
           element={
             <AdminRoute>
-              <AdminDashboard />
+              <DashboardAdmin />
             </AdminRoute>
           } 
         />
@@ -103,13 +110,14 @@ const AppRoutes = () => {
         path="/list-gcg" 
         element={
           <SuperAdminRoute>
-            <ListGCG />
+            <MonitoringUploadGCG />
           </SuperAdminRoute>
         } 
       />
       <Route 
-        path="/penilaian-gcg" 
+        path="/performa-gcg" 
         element={
+<<<<<<< HEAD
           <ProtectedRoute>
             <PenilaianGCG />
           </ProtectedRoute>
@@ -121,6 +129,16 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <GraphView />
           </ProtectedRoute>
+=======
+          <SuperAdminRoute>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">Performa GCG</h1>
+                <p className="text-gray-600">Halaman performa GCG akan dikembangkan selanjutnya</p>
+              </div>
+            </div>
+          </SuperAdminRoute>
+>>>>>>> upstream/progres-3
         } 
       />
       
@@ -148,10 +166,10 @@ const AppRoutes = () => {
         } 
       />
       <Route 
-        path="/admin/document-management" 
+        path="/admin/arsip-dokumen" 
         element={
           <SuperAdminRoute>
-            <AdminDocumentManagement />
+            <ArsipDokumen />
           </SuperAdminRoute>
         } 
       />

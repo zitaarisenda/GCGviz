@@ -586,12 +586,12 @@ const ChecklistSection = memo(({
 }) => (
   <div className="space-y-4">
     <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-      Pilih Checklist GCG (Opsional)
+                      Pilih Dokumen GCG (Opsional)
     </h3>
     <div className="space-y-2">
       <p className="text-sm text-gray-600">
-        Pilih satu checklist GCG yang sesuai dengan dokumen yang akan diupload. 
-        Checklist yang sudah digunakan di tahun ini tidak akan muncul di daftar.
+                        Pilih satu dokumen GCG yang sesuai dengan dokumen yang akan diupload. 
+        Dokumen GCG yang sudah digunakan di tahun ini tidak akan muncul di daftar.
       </p>
       
       {/* Aspect Filter */}
@@ -645,7 +645,7 @@ const ChecklistSection = memo(({
             <p className="text-center text-gray-500 py-4">
               {selectedAspectFilter 
                 ? `Tidak ada checklist tersedia untuk ${selectedAspectFilter.replace(/^Aspek\s+/i, '')}`
-                : `Semua checklist GCG untuk tahun ini sudah digunakan`
+                : `Semua dokumen GCG untuk tahun ini sudah digunakan`
               }
             </p>
           );

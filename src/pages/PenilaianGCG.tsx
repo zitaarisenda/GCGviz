@@ -12,8 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useUser } from '@/contexts/UserContext';
-import GCGDashboard from '@/components/dashboard/GCGDashboard';
-import CSVPoweredDashboard from '@/components/dashboard/CSVPoweredDashboard'; // Now reads XLSX
+import { GCGChartWrapper } from '@/components/dashboard/GCGChartWrapper';
 import { 
   FileText, 
   Upload, 
@@ -917,7 +916,7 @@ const PenilaianGCG = () => {
         <div className="space-y-6">
           <h2 className="text-xl font-semibold text-gray-800 text-left">Dashboard Visualisasi</h2>
           
-          <CSVPoweredDashboard selectedYear={selectedYear} tableData={tableData} auditor={auditor} jenisAsesmen={jenisAsesmen} />
+          <GCGChartWrapper selectedYear={selectedYear} tableData={tableData} auditor={auditor} jenisAsesmen={jenisAsesmen} />
         </div>
       )}
       

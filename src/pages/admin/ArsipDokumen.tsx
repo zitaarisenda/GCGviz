@@ -26,7 +26,7 @@ import {
   Clock
 } from 'lucide-react';
 
-const DocumentManagement = () => {
+const ArsipDokumen = () => {
   const { isSidebarOpen } = useSidebar();
   const { selectedYear, setSelectedYear, availableYears } = useYear();
   const { documents, getDocumentsByYear } = useDocumentMetadata();
@@ -161,7 +161,7 @@ const DocumentManagement = () => {
       case 'aspect':
         return {
           title: 'Unduh Per Aspek',
-          description: 'Mengunduh dokumen berdasarkan aspek checklist GCG',
+          description: 'Mengunduh dokumen berdasarkan aspek dokumen GCG',
           icon: <CheckCircle className="w-5 h-5" />,
           color: 'bg-green-500'
         };
@@ -196,7 +196,7 @@ const DocumentManagement = () => {
         <div className="p-6">
           {/* Header */}
                       <PageHeaderPanel
-              title="Kelola Dokumen"
+              title="Arsip Dokumen"
               subtitle="Kelola dokumen GCG berdasarkan tahun buku"
             />
 
@@ -299,7 +299,7 @@ const DocumentManagement = () => {
                       {downloadType === 'aspect' && aspects.length > 0 && (
                         <Select value={selectedAspect} onValueChange={setSelectedAspect}>
                           <SelectTrigger className="w-full md:w-64 h-8 text-xs">
-                            <SelectValue placeholder="Pilih aspek checklist GCG" />
+                            <SelectValue placeholder="Pilih aspek dokumen GCG" />
                           </SelectTrigger>
                           <SelectContent>
                             {aspects.map(aspect => (
@@ -436,11 +436,11 @@ const DocumentManagement = () => {
                 <FileText className="w-10 h-10 text-white" />
                       </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                Fitur Management Dokumen
+                Fitur Arsip Dokumen
               </h3>
               <p className="text-gray-600 text-lg max-w-md mx-auto mb-6">
                 Panel daftar dokumen dan fitur download fleksibel telah berhasil ditambahkan. 
-                Fitur management dokumen lainnya sedang dalam pengembangan.
+                Fitur arsip dokumen lainnya sedang dalam pengembangan.
               </p>
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-w-md mx-auto">
                 <div className="flex items-center space-x-2 text-green-800">
@@ -448,7 +448,7 @@ const DocumentManagement = () => {
                   <span className="font-medium">Tahun Buku Aktif: {selectedYear}</span>
                 </div>
                 <p className="text-sm text-green-600 mt-2">
-                  Panel daftar dokumen dan fitur download terintegrasi dengan tahun buku dan siap untuk fitur management dokumen yang akan datang.
+                  Panel daftar dokumen dan fitur download terintegrasi dengan tahun buku dan siap untuk fitur arsip dokumen yang akan datang.
                     </p>
                   </div>
                   </div>
@@ -459,4 +459,4 @@ const DocumentManagement = () => {
   );
 };
 
-export default DocumentManagement; 
+export default ArsipDokumen;

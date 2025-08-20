@@ -120,7 +120,7 @@ export const ChecklistProvider = ({ children }: { children: ReactNode }) => {
     const newChecklist = { 
       id: Date.now(), 
       aspek, 
-      deskripsi: `Item checklist untuk ${aspek}`, 
+      deskripsi: `Item dokumen GCG untuk ${aspek}`, 
       tahun: year 
     };
     const updated = [...checklist, newChecklist];

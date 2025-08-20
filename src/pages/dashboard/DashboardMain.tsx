@@ -11,7 +11,7 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useYear } from '@/contexts/YearContext';
 import { PageHeaderPanel } from '@/components/panels';
 
-const Dashboard = () => {
+const DashboardMain = () => {
   const { isSidebarOpen } = useSidebar();
   const { selectedYear } = useYear();
   const [searchParams] = useSearchParams();
@@ -86,4 +86,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default DashboardMain; 

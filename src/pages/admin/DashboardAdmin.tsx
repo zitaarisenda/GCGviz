@@ -41,7 +41,7 @@ interface ChecklistAssignment {
   notes?: string;
 }
 
-const AdminDashboard = () => {
+const DashboardAdmin = () => {
   const { isSidebarOpen } = useSidebar();
   const { selectedYear, setSelectedYear, availableYears } = useYear();
   const { user } = useUser();
@@ -546,7 +546,7 @@ const AdminDashboard = () => {
     };
   }, [userDocuments, forceUpdate, selectedYear, userSubDirektorat]);
 
-  // Helper: status upload per checklist (berdasarkan semua dokumen tahun ini)
+          // Helper: status upload per dokumen GCG (berdasarkan semua dokumen tahun ini)
   const isChecklistUploaded = React.useCallback((checklistId: number) => {
     const yearFiles = getFilesByYear(selectedYear);
     return yearFiles.some(file => file.checklistId === checklistId);
@@ -831,7 +831,7 @@ const AdminDashboard = () => {
                       <div>
                         <h3 className="text-lg font-semibold text-blue-900">Statistik Tahun Buku</h3>
                         <p className="text-sm text-blue-700">
-                          Overview dokumen dan checklist assessment tahun {selectedYear} untuk {userSubDirektorat}
+                          Overview dokumen dan assessment dokumen GCG tahun {selectedYear} untuk {userSubDirektorat}
                         </p>
                       </div>
                       <Button
@@ -862,17 +862,17 @@ const AdminDashboard = () => {
                     />
                   </div>
 
-                  {/* Panel: Daftar Checklist GCG (integrated with upload functionality) */}
+                  {/* Panel: Daftar Dokumen GCG (integrated with upload functionality) */}
                   <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-indigo-50 mt-6">
                     <CardHeader>
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <CardTitle className="flex items-center space-x-2 text-indigo-900">
                             <FileText className="w-5 h-5 text-indigo-600" />
-                            <span>Daftar Checklist GCG - Tahun {selectedYear}</span>
+                            <span>Daftar Dokumen GCG - Tahun {selectedYear}</span>
                           </CardTitle>
                           <CardDescription className="text-indigo-700 mt-2">
-                            Checklist yang ditugaskan untuk {userSubDirektorat} pada tahun {selectedYear}
+                            Dokumen GCG yang ditugaskan untuk {userSubDirektorat} pada tahun {selectedYear}
                           </CardDescription>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -880,7 +880,7 @@ const AdminDashboard = () => {
                             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                               type="text"
-                              placeholder="Cari checklist..."
+                              placeholder="Cari dokumen..."
                               value={checklistSearchQuery}
                               onChange={(e) => setChecklistSearchQuery(e.target.value)}
                               className="pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm w-48"
@@ -913,7 +913,7 @@ const AdminDashboard = () => {
                             Belum ada checklist
                           </h3>
                           <p className="text-gray-600">
-                            Belum ada checklist yang ditugaskan untuk {userSubDirektorat} pada tahun {selectedYear}
+                            Belum ada dokumen GCG yang ditugaskan untuk {userSubDirektorat} pada tahun {selectedYear}
                           </p>
                         </div>
                       ) : (
@@ -989,14 +989,14 @@ const AdminDashboard = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Panel: Daftar Dokumen (filtered by sub-direktorat for current year) */}
+                  {/* Panel: Daftar Arsip Dokumen (filtered by sub-direktorat for current year) */}
                   <Card className="border-0 shadow-lg mt-6">
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div>
                           <CardTitle className="flex items-center space-x-2">
                             <FileText className="w-5 h-5 text-blue-600" />
-                            <span>Daftar Dokumen - {userSubDirektorat}</span>
+                            <span>Daftar Arsip Dokumen - {userSubDirektorat}</span>
                           </CardTitle>
                           <CardDescription>
                             Dokumen yang telah diupload oleh {userSubDirektorat} pada tahun {selectedYear}
@@ -1084,14 +1084,14 @@ const AdminDashboard = () => {
                   </Card>
                 </>
               ) : (
-                /* Previous Years: Show only Daftar Dokumen with all documents */
+                /* Previous Years: Show only Daftar Arsip Dokumen with all documents */
                 <Card className="border-0 shadow-lg">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="flex items-center space-x-2">
                           <FileText className="w-5 h-5 text-blue-600" />
-                          <span>Daftar Dokumen - Tahun {selectedYear}</span>
+                          <span>Daftar Arsip Dokumen - Tahun {selectedYear}</span>
                         </CardTitle>
                         <CardDescription>
                           Semua dokumen yang tersedia untuk tahun {selectedYear} (hanya dapat diunduh)
@@ -1225,4 +1225,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default DashboardAdmin;

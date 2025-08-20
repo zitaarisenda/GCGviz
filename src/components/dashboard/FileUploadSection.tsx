@@ -10,26 +10,25 @@ import { useFileUpload } from '@/contexts/FileUploadContext';
 import { useChecklist } from '@/contexts/ChecklistContext';
 
 const FileUploadSection = () => {
-  const { selectedYear, uploadFile, uploadedFiles, getFilesByYear } = useFileUpload();
+  const { uploadFile, uploadedFiles, getFilesByYear } = useFileUpload();
   const { checklist } = useChecklist();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedChecklistId, setSelectedChecklistId] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get unique aspects for the selected year
   const aspects = React.useMemo(() => {
     if (!selectedYear) return [];
-    return [...new Set(checklist.map(item => item.aspek))];
+    return [...new Set(checklist.filter(item => item.tahun === selectedYear).map(item => item.aspek))];
   }, [checklist, selectedYear]);
 
   // Get checklist items for selected aspect
   const checklistItems = React.useMemo(() => {
     if (!selectedChecklistId) return [];
-    const aspect = aspects.find(a => a === selectedChecklistId);
-    if (!aspect) return [];
-    return checklist.filter(item => item.aspek === aspect);
-  }, [checklist, selectedChecklistId, aspects]);
+    return checklist.filter(item => item.aspek === selectedChecklistId && item.tahun === selectedYear);
+  }, [checklist, selectedChecklistId, selectedYear]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -44,12 +43,15 @@ const FileUploadSection = () => {
     const aspect = selectedChecklistId;
     const checklistItem = checklistItems[0]; // For now, we'll use the first item of the aspect
 
-    uploadFile(
-      selectedFile,
-      checklistItem?.id,
-      checklistItem?.deskripsi,
-      aspect
-    );
+    if (checklistItem) {
+      uploadFile(
+        selectedFile,
+        selectedYear,
+        checklistItem.id,
+        checklistItem.deskripsi,
+        aspect
+      );
+    }
 
     // Reset form
     setSelectedFile(null);
@@ -84,11 +86,27 @@ const FileUploadSection = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!selectedYear ? (
+          <div className="mb-4">
+            <Label htmlFor="year">Tahun Buku</Label>
+            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih tahun buku" />
+              </SelectTrigger>
+              <SelectContent>
+                {[2020, 2021, 2022, 2023, 2024, 2025].map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {aspects.length === 0 ? (
             <div className="text-center py-8">
               <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-4">
-                Silakan pilih tahun buku terlebih dahulu untuk mengupload dokumen
+                Tidak ada aspek checklist yang tersedia untuk tahun {selectedYear}
               </p>
               <Button disabled variant="outline">
                 <Upload className="w-4 h-4 mr-2" />
@@ -150,6 +168,11 @@ const FileUploadSection = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                      {selectedChecklistId && checklistItems.length === 0 && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Tidak ada item checklist yang tersedia untuk aspek ini
+                        </p>
+                      )}
                     </div>
                     
                     <div className="flex justify-end space-x-2">
@@ -158,7 +181,7 @@ const FileUploadSection = () => {
                       </Button>
                       <Button 
                         onClick={handleUpload}
-                        disabled={!selectedFile || !selectedChecklistId}
+                        disabled={!selectedFile || !selectedChecklistId || checklistItems.length === 0}
                       >
                         Upload
                       </Button>
@@ -183,12 +206,7 @@ const FileUploadSection = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!selectedYear ? (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Pilih tahun buku untuk melihat dokumen</p>
-            </div>
-          ) : yearFiles.length === 0 ? (
+          {yearFiles.length === 0 ? (
             <div className="text-center py-8">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">Belum ada dokumen yang diupload</p>
@@ -202,7 +220,7 @@ const FileUploadSection = () => {
                     <div>
                       <p className="font-medium text-sm">{file.fileName}</p>
                       <p className="text-xs text-gray-500">
-                        {formatFileSize(file.fileSize)} • {file.aspect}
+                        {formatFileSize(file.fileSize)} • {file.aspect || 'Tidak ada aspek'}
                       </p>
                     </div>
                   </div>

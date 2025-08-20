@@ -51,6 +51,7 @@ const Sidebar = () => {
     { 
       name: 'Performa GCG', 
       icon: BarChart3, 
+<<<<<<< HEAD
       path: '/penilaian-gcg',
       badge: null
     },
@@ -59,6 +60,11 @@ const Sidebar = () => {
       icon: Network, 
       path: '/graph-view',
       badge: null
+=======
+      path: '/performa-gcg',
+      badge: null,
+      badgeIcon: Lock
+>>>>>>> upstream/progres-3
     }
   ];
 
@@ -72,9 +78,9 @@ const Sidebar = () => {
         badgeIcon: Lock
       },
       {
-        name: 'Kelola Dokumen',
+        name: 'Arsip Dokumen',
         icon: FileText,
-        path: '/admin/document-management',
+        path: '/admin/arsip-dokumen',
         badgeIcon: Lock
       },
       {
@@ -158,8 +164,13 @@ const Sidebar = () => {
           <div className="px-4 space-y-1">
             {menuItems
               .filter(item => {
+<<<<<<< HEAD
                 // Hide Performa GCG menu if user is not superadmin
                 if (item.name === 'Performa GCG' && user?.role !== 'superadmin') {
+=======
+                    // Hide Performa GCG menu if user is not superadmin
+    if (item.name === 'Performa GCG' && user?.role !== 'superadmin') {
+>>>>>>> upstream/progres-3
                   return false;
                 }
                 return true;

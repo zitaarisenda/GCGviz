@@ -82,7 +82,7 @@ const DocumentFilterPanel: React.FC<DocumentFilterPanelProps> = ({
       <div>
         <label className="text-xs font-semibold text-gray-700 mb-2 block flex items-center">
           <Search className="w-3 h-3 mr-1 text-blue-600" />
-          Pencarian Dokumen
+          Pencarian Arsip Dokumen
         </label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -279,7 +279,7 @@ const DocumentFilterPanel: React.FC<DocumentFilterPanelProps> = ({
         <div className="space-y-1">
           <label className="text-xs font-semibold text-gray-700 flex items-center">
             <User className="w-3 h-3 mr-1 text-teal-600" />
-            Checklist GCG
+            Dokumen GCG
           </label>
           <Select value={filterChecklistStatus} onValueChange={onChecklistStatusChange}>
             <SelectTrigger className="h-8 border-2 border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all duration-200 text-xs">
