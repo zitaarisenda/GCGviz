@@ -19,8 +19,8 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-# Project root for subprocess calls to the working core system
-project_root = str(Path(__file__).parent.parent.parent)
+# Web interface root - self-contained deployment
+web_interface_root = str(Path(__file__).parent.parent)
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
@@ -145,11 +145,11 @@ def upload_file():
                     ]
                     
                     print(f"🔧 DEBUG: Running command: {' '.join(cmd)}")
-                    print(f"🔧 DEBUG: Working directory: {project_root}")
+                    print(f"🔧 DEBUG: Working directory: {web_interface_root}")
                     
                     result = subprocess.run(
                         cmd,
-                        cwd=project_root,
+                        cwd=web_interface_root,
                         capture_output=True,
                         text=True,
                         timeout=180  # 3 minute timeout for OCR processing
@@ -248,7 +248,7 @@ def upload_file():
                             'bobot': float(row['Bobot']) if pd.notna(row['Bobot']) else 100.0,
                             'skor': float(row['Skor']) if pd.notna(row['Skor']) else 0.0,
                             'capaian': float(row['Capaian']) if pd.notna(row['Capaian']) else 0.0,
-                            'penjelasan': str(row['Penjelasan']) if pd.notna(row['Penjelasan']) else 'Sangat Kurang'
+                            'penjelasan': str(row['Penjelasan']) if pd.notna(row['Penjelasan']) else 'Tidak Ada'
                         })
                     extracted_data['sample_indicators'] = all_indicators
                     
@@ -469,308 +469,124 @@ def system_info():
 @app.route('/api/save', methods=['POST'])
 def save_assessment():
     """
-    Save assessment data directly to output.xlsx (no JSON intermediate)
+    PURE EXCEL SAVE - NO JSON AT ALL
     """
     try:
-        data = request.json
-        print(f"🔧 DEBUG: Received save request with data keys: {data.keys()}")
+        # Get form data - NO JSON
+        year = request.form.get('year', '2022')
+        auditor = request.form.get('auditor', 'Unknown')
+        jenis_asesmen = request.form.get('jenis_asesmen', 'Internal')
         
-        # Create assessment record
-        assessment_id = f"{data.get('year', 'unknown')}_{data.get('auditor', 'unknown')}_{str(uuid.uuid4())[:8]}"
-        saved_at = datetime.now().isoformat()
+        print(f"📝 PURE EXCEL SAVE: Year={year}, Auditor={auditor}")
         
+        # Excel path
         output_xlsx_path = Path(__file__).parent.parent / 'web-output' / 'output.xlsx'
         
-        # Load existing XLSX data and COMPLETELY REPLACE year's data (including deletions)
-        all_rows = []
+        # Extract table data from form fields
+        assessment_data = []
+        form_keys = list(request.form.keys())
+        row_indices = set()
+        
+        # Find all row indices
+        for key in form_keys:
+            if '_' in key and key.split('_')[-1].isdigit():
+                row_indices.add(int(key.split('_')[-1]))
+        
+        # Process each row - DIRECT EXCEL MAPPING
+        for row_index in sorted(row_indices):
+            no = request.form.get(f'no_{row_index}', '')
+            aspek = request.form.get(f'aspek_{row_index}', '')
+            deskripsi = request.form.get(f'deskripsi_{row_index}', '')
+            bobot = request.form.get(f'bobot_{row_index}', '0')
+            skor = request.form.get(f'skor_{row_index}', '0')
+            penjelasan = request.form.get(f'penjelasan_{row_index}', '')
+            
+            if deskripsi:  # Only save rows with content
+                excel_row = {
+                    'Level': '2',
+                    'Type': 'indicator',
+                    'Section': aspek,
+                    'No': no,
+                    'Deskripsi': deskripsi,
+                    'Jumlah_Parameter': '',
+                    'Bobot': float(bobot) if bobot else 0,
+                    'Skor': float(skor) if skor else 0,
+                    'Capaian': (float(skor)/float(bobot)*100) if bobot and float(bobot) > 0 else 0,
+                    'Penjelasan': penjelasan,
+                    'Tahun': int(year),
+                    'Penilai': auditor,
+                    'Jenis_Asesmen': jenis_asesmen
+                }
+                assessment_data.append(excel_row)
+        
+        # PURE EXCEL WORKFLOW
         if output_xlsx_path.exists():
-            try:
-                existing_df = pd.read_excel(output_xlsx_path)
-                current_year = data.get('year')
-                
-                print(f"🔧 DEBUG: Loading existing XLSX with {len(existing_df)} rows")
-                print(f"🔧 DEBUG: Current year to save: {current_year}")
-                print(f"🔧 DEBUG: Existing years in file: {existing_df['Tahun'].unique().tolist()}")
-                
-                # COMPLETELY REMOVE all existing data for this year (this handles deletions)
-                if current_year:
-                    original_count = len(existing_df)
-                    existing_df = existing_df[existing_df['Tahun'] != current_year]
-                    removed_count = original_count - len(existing_df)
-                    print(f"🔧 DEBUG: COMPLETELY REMOVED {removed_count} rows for year {current_year} (including deletions)")
-                    print(f"🔧 DEBUG: Preserved {len(existing_df)} rows from other years")
-                
-                # Convert remaining data back to list format
-                for _, row in existing_df.iterrows():
-                    all_rows.append(row.to_dict())
-                    
-                print(f"🔧 DEBUG: Starting with {len(all_rows)} rows from other years")
-            except Exception as e:
-                print(f"⚠️ Could not read existing XLSX: {e}")
+            existing_df = pd.read_excel(output_xlsx_path)
+            other_years_df = existing_df[existing_df['Tahun'] != int(year)]
+        else:
+            other_years_df = pd.DataFrame()
         
-        # Process new data and add to all_rows
-        year = data.get('year', 'unknown')
-        auditor = data.get('auditor', 'unknown')
-        jenis_asesmen = data.get('jenis_asesmen', 'Internal')
+        # Combine and save
+        if assessment_data:
+            new_df = pd.DataFrame(assessment_data)
+            final_df = pd.concat([other_years_df, new_df], ignore_index=True) if not other_years_df.empty else new_df
+        else:
+            final_df = other_years_df
         
-        # Process main indicator data
-        for row in data.get('data', []):
-            # Map frontend data structure to XLSX format
-            row_id = row.get('id', row.get('no', ''))
-            section = row.get('aspek', row.get('section', ''))
-            
-            # Determine Level and Type based on data structure
-            if str(row_id).isdigit():
-                level = "2"
-                row_type = "indicator"
-            else:
-                level = "1"
-                row_type = "header"
-            
-            xlsx_row = {
-                'Level': level,
-                'Type': row_type,
-                'Section': section,
-                'No': row_id,
-                'Deskripsi': row.get('deskripsi', ''),
-                'Jumlah_Parameter': row.get('jumlah_parameter', ''),
-                'Bobot': row.get('bobot', ''),
-                'Skor': row.get('skor', ''),
-                'Capaian': row.get('capaian', ''),
-                'Penjelasan': row.get('penjelasan', ''),
-                'Tahun': year,
-                'Penilai': auditor,
-                'Jenis_Asesmen': jenis_asesmen,
-                'Export_Date': saved_at[:10]
-            }
-            all_rows.append(xlsx_row)
+        # SAVE TO EXCEL DIRECTLY
+        os.makedirs(output_xlsx_path.parent, exist_ok=True)
+        final_df.to_excel(output_xlsx_path, index=False)
         
-        # Process aspect summary data (if provided)
-        aspect_summary_data = data.get('aspectSummaryData', [])
-        if aspect_summary_data:
-            print(f"🔧 DEBUG: Processing {len(aspect_summary_data)} aspect summary rows")
-            
-            for summary_row in aspect_summary_data:
-                section = summary_row.get('aspek', '')
-                deskripsi = summary_row.get('deskripsi', '')
-                bobot = summary_row.get('bobot', 0)
-                skor = summary_row.get('skor', 0)
-                
-                # Skip empty aspects or meaningless default data
-                if not section or not deskripsi or (bobot == 0 and skor == 0):
-                    continue
-                    
-                # Skip if this looks like an unedited default row (just roman numerals with no real data)
-                if section in ['I', 'II', 'III', 'IV', 'V', 'VI'] and not deskripsi.strip():
-                    continue
-                    
-                # Row 1: Header for this aspect
-                header_row = {
-                    'Level': "1",
-                    'Type': 'header',
-                    'Section': section,
-                    'No': '',
-                    'Deskripsi': summary_row.get('deskripsi', ''),
-                    'Jumlah_Parameter': '',
-                    'Bobot': '',
-                    'Skor': '',
-                    'Capaian': '',
-                    'Penjelasan': '',
-                    'Tahun': year,
-                    'Penilai': auditor,
-                    'Jenis_Asesmen': jenis_asesmen,
-                    'Export_Date': saved_at[:10]
-                }
-                all_rows.append(header_row)
-                
-                # Row 2: Subtotal for this aspect
-                subtotal_row = {
-                    'Level': "1", 
-                    'Type': 'subtotal',
-                    'Section': section,
-                    'No': '',
-                    'Deskripsi': f'JUMLAH {section}',
-                    'Jumlah_Parameter': '',
-                    'Bobot': summary_row.get('bobot', ''),
-                    'Skor': summary_row.get('skor', ''),
-                    'Capaian': summary_row.get('capaian', ''),
-                    'Penjelasan': summary_row.get('penjelasan', ''),
-                    'Tahun': year,
-                    'Penilai': auditor,
-                    'Jenis_Asesmen': jenis_asesmen,
-                    'Export_Date': saved_at[:10]
-                }
-                all_rows.append(subtotal_row)
-        
-        # Convert to DataFrame and save XLSX
-        if all_rows:
-            df = pd.DataFrame(all_rows)
-            
-            # Remove any duplicate rows
-            df_unique = df.drop_duplicates(subset=['Tahun', 'Section', 'No', 'Deskripsi'], keep='last')
-            print(f"🔧 DEBUG: Removed {len(df) - len(df_unique)} duplicate rows")
-            
-            # Custom sorting: year → aspek → no, then organize headers and subtotals properly
-            def sort_key(row):
-                year = row['Tahun']
-                section = row['Section']
-                no = row['No']
-                row_type = row['Type']
-                
-                # Convert 'no' to numeric for proper sorting, handle empty values
-                try:
-                    no_numeric = int(no) if str(no).isdigit() else 9999
-                except (ValueError, TypeError):
-                    no_numeric = 9999
-                
-                # Type priority: header=0, indicators=1, subtotal=2
-                type_priority = {'header': 0, 'indicator': 1, 'subtotal': 2}.get(row_type, 1)
-                
-                return (year, section, type_priority, no_numeric)
-            
-            # Apply custom sorting
-            df_sorted = df_unique.loc[df_unique.apply(sort_key, axis=1).sort_values().index]
-            
-            # Create directory and save XLSX
-            os.makedirs(output_xlsx_path.parent, exist_ok=True)
-            df_sorted.to_excel(output_xlsx_path, index=False)
-            print(f"✅ Saved to output.xlsx with {len(df_sorted)} rows (sorted: year→aspek→no→type) at: {output_xlsx_path}")
-            
-        return jsonify({
-            'success': True,
-            'message': 'Data berhasil disimpan',
-            'assessment_id': assessment_id,
-            'saved_at': saved_at
-        })
+        print(f"✅ PURE EXCEL: Saved {len(assessment_data)} rows for year {year}")
+        return f"SUCCESS: Saved {len(assessment_data)} rows"
         
     except Exception as e:
-        print(f"❌ Error saving assessment: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        print(f"❌ PURE EXCEL SAVE ERROR: {str(e)}")
+        return f"ERROR: {str(e)}"
 
 
-# generate_output_xlsx function removed - now saving directly to XLSX
-
-
-@app.route('/api/load/<int:year>', methods=['GET'])
+@app.route('/api/load/<int:year>', methods=['GET'])  
 def load_assessment_by_year(year):
     """
-    Load assessment data for a specific year from output.xlsx
+    PURE EXCEL LOAD - NO JSON PROCESSING
     """
     try:
+        # Excel path
         output_xlsx_path = Path(__file__).parent.parent / 'web-output' / 'output.xlsx'
         
         if not output_xlsx_path.exists():
-            return jsonify({
-                'success': False,
-                'data': [],
-                'message': f'No saved data found for year {year}'
-            })
+            print(f"📁 No Excel file found for year {year}")
+            return f"ERROR:No assessment data found for year {year}"
         
-        # Read XLSX data
+        # Read Excel directly
         df = pd.read_excel(output_xlsx_path)
-        
-        # Filter for the requested year
         year_df = df[df['Tahun'] == year]
         
-        if len(year_df) > 0:
-            print(f"🔧 DEBUG: Processing {len(year_df)} rows for year {year}")
-            
-            # Detect format: BRIEF or DETAILED based on data types
-            indicator_rows = year_df[year_df['Type'] == 'indicator']
-            subtotal_rows = year_df[year_df['Type'] == 'subtotal'] 
-            header_rows = year_df[year_df['Type'] == 'header']
-            
-            is_detailed = len(indicator_rows) > 10 and len(subtotal_rows) > 0
-            format_type = 'DETAILED' if is_detailed else 'BRIEF'
-            
-            print(f"🔧 DEBUG: Detected format: {format_type}")
-            print(f"🔧 DEBUG: Found {len(indicator_rows)} indicators, {len(subtotal_rows)} subtotals, {len(header_rows)} headers")
-            
-            # Process indicator data for main table (both BRIEF and DETAILED)
-            main_table_data = []
-            for _, row in indicator_rows.iterrows():
-                row_id = row.get('No', '')
-                if pd.isna(row_id) or str(row_id).lower() in ['nan', '', 'none']:
-                    continue
-                    
-                aspek = str(row.get('Section', ''))
-                deskripsi = str(row.get('Deskripsi', ''))
-                if not aspek or not deskripsi:
-                    continue
-                
-                penjelasan = row.get('Penjelasan', '')
-                if pd.isna(penjelasan) or str(penjelasan).lower() == 'nan':
-                    penjelasan = 'Tidak Baik'
-                
-                main_table_data.append({
-                    'id': str(row_id),
-                    'aspek': aspek,
-                    'deskripsi': deskripsi,
-                    'jumlah_parameter': int(row.get('Jumlah_Parameter', 0)) if pd.notna(row.get('Jumlah_Parameter')) else 0,
-                    'bobot': float(row.get('Bobot', 0)) if pd.notna(row.get('Bobot')) else 0,
-                    'skor': float(row.get('Skor', 0)) if pd.notna(row.get('Skor')) else 0,
-                    'capaian': float(row.get('Capaian', 0)) if pd.notna(row.get('Capaian')) else 0,
-                    'penjelasan': str(penjelasan)
-                })
-            
-            # Process aspek summary data (subtotals) for DETAILED mode
-            aspek_summary_data = []
-            if is_detailed and len(subtotal_rows) > 0:
-                for _, row in subtotal_rows.iterrows():
-                    aspek = str(row.get('Section', ''))
-                    if not aspek:
-                        continue
-                        
-                    penjelasan = row.get('Penjelasan', '')
-                    if pd.isna(penjelasan) or str(penjelasan).lower() == 'nan':
-                        penjelasan = 'Tidak Baik'
-                    
-                    aspek_summary_data.append({
-                        'id': f'summary-{aspek}',
-                        'aspek': aspek,
-                        'deskripsi': str(row.get('Deskripsi', '')),
-                        'jumlah_parameter': int(row.get('Jumlah_Parameter', 0)) if pd.notna(row.get('Jumlah_Parameter')) else 0,
-                        'bobot': float(row.get('Bobot', 0)) if pd.notna(row.get('Bobot')) else 0,
-                        'skor': float(row.get('Skor', 0)) if pd.notna(row.get('Skor')) else 0,
-                        'capaian': float(row.get('Capaian', 0)) if pd.notna(row.get('Capaian')) else 0,
-                        'penjelasan': str(penjelasan)
-                    })
-            
-            print(f"🔧 DEBUG: Processed {len(main_table_data)} indicators, {len(aspek_summary_data)} aspect summaries")
-            
-            # Get auditor and jenis_asesmen from first row
-            auditor = year_df.iloc[0].get('Penilai', 'Unknown') if len(year_df) > 0 else 'Unknown'
-            jenis_asesmen = year_df.iloc[0].get('Jenis_Asesmen', 'Internal') if len(year_df) > 0 else 'Internal'
-            
-            return jsonify({
-                'success': True,
-                'data': main_table_data,
-                'aspek_summary_data': aspek_summary_data,
-                'format_type': format_type,
-                'is_detailed': is_detailed,
-                'auditor': auditor,
-                'jenis_asesmen': jenis_asesmen,
-                'method': 'xlsx_load',
-                'saved_at': year_df.iloc[0].get('Export_Date', '') if len(year_df) > 0 else '',
-                'message': f'Loaded {len(main_table_data)} indicators + {len(aspek_summary_data)} summaries for year {year} ({format_type} format)'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'data': [],
-                'message': f'No saved data found for year {year}'
-            })
-            
+        if len(year_df) == 0:
+            print(f"📁 No data for year {year} in Excel file")
+            return f"ERROR:No assessment data found for year {year}"
+        
+        # Count indicators and summaries
+        indicator_rows = year_df[year_df['Type'] == 'indicator']
+        subtotal_rows = year_df[year_df['Type'] == 'subtotal']
+        
+        # Detect format
+        is_detailed = len(indicator_rows) > 10 and len(subtotal_rows) > 0
+        format_type = 'DETAILED' if is_detailed else 'BRIEF'
+        
+        # Get metadata from first row
+        first_row = year_df.iloc[0]
+        auditor = first_row.get('Penilai', 'Unknown')
+        jenis_asesmen = first_row.get('Jenis_Asesmen', 'Internal')
+        
+        print(f"📊 PURE EXCEL LOAD: Found {len(indicator_rows)} indicators, {len(subtotal_rows)} summaries for year {year}")
+        
+        # Return simple text format matching frontend expectation
+        return f"SUCCESS:{len(indicator_rows)}:{len(subtotal_rows)}:{format_type}:{is_detailed}:{auditor}:{jenis_asesmen}"
+        
     except Exception as e:
-        print(f"❌ Error loading year {year}: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'data': []
-        }), 500
+        print(f"❌ PURE EXCEL LOAD ERROR: {str(e)}")
+        return f"ERROR: {str(e)}"
 
 
 @app.route('/api/dashboard-data', methods=['GET'])
@@ -779,6 +595,7 @@ def get_dashboard_data():
     Get all assessment data from output.xlsx for dashboard visualization
     """
     try:
+        # Use web-output directory within web-interface for self-contained deployment
         output_xlsx_path = Path(__file__).parent.parent / 'web-output' / 'output.xlsx'
         
         if not output_xlsx_path.exists():
@@ -822,10 +639,10 @@ def get_dashboard_data():
                 'bobot': float(bobot),
                 'skor': float(skor),
                 'capaian': float(capaian),
-                'penjelasan': str(row.get('Penjelasan', '')),
+                'penjelasan': 'Tidak Ada' if pd.isna(row.get('Penjelasan')) else str(row.get('Penjelasan', '')),
                 'year': int(row.get('Tahun', 2022)),
-                'auditor': str(row.get('Penilai', 'Unknown')),
-                'jenis_asesmen': str(row.get('Jenis_Asesmen', 'Internal'))
+                'auditor': str(row.get('Auditor_Penilai') or row.get('Penilai', 'Unknown')),
+                'jenis_asesmen': 'Internal' if pd.isna(row.get('Jenis_Asesmen') or row.get('Jenis_Penilaian')) else str(row.get('Jenis_Asesmen') or row.get('Jenis_Penilaian', 'Internal'))
             }
             dashboard_data.append(dashboard_item)
         
@@ -866,6 +683,7 @@ def get_gcg_chart_data():
     Returns data with Level hierarchy as expected by processGCGData function
     """
     try:
+        # Use web-output directory within web-interface for self-contained deployment
         output_xlsx_path = Path(__file__).parent.parent / 'web-output' / 'output.xlsx'
         
         if not output_xlsx_path.exists():
@@ -915,7 +733,7 @@ def get_gcg_chart_data():
                 'Penilai': str(row.get('Penilai', 'Unknown')),
                 'No': str(row.get('No', '')),
                 'Deskripsi': str(row.get('Deskripsi', '')),
-                'Jenis_Penilaian': str(row.get('Jenis_Asesmen', 'Internal'))
+                'Jenis_Penilaian': 'Internal' if pd.isna(row.get('Jenis_Asesmen') or row.get('Jenis_Penilaian')) else str(row.get('Jenis_Asesmen') or row.get('Jenis_Penilaian', 'Internal'))
             }
             gcg_data.append(gcg_item)
         
@@ -942,7 +760,7 @@ def get_gcg_mapping():
     Get GCG mapping data for autocomplete suggestions
     """
     try:
-        # Path to GCG mapping CSV file
+        # Path to GCG mapping CSV file - in backend directory
         gcg_mapping_path = Path(__file__).parent / 'GCG_MAPPING.csv'
         
         if not gcg_mapping_path.exists():
@@ -990,11 +808,11 @@ def get_gcg_mapping():
 
 
 if __name__ == '__main__':
-    print("🚀 Starting POS Data Cleaner 2 Web API")
-    print(f"📁 Upload folder: {UPLOAD_FOLDER}")
-    print(f"📁 Output folder: {OUTPUT_FOLDER}")
-    print("🔗 CORS enabled for React frontend")
-    print("✅ Production system integrated")
-    print("🌐 Server starting on http://localhost:5001")
+    print("Starting POS Data Cleaner 2 Web API")
+    print(f"Upload folder: {UPLOAD_FOLDER}")
+    print(f"Output folder: {OUTPUT_FOLDER}")
+    print("CORS enabled for React frontend")
+    print("Production system integrated")
+    print("Server starting on http://localhost:5001")
     
     app.run(debug=True, host='0.0.0.0', port=5001)
