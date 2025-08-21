@@ -1,5 +1,131 @@
-// Data processor to convert POS Data Cleaner output to GCGChart format
+import { GCGData, ProcessedGCGData, SectionData } from '@/types/gcg';
 
+const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'];
+
+const generateAspekColors = (count: number): string[] => {
+  const existingColors = [
+    '#cab89aff', // coklat
+    '#fcbe62ff', // kuning
+    '#B4EBE6',   // biru muda
+    '#ACE1AF',   // hijau muda
+    '#88AB8E',   // hijau
+    '#c5d8d2ff', // abu muda
+  '#ffefaeff',   // aspek 7: kuning soft tapi lebih tegas
+  '#cba4f7',   // aspek 8: ungu soft tapi lebih tegas
+  '#ffb3b3',   // aspek 9: merah soft tapi lebih tegas
+  ];
+
+  // Hue dari warna utama dan warna custom di atas
+  const mainHues = [180, 120, 90, 50, 270, 0]; // hijau, biru, kuning, ungu, merah
+  const hueTolerance = 25;
+
+  if (count <= existingColors.length) {
+    return existingColors.slice(0, count);
+  }
+
+  const colors = [...existingColors];
+  let generated = 0;
+  let hue = 0;
+  while (generated < count - existingColors.length) {
+    // Pastikan hue baru tidak mirip dengan mainHues
+    const isSimilar = mainHues.some(mainHue => {
+      const diff = Math.abs(hue - mainHue);
+      return diff < hueTolerance || Math.abs(diff - 360) < hueTolerance;
+    });
+    if (!isSimilar) {
+      colors.push(`hsl(${hue}, 70%, 80%)`);
+      generated++;
+    }
+    hue += 30;
+    if (hue >= 360) hue = hue - 360;
+  }
+  return colors;
+};
+
+export const processGCGData = (data: GCGData[]): ProcessedGCGData[] => {
+  // Group data by year
+  const yearGroups = data.reduce((acc, row) => {
+    if (!acc[row.Tahun]) {
+      acc[row.Tahun] = [];
+    }
+    acc[row.Tahun].push(row);
+    return acc;
+  }, {} as Record<number, GCGData[]>);
+
+  const processedData: ProcessedGCGData[] = [];
+
+  Object.entries(yearGroups).forEach(([year, rows]) => {
+    const yearNum = parseInt(year);
+    
+    // Find total score (Level 4)
+    const level4Row = rows.find(row => row.Level === 4);
+    if (!level4Row) return;
+    
+    const totalScore = level4Row.Skor;
+  const penilai = level4Row.Penilai;
+  const penjelasan = level4Row.Penjelasan;
+  const jenisPenilaian = level4Row.Jenis_Penilaian;
+    
+    // Check if has Level 2 data
+    const hasLevel2Data = rows.some(row => row.Level === 2);
+    
+    // Find Level 3 rows for sections
+    const level3Rows = rows.filter(row => row.Level === 3);
+    if (level3Rows.length === 0) return;
+    
+    // Get unique sections (excluding empty values) - reversed order for proper display
+    const uniqueSections = [...new Set(
+      level3Rows
+        .map(row => row.Section)
+        .filter(section => section && section.trim() !== '')
+    )].sort((a, b) => romanNumerals.indexOf(a) - romanNumerals.indexOf(b));
+    
+    const aspekColors = generateAspekColors(uniqueSections.length);
+    
+    const totalCapaian = level3Rows.reduce((sum, row) => sum + Math.abs(row.Capaian), 0);
+    const baseHeight = 0.07 * totalScore; // 5% of total score
+    const remainingHeight = totalScore - (baseHeight * uniqueSections.length);
+    
+    const sections: SectionData[] = uniqueSections.map((sectionName, index) => {
+      const sectionRow = level3Rows.find(row => row.Section === sectionName);
+      const capaian = sectionRow ? sectionRow.Capaian : 0;
+      const absCapaian = Math.abs(capaian);
+      
+      const additionalHeight = totalCapaian > 0 ? (absCapaian / totalCapaian) * remainingHeight : 0;
+      const height = baseHeight + additionalHeight;
+      
+      // Get bobot, skor, and jumlah_parameter from level 3 data
+      const bobot = sectionRow?.Bobot;
+      const skor = sectionRow?.Skor;
+      const jumlah_parameter = sectionRow?.Jumlah_Parameter;
+      
+      return {
+        name: sectionName,
+        romanNumeral: sectionName,
+        capaian,
+        height,
+        color: aspekColors[index % aspekColors.length],
+        bobot,
+        skor,
+        jumlah_parameter
+      };
+    });
+    
+    processedData.push({
+      year: yearNum,
+      totalScore,
+      sections,
+      hasLevel2Data,
+      penilai,
+      penjelasan,
+      jenisPenilaian
+    });
+  });
+  
+  return processedData.sort((a, b) => a.year - b.year);
+};
+
+// Legacy support - Interface for table-based processing
 interface PenilaianRow {
   id: string;
   no?: string;
@@ -10,27 +136,6 @@ interface PenilaianRow {
   skor: number;
   capaian: number;
   penjelasan: string;
-}
-
-interface ProcessedGCGData {
-  year: number;
-  totalScore: number;
-  sections: SectionData[];
-  hasLevel2Data: boolean;
-  penilai?: string;
-  penjelasan?: string;
-}
-
-interface SectionData {
-  name: string;
-  romanNumeral: string;
-  capaian: number;
-  height: number;
-  color: string;
-  bobot?: number;
-  skor?: number;
-  jumlah_parameter?: number;
-  penjelasan?: string;
 }
 
 // Function to convert from dashboard data API to GCGChart format

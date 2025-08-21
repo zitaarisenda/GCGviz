@@ -14,25 +14,18 @@ import { Toaster } from './components/ui/toaster';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/auth/Login';
 import Register from './pages/Register';
-<<<<<<< HEAD
-import Dashboard from './pages/dashboard/Dashboard';
-import ListGCG from './pages/ListGCG';
+import DashboardMain from './pages/dashboard/DashboardMain';
 import DocumentManagement from './pages/DocumentManagement';
 import PenilaianGCG from './pages/PenilaianGCG';
+import MonitoringUploadGCG from './pages/MonitoringUploadGCG';
 import GraphView from './pages/GraphView';
 import GraphViewTest from './pages/GraphViewTest';
-import AdminDocumentManagement from './pages/admin/DocumentManagement';
-=======
-import DashboardMain from './pages/dashboard/DashboardMain';
-import MonitoringUploadGCG from './pages/MonitoringUploadGCG';
-
 import ArsipDokumen from './pages/admin/ArsipDokumen';
->>>>>>> upstream/progres-3
 import StrukturPerusahaan from './pages/admin/StrukturPerusahaan';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
+import DokumenGCG from './pages/admin/DokumenGCG';
 import KelolaAkun from './pages/admin/KelolaAkun';
 import MetaData from './pages/admin/MetaData';
-import ChecklistGCG from './pages/admin/ChecklistGCG';
 import NotFound from './pages/NotFound';
 import { useUser } from './contexts/UserContext';
 
@@ -117,7 +110,6 @@ const AppRoutes = () => {
       <Route 
         path="/performa-gcg" 
         element={
-<<<<<<< HEAD
           <ProtectedRoute>
             <PenilaianGCG />
           </ProtectedRoute>
@@ -129,16 +121,6 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <GraphView />
           </ProtectedRoute>
-=======
-          <SuperAdminRoute>
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-              <div className="text-center">
-                <h1 className="text-2xl font-bold text-gray-900 mb-4">Performa GCG</h1>
-                <p className="text-gray-600">Halaman performa GCG akan dikembangkan selanjutnya</p>
-              </div>
-            </div>
-          </SuperAdminRoute>
->>>>>>> upstream/progres-3
         } 
       />
       
@@ -193,7 +175,7 @@ const AppRoutes = () => {
         path="/admin/checklist-gcg" 
         element={
           <SuperAdminRoute>
-            <ChecklistGCG />
+            <DokumenGCG />
           </SuperAdminRoute>
         } 
       />

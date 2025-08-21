@@ -859,6 +859,83 @@ def get_dashboard_data():
         }), 500
 
 
+@app.route('/api/gcg-chart-data', methods=['GET'])
+def get_gcg_chart_data():
+    """
+    Get assessment data formatted for GCGChart component (graphics-2 format)
+    Returns data with Level hierarchy as expected by processGCGData function
+    """
+    try:
+        output_xlsx_path = Path(project_root) / 'data' / 'output' / 'web-output' / 'output.xlsx'
+        
+        if not output_xlsx_path.exists():
+            return jsonify({
+                'success': False,
+                'data': [],
+                'message': 'No chart data available. Please save some assessments first.'
+            })
+        
+        # Read XLSX data
+        df = pd.read_excel(output_xlsx_path)
+        
+        print(f"🎨 GCG Chart Data: Loading {len(df)} rows from output.xlsx")
+        
+        # Convert to graphics-2 GCGData format
+        gcg_data = []
+        for _, row in df.iterrows():
+            # Determine level based on row type
+            level = 3  # Default to section level
+            row_type = str(row.get('Type', '')).lower()
+            
+            if row_type == 'total':
+                level = 4
+            elif row_type == 'header':
+                level = 1
+            elif row_type == 'indicator':
+                level = 2
+            elif row_type == 'subtotal':
+                level = 3
+            
+            # Handle NaN values
+            tahun = int(row.get('Tahun', 2022))
+            skor = float(row.get('Skor', 0)) if not pd.isna(row.get('Skor', 0)) else 0
+            capaian = float(row.get('Capaian', 0)) if not pd.isna(row.get('Capaian', 0)) else 0
+            bobot = float(row.get('Bobot', 0)) if not pd.isna(row.get('Bobot', 0)) else None
+            jumlah_param = float(row.get('Jumlah_Parameter', 0)) if not pd.isna(row.get('Jumlah_Parameter', 0)) else None
+            
+            gcg_item = {
+                'Tahun': tahun,
+                'Skor': skor,
+                'Level': level,
+                'Section': str(row.get('Section', '')),
+                'Capaian': capaian,
+                'Bobot': bobot,
+                'Jumlah_Parameter': jumlah_param,
+                'Penjelasan': str(row.get('Penjelasan', '')),
+                'Penilai': str(row.get('Penilai', 'Unknown')),
+                'No': str(row.get('No', '')),
+                'Deskripsi': str(row.get('Deskripsi', '')),
+                'Jenis_Penilaian': str(row.get('Jenis_Asesmen', 'Internal'))
+            }
+            gcg_data.append(gcg_item)
+        
+        return jsonify({
+            'success': True,
+            'data': gcg_data,
+            'total_rows': len(gcg_data),
+            'available_years': list(set([item['Tahun'] for item in gcg_data])),
+            'message': f'Loaded GCG chart data: {len(gcg_data)} rows'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error loading GCG chart data: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'data': []
+        }), 500
+
+
 @app.route('/api/gcg-mapping', methods=['GET'])
 def get_gcg_mapping():
     """

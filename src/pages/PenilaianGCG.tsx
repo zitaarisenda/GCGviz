@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useUser } from '@/contexts/UserContext';
+import { useChecklist } from '@/contexts/ChecklistContext';
 import { GCGChartWrapper } from '@/components/dashboard/GCGChartWrapper';
 import { 
   FileText, 
@@ -44,6 +45,7 @@ interface PenilaianRow {
 const PenilaianGCG = () => {
   const { isSidebarOpen } = useSidebar();
   const { user } = useUser();
+  const { getChecklistByYear, ensureAllYearsHaveData } = useChecklist();
   
   // State untuk workflow
   const [currentStep, setCurrentStep] = useState<'method' | 'table' | 'upload' | 'view'>('method');
@@ -86,6 +88,62 @@ const PenilaianGCG = () => {
   const [filterPenjelasan, setFilterPenjelasan] = useState<string>('all');
   const [sortCapaian, setSortCapaian] = useState<'asc' | 'desc' | 'none'>('none');
   
+  // Penjelasan suggestions for manual input
+  const penjelasanOptions = [
+    'Sangat Baik',
+    'Baik', 
+    'Cukup Baik',
+    'Kurang Baik',
+    'Tidak Baik'
+  ];
+  
+  // Initialize ChecklistContext data when component mounts
+  useEffect(() => {
+    console.log('🔧 DEBUG: Component mounted, ensuring all years have checklist data...');
+    ensureAllYearsHaveData();
+  }, [ensureAllYearsHaveData]);
+  
+  // Generate predetermined rows from Kelola Aspek data
+  const generatePredeterminedRows = (year: number, isDetailed: boolean): PenilaianRow[] => {
+    const checklistData = getChecklistByYear(year);
+    
+    if (checklistData.length === 0) {
+      console.log(`⚠️ No checklist data found for year ${year}`);
+      return [];
+    }
+    
+    console.log(`📋 Found ${checklistData.length} checklist items for year ${year}`);
+    console.log(`📋 Sample item:`, checklistData[0]); // Debug first item
+    
+    const rows: PenilaianRow[] = [];
+    
+    checklistData.forEach((item, index) => {
+      // Convert "ASPEK I. Komitmen" to "I" for the aspek field
+      let aspek = item.aspek.replace(/ASPEK\s+/, '').split('.')[0].trim();
+      
+      // Calculate initial capaian (penjelasan now manual)
+      const initialCapaian = calculateCapaian(0, 0); // 0 skor, 0 bobot
+      
+      const row: PenilaianRow = {
+        id: `predetermined-${item.id}-${index}`,
+        no: isDetailed ? (index + 1).toString() : undefined,
+        aspek: aspek,
+        deskripsi: item.deskripsi,
+        jumlah_parameter: isDetailed ? 1 : 0, // Default to 1 parameter per item in detailed mode
+        bobot: 0, // User will fill this
+        skor: 0, // User will fill this
+        capaian: initialCapaian,
+        penjelasan: '' // Manual input - user selects from dropdown
+      };
+      
+      rows.push(row);
+    });
+    
+    console.log(`✅ Generated ${rows.length} predetermined rows from checklist data`);
+    console.log(`📋 Sample generated row:`, rows[0]); // Debug first generated row
+    return rows;
+  };
+
   // Predetermined GCG aspect summary rows (for DETAILED mode)
   const getAspectSummaryRows = (): PenilaianRow[] => [
     {
@@ -96,7 +154,7 @@ const PenilaianGCG = () => {
       bobot: 0,
       skor: 0,
       capaian: 0,
-      penjelasan: 'Tidak Baik'
+      penjelasan: ''
     },
     {
       id: 'aspect-2', 
@@ -106,7 +164,7 @@ const PenilaianGCG = () => {
       bobot: 0,
       skor: 0,
       capaian: 0,
-      penjelasan: 'Tidak Baik'
+      penjelasan: ''
     },
     {
       id: 'aspect-3',
@@ -116,7 +174,7 @@ const PenilaianGCG = () => {
       bobot: 0,
       skor: 0,
       capaian: 0,
-      penjelasan: 'Tidak Baik'
+      penjelasan: ''
     },
     {
       id: 'aspect-4',
@@ -126,7 +184,7 @@ const PenilaianGCG = () => {
       bobot: 0,
       skor: 0,
       capaian: 0,
-      penjelasan: 'Tidak Baik'
+      penjelasan: ''
     },
     {
       id: 'aspect-5',
@@ -136,7 +194,7 @@ const PenilaianGCG = () => {
       bobot: 0,
       skor: 0,
       capaian: 0,
-      penjelasan: 'Tidak Baik'
+      penjelasan: ''
     },
     {
       id: 'aspect-6',
@@ -146,7 +204,7 @@ const PenilaianGCG = () => {
       bobot: 0,
       skor: 0,
       capaian: 0,
-      penjelasan: 'Tidak Baik'
+      penjelasan: ''
     }
   ];
 
@@ -181,11 +239,13 @@ const PenilaianGCG = () => {
     setIsDetailedMode(detailed);
     
     if (detailed) {
-      // Switch to DETAILED mode - load aspect summary
+      // Switch to DETAILED mode - load aspect summary and predetermined rows
       setAspectSummaryData(getAspectSummaryRows());
-      // Clear main table data and ensure DETAILED fields
-      setTableData([]);
-      console.log('📊 DETAILED mode activated - aspect summary loaded');
+      
+      // Load predetermined rows from Kelola Aspek for current year
+      const predeterminedRows = generatePredeterminedRows(selectedYear, true);
+      setTableData(predeterminedRows);
+      console.log(`📊 DETAILED mode activated - aspect summary + ${predeterminedRows.length} predetermined rows loaded`);
     } else {
       // Switch to BRIEF mode - use aspect summary as main table
       setAspectSummaryData([]);
@@ -377,21 +437,9 @@ const PenilaianGCG = () => {
     return 'Tidak Baik';  // capaian <= 50
   };
 
-  // Add new row to table
-  const addNewRow = () => {
-    const newRow: PenilaianRow = {
-      id: Date.now().toString(),
-      no: isDetailedMode ? '' : undefined,
-      aspek: '',
-      deskripsi: '',
-      jumlah_parameter: 0, // Always present, defaults to 0
-      bobot: 0,
-      skor: 0,
-      capaian: 0,
-      penjelasan: 'Tidak Baik'
-    };
-    setTableData([...tableData, newRow]);
-  };
+  // REMOVED: Add new row functionality - replaced with predetermined rows from Kelola Aspek
+  // const addNewRow = () => { ... };
+  // Rows are now automatically loaded from ChecklistContext.getChecklistByYear()
 
   // Delete row from table
   const deleteRow = (rowId: string) => {
@@ -406,10 +454,10 @@ const PenilaianGCG = () => {
       if (row.id === rowId) {
         const updatedRow = { ...row, [field]: value };
         
-        // Auto-calculate capaian dan penjelasan jika skor atau bobot berubah
+        // Auto-calculate capaian when skor atau bobot berubah (penjelasan now manual)
         if (field === 'skor' || field === 'bobot') {
           updatedRow.capaian = calculateCapaian(updatedRow.skor, updatedRow.bobot);
-          updatedRow.penjelasan = getPenjelasan(updatedRow.skor, updatedRow.bobot);
+          // penjelasan is now manual input - no auto-calculation
         }
         
         return updatedRow;
@@ -428,7 +476,7 @@ const PenilaianGCG = () => {
       bobot: 0,
       skor: 0,
       capaian: 0,
-      penjelasan: 'Tidak Baik'
+      penjelasan: ''
     };
     setAspectSummaryData([...aspectSummaryData, newRow]);
     console.log('➕ Added new summary row');
@@ -511,11 +559,11 @@ const PenilaianGCG = () => {
       if (row.id === rowId) {
         const updatedRow = { ...row, [field]: value };
         
-        // Auto-calculate capaian dan penjelasan jika skor atau bobot berubah
+        // Auto-calculate capaian when skor atau bobot berubah (penjelasan now manual)
         if (field === 'skor' || field === 'bobot') {
           updatedRow.capaian = calculateCapaian(updatedRow.skor, updatedRow.bobot);
-          updatedRow.penjelasan = getPenjelasan(updatedRow.skor, updatedRow.bobot);
-          console.log(`📊 Auto-calculated: skor=${updatedRow.skor}, bobot=${updatedRow.bobot}, capaian=${updatedRow.capaian}%, penjelasan=${updatedRow.penjelasan}`);
+          // penjelasan is now manual input - no auto-calculation
+          console.log(`📊 Auto-calculated: skor=${updatedRow.skor}, bobot=${updatedRow.bobot}, capaian=${updatedRow.capaian}%, penjelasan=manual`);
         }
         
         return updatedRow;
@@ -528,11 +576,11 @@ const PenilaianGCG = () => {
   const moveToNextCell = (currentRowId: string, currentField: keyof PenilaianRow, tableType: 'main' | 'summary', direction: 'left' | 'right' | 'up' | 'down') => {
     const currentData = tableType === 'main' ? tableData : aspectSummaryData;
     
-    // Define field order as arrays of PenilaianRow keys
-    const summaryFieldOrder: (keyof PenilaianRow)[] = ['aspek', 'deskripsi', 'bobot', 'skor'];
+    // Define field order as arrays of PenilaianRow keys (including penjelasan)
+    const summaryFieldOrder: (keyof PenilaianRow)[] = ['aspek', 'deskripsi', 'bobot', 'skor', 'penjelasan'];
     const mainFieldOrder: (keyof PenilaianRow)[] = isDetailedMode 
-      ? ['aspek', 'no', 'deskripsi', 'jumlah_parameter', 'bobot', 'skor']
-      : ['aspek', 'deskripsi', 'bobot', 'skor'];
+      ? ['aspek', 'no', 'deskripsi', 'jumlah_parameter', 'bobot', 'skor', 'penjelasan']
+      : ['aspek', 'deskripsi', 'bobot', 'skor', 'penjelasan'];
     
     const fieldOrder = tableType === 'summary' ? summaryFieldOrder : mainFieldOrder;
     
@@ -717,6 +765,13 @@ const PenilaianGCG = () => {
     try {
       console.log(`🔧 DEBUG: Year changed to ${year}, loading data...`);
       
+      // Ensure ChecklistContext has data for this year
+      const checklistData = getChecklistByYear(year);
+      console.log(`📋 ChecklistContext for year ${year}:`, checklistData.length, 'items');
+      if (checklistData.length > 0) {
+        console.log(`📋 Sample checklist item:`, checklistData[0]);
+      }
+      
       setSelectedYear(year);
       
       // Try to load existing data for this year from output.xlsx
@@ -747,10 +802,25 @@ const PenilaianGCG = () => {
         setSaveMessage(`📂 Data tahun ${year} berhasil dimuat - ${result.format_type} (${result.data.length} indikator${isDetailed ? ` + ${result.aspek_summary_data?.length || 0} aspek` : ''})`);
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
-        // No data for this year - clear the table
-        console.log(`📝 No data found for year ${year}, clearing table`);
-        loadDataWithDetection([]);
-        setSaveMessage(`📋 Tahun ${year} dipilih - tabel dikosongkan untuk input baru`);
+        // No data for this year - load predetermined rows from Kelola Aspek
+        console.log(`📝 No saved data found for year ${year}, loading predetermined rows from Kelola Aspek`);
+        
+        const predeterminedRows = generatePredeterminedRows(year, isDetailedMode);
+        
+        if (predeterminedRows.length > 0) {
+          loadDataWithDetection(predeterminedRows);
+          setSaveMessage(`📋 Tahun ${year} dipilih - ${predeterminedRows.length} baris dari Kelola Aspek dimuat`);
+        } else {
+          // Fallback to empty if no checklist data
+          loadDataWithDetection([]);
+          setSaveMessage(`📋 Tahun ${year} dipilih - tidak ada data Kelola Aspek, tabel kosong`);
+        }
+        
+        // Load aspect summary rows for DETAILED mode
+        if (isDetailedMode) {
+          setAspectSummaryData(getAspectSummaryRows());
+        }
+        
         setTimeout(() => setSaveMessage(null), 3000);
       }
       
@@ -1729,20 +1799,37 @@ const PenilaianGCG = () => {
                         </div>
                       </TableCell>
                       
-                      {/* Penjelasan (Auto-calculated) */}
+                      {/* Penjelasan (Manual Input with Native Datalist) */}
                       <TableCell>
-                        <div className="text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <Input
+                          id={`summary-${row.id}-penjelasan`}
+                          type="text"
+                          value={row.penjelasan}
+                          onChange={(e) => updateAspectSummaryCell(row.id, 'penjelasan', e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, row.id, 'penjelasan', 'summary')}
+                          onFocus={(e) => {
+                            // Show datalist suggestions when clicking on empty field
+                            if (!e.target.value) {
+                              e.target.setAttribute('placeholder', '');
+                              setTimeout(() => e.target.click(), 0);
+                            }
+                          }}
+                          className={`border-0 bg-transparent focus:bg-white focus:border focus:border-purple-300 text-center px-2 py-1 rounded-full text-xs font-medium ${
                             row.penjelasan === 'Sangat Baik' ? 'bg-green-100 text-green-800' :
                             row.penjelasan === 'Baik' ? 'bg-blue-100 text-blue-800' :
                             row.penjelasan === 'Cukup Baik' ? 'bg-yellow-100 text-yellow-800' :
                             row.penjelasan === 'Kurang Baik' ? 'bg-orange-100 text-orange-800' :
                             row.penjelasan === 'Tidak Baik' ? 'bg-red-100 text-red-800' :
                             'bg-gray-100 text-gray-800'
-                          }`}>
-                            {row.penjelasan}
-                          </span>
-                        </div>
+                          }`}
+                          placeholder="Sangat Baik, Baik, Cukup Baik..."
+                          list={`penjelasan-suggestions-summary-${row.id}`}
+                        />
+                        <datalist id={`penjelasan-suggestions-summary-${row.id}`}>
+                          {penjelasanOptions.map(option => (
+                            <option key={option} value={option} />
+                          ))}
+                        </datalist>
                       </TableCell>
                       
                       {/* Aksi */}
@@ -2104,20 +2191,37 @@ const PenilaianGCG = () => {
                       </div>
                     </TableCell>
                     
-                    {/* Penjelasan (Auto-calculated) */}
+                    {/* Penjelasan (Manual Input with Native Datalist) */}
                     <TableCell>
-                      <div className="text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      <Input
+                        id={`main-${row.id}-penjelasan`}
+                        type="text"
+                        value={row.penjelasan}
+                        onChange={(e) => updateCell(row.id, 'penjelasan', e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, row.id, 'penjelasan', 'main')}
+                        onFocus={(e) => {
+                          // Show datalist suggestions when clicking on empty field
+                          if (!e.target.value) {
+                            e.target.setAttribute('placeholder', '');
+                            setTimeout(() => e.target.click(), 0);
+                          }
+                        }}
+                        className={`border-0 bg-transparent focus:bg-white focus:border focus:border-blue-300 text-center px-2 py-1 rounded-full text-xs font-medium ${
                           row.penjelasan === 'Sangat Baik' ? 'bg-green-100 text-green-800' :
                           row.penjelasan === 'Baik' ? 'bg-blue-100 text-blue-800' :
                           row.penjelasan === 'Cukup Baik' ? 'bg-yellow-100 text-yellow-800' :
                           row.penjelasan === 'Kurang Baik' ? 'bg-orange-100 text-orange-800' :
                           row.penjelasan === 'Tidak Baik' ? 'bg-red-100 text-red-800' :
                           'bg-gray-100 text-gray-800'
-                        }`}>
-                          {row.penjelasan}
-                        </span>
-                      </div>
+                        }`}
+                        placeholder="Sangat Baik, Baik, Cukup Baik..."
+                        list={`penjelasan-suggestions-main-${row.id}`}
+                      />
+                      <datalist id={`penjelasan-suggestions-main-${row.id}`}>
+                        {penjelasanOptions.map(option => (
+                          <option key={option} value={option} />
+                        ))}
+                      </datalist>
                     </TableCell>
                     
                     {/* Action */}

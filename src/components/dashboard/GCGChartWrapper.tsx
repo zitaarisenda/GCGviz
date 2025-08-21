@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { GCGChart } from './GCGChart';
-import { processGCGDataFromAPI, processGCGDataFromTable } from '@/utils/gcgDataProcessor';
+import { GCGChart } from '@/components/GCGChart';
+import { processGCGData, processGCGDataFromTable } from '@/utils/gcgDataProcessor';
+import type { GCGData } from '@/types/gcg';
 
 interface PenilaianRow {
   id: string;
@@ -38,21 +39,23 @@ export const GCGChartWrapper: React.FC<GCGChartWrapperProps> = ({
         setLoading(true);
         setError(null);
 
-        // First try to fetch data from the API (for multi-year data)
+        // First try to fetch data from the new GCG chart API (for graphics-2 format)
         try {
-          const response = await fetch('/api/dashboard-data');
+          const response = await fetch('/api/gcg-chart-data');
           if (response.ok) {
             const apiData = await response.json();
-            const processedApiData = processGCGDataFromAPI(apiData);
-            
-            if (processedApiData.length > 0) {
-              setChartData(processedApiData);
-              setLoading(false);
-              return;
+            if (apiData.success && apiData.data && apiData.data.length > 0) {
+              const processedApiData = processGCGData(apiData.data as GCGData[]);
+              
+              if (processedApiData.length > 0) {
+                setChartData(processedApiData);
+                setLoading(false);
+                return;
+              }
             }
           }
         } catch (apiError) {
-          console.log('API data not available, using table data');
+          console.log('GCG chart API not available, using table data');
         }
 
         // Fallback to current table data
