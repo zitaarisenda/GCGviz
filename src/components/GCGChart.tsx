@@ -617,9 +617,9 @@ export const GCGChart: React.FC<GCGChartProps> = ({ data, onBarClick, barWidth: 
                                   style={{
                                     position: 'absolute',
                                     left: hoverBoxLeft,
-                                    top: -25,
+                                    top: -15,
                                     width: `${hoverBoxWidth}px`,
-                                    height: 'calc(100% + 30px)',
+                                    height: 'calc(100% + 20px)',
                                     background: 'transparent',
                                     border: hoveredBar === yearData.year ? '2px solid #ffffffff' : '2px solid transparent',
                                     boxSizing: 'border-box',
