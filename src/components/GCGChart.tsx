@@ -133,14 +133,14 @@ const YearlyScoreChart: React.FC<YearlyScoreChartProps> = ({ data, allYears, yea
         <div className="flex flex-row items-center justify-center gap-2 mb-4">
           {setChartMode && (
             <div className="flex items-center space-x-2 mr-4">
-              <Label htmlFor="chart-mode" className="text-xs">Capaian Aspek</Label>
+              <Label htmlFor="chart-mode" className="text-sm">Capaian Aspek</Label>
               <Switch
                 id="chart-mode"
                 checked={chartMode === 'tahun'}
                 onCheckedChange={(checked) => setChartMode(checked ? 'tahun' : 'aspek')}
                 className="h-4 w-7"
               />
-              <Label htmlFor="chart-mode" className="text-xs">Skor Tahunan</Label>
+              <Label htmlFor="chart-mode" className="text-sm">Skor Tahunan</Label>
             </div>
           )}
           <span className="text-sm text-gray-600">Filter Tahun:</span>
@@ -466,14 +466,14 @@ export const GCGChart: React.FC<GCGChartProps> = ({ data, onBarClick, barWidth: 
           <div className="flex flex-row items-center justify-center gap-2 mb-4">
             {setChartMode && (
               <div className="flex items-center space-x-2 mr-4">
-                <Label htmlFor="chart-mode" className="text-xs">Capaian Aspek</Label>
+                <Label htmlFor="chart-mode" className="text-sm">Capaian Aspek</Label>
                 <Switch
                   id="chart-mode"
                   checked={chartMode === 'tahun'}
                   onCheckedChange={(checked) => setChartMode(checked ? 'tahun' : 'aspek')}
                   className="h-4 w-7"
                 />
-                <Label htmlFor="chart-mode" className="text-xs">Skor Tahunan</Label>
+                <Label htmlFor="chart-mode" className="text-sm">Skor Tahunan</Label>
               </div>
             )}
             <span className="text-sm text-gray-600">Filter Tahun:</span>
