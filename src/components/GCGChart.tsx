@@ -599,7 +599,7 @@ export const GCGChart: React.FC<GCGChartProps> = ({ data, onBarClick, barWidth: 
 
                         {/* Chart content */}
                         <div className="flex flex-col items-center w-full">
-                          <div className="flex flex-row items-end justify-start gap-5" style={{ marginLeft: '-100px', minHeight: '320px' }}>
+                          <div className="flex flex-row items-baseline justify-start gap-5" style={{ marginLeft: '-100px', minHeight: '320px' }}>
                             {row.map((yearData) => {
                               const yearWidth = barWidth * yearData.sections.length + barGap * (yearData.sections.length - 1);
                               const hoverBoxWidth = yearWidth + 26;
@@ -744,7 +744,7 @@ export const GCGChart: React.FC<GCGChartProps> = ({ data, onBarClick, barWidth: 
           </div>
 
           {/* Area deskripsi aspek split 3 kolom: kiri, tengah, kanan (tabel kosong) */}
-          <div className="mt-7 pl-11 pr-11 w-full rounded-lg pt-3">
+          <div className="mt-7 pl-11 pr-11 w-full rounded-lg pt-2">
             <div className="flex flex-row w-full gap-0">
               {/* Kiri: semua DonutChart aspek I-VI, 2/5 width */}
               <div className="basis-[40%] flex flex-col gap-2 items-end pr-0 bg-blue-50/10">
