@@ -166,8 +166,8 @@ const YearlyScoreChart: React.FC<YearlyScoreChartProps> = ({ data, allYears, yea
           {/* Label vertikal 'Skor' di samping sumbu Y */}
           <div style={{
             position: 'absolute',
-            left: -1, 
-            top: 130,
+            left: -10, 
+            top: 150,
             transform: 'rotate(-90deg)',
             transformOrigin: 'left top',
             fontSize: 13,
