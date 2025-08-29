@@ -683,7 +683,7 @@ export const GCGChart: React.FC<GCGChartProps> = ({ data, rawData = [], onBarCli
                                   style={{
                                     position: 'absolute',
                                     left: hoverBoxLeft,
-                                    top: -10,
+                                    top: -12,
                                     width: `${hoverBoxWidth}px`,
                                     height: '340px',
                                     background: 'transparent',
