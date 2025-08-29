@@ -80,7 +80,7 @@ const YearlyScoreChart: React.FC<YearlyScoreChartProps> = ({ data, allYears, yea
   // chartAreaWidth dinamis sesuai jumlah tahun yang terfilter
   const filteredYearsCount = data.length;
   let chartAreaWidth = 1000;
-  if (filteredYearsCount > 15) chartAreaWidth = 1450;
+  if (filteredYearsCount > 15) chartAreaWidth = 1500;
   else if (filteredYearsCount > 10) chartAreaWidth = 1250;
   const yAxisPadding = 60;
   const barAreaHeight = 270; // tinggi area bar tetap
@@ -92,8 +92,7 @@ const YearlyScoreChart: React.FC<YearlyScoreChartProps> = ({ data, allYears, yea
   const scores = data.map(d => d.totalScore);
   let minScoreY = Math.floor(Math.min(...scores)) - 5;
   let maxScoreY = Math.ceil(Math.max(...scores)) + 2;
-  if (minScoreY < 0) minScoreY = 0;
-  if (maxScoreY > 100) maxScoreY = 100;
+  if (maxScoreY > 100) maxScoreY = 102;
 
   const barWidth = 40;
   const barSidePadding = 24; // padding kiri-kanan chart agar bar tidak mepet
@@ -129,7 +128,7 @@ const YearlyScoreChart: React.FC<YearlyScoreChartProps> = ({ data, allYears, yea
     <Card className="w-full min-h-fit">
       <CardContent className="p-4 min-h-fit flex flex-col items-center">
         {/* Switch + Filter tahun di atas grafik skor tahunan */}
-        <div className="flex flex-row items-center justify-center gap-2 mb-7">
+        <div className="flex flex-row items-center justify-center gap-2 mb-9">
           {setChartMode && (
             <div className="flex items-center space-x-2 mr-4">
               <Label htmlFor="chart-mode" className="text-sm">Capaian Aspek</Label>
@@ -417,7 +416,9 @@ export const GCGChart: React.FC<GCGChartProps> = ({ data, rawData = [], onBarCli
   let yearGap = 4; // default jarak antar tahun
 
   // Jika rentang tahun 1-5, buat bar lebih lebar
-  const numberOfYears = yearFilter ? yearFilter.end - yearFilter.start + 1 : 0;
+  // Hitung jumlah tahun unik yang benar-benar ada dalam data terfilter
+  const filteredYearSet = new Set(filteredData.map(d => d.year));
+  const numberOfYears = filteredYearSet.size;
   if (chartMode === 'aspek' && numberOfYears > 0 && numberOfYears <= 5) {
     // Semakin sedikit tahun, semakin lebar barnya
     if (numberOfYears <= 2) {
@@ -487,7 +488,7 @@ export const GCGChart: React.FC<GCGChartProps> = ({ data, rawData = [], onBarCli
       <CardContent className="p-4 min-h-fit">
         <div className="w-full min-h-fit">
           {/* Filter tahun dan switch selalu tampil di atas kedua grafik */}
-          <div className="flex flex-row items-center justify-center gap-2 mb-7">
+          <div className="flex flex-row items-center justify-center gap-2 mb-8">
             {setChartMode && (
               <div className="flex items-center space-x-2 mr-4">
                 <Label htmlFor="chart-mode" className="text-sm">Capaian Aspek</Label>

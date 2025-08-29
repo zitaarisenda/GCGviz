@@ -114,8 +114,7 @@ const YearlyScoreChart: React.FC<YearlyScoreChartProps> = ({ data, allYears, yea
   const scores = data.map(d => d.totalScore);
   let minScoreY = Math.floor(Math.min(...scores)) - 5;
   let maxScoreY = Math.ceil(Math.max(...scores)) + 2;
-  if (minScoreY < 0) minScoreY = 0;
-  if (maxScoreY > 100) maxScoreY = 100;
+  if (maxScoreY > 100) maxScoreY = 102;
 
   const barWidth = 40;
   const barGap = data.length > 1 ? (chartWidth - (data.length * barWidth)) / (data.length - 1) : 0;
